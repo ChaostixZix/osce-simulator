@@ -341,8 +341,73 @@ function showProgressIndicator(message = 'Processing') {
     return interval;
 }
 
+// Check if this is first run and offer tutorial
+function checkFirstRun() {
+    try {
+        const fs = require('fs');
+        const firstRunFile = '.first_run_complete';
+        
+        if (!fs.existsSync(firstRunFile)) {
+            // First run - offer tutorial
+            setTimeout(() => {
+                console.log('\n🎓 Welcome to your first session!');
+                console.log('💡 Would you like a quick tutorial? Type "tutorial" to start');
+                console.log('   Or type "start osce" to jump right into medical case training');
+                
+                // Create the first run marker
+                fs.writeFileSync(firstRunFile, new Date().toISOString());
+            }, 2000);
+        }
+    } catch (error) {
+        // Ignore errors - this is just a nice-to-have feature
+    }
+}
+
+// Tutorial function
+function showTutorial() {
+    console.log(`
+╔══════════════════════════════════════════════════════════════╗
+║                    Quick Tutorial (2 minutes)               ║
+╚══════════════════════════════════════════════════════════════╝
+
+🎯 **What is this system?**
+This is an AI-powered medical training platform with two modes:
+• 💬 Chat Mode: Ask medical questions and get AI responses
+• 🏥 OSCE Mode: Practice structured clinical cases with AI patients
+
+🚀 **Let's try OSCE mode:**
+1. Type "start osce" to enter medical training mode
+2. Select "stemi-001" (a heart attack case)
+3. Talk to the AI patient like a real patient
+4. Get scored on your clinical performance
+
+💡 **Example interaction:**
+   You: "Hello, can you tell me about your chest pain?"
+   AI Patient: "It started 2 hours ago, feels like crushing..."
+   You: "I'd like to check your vital signs"
+   AI Patient: "Blood pressure 160/95, heart rate 110..."
+
+🎓 **Tips for success:**
+• Be systematic: History → Examination → Tests → Diagnosis
+• Ask specific questions: "When did it start?" not just "Tell me more"
+• Order appropriate tests: ECG for chest pain, X-ray for breathing issues
+• Provide clear diagnoses: "STEMI" not just "heart problem"
+
+⏱️ **Time commitment:**
+• Tutorial: 2 minutes (this message)
+• First OSCE case: 15-20 minutes
+• Chat mode: As long as you want
+
+🎯 **Ready to start?**
+Type "start osce" now to begin your first medical case!
+Or type "help" anytime for detailed assistance.
+
+═══════════════════════════════════════════════════════════════`);
+}
+
 // Initialize with enhanced startup
 displayStartupMessage();
+checkFirstRun();
 
 rl.on('line', async (input) => {
     const inputTrimmed = input.trim();
@@ -413,6 +478,13 @@ rl.on('line', async (input) => {
 ║  • Check system status if you encounter any issues          ║
 ╚══════════════════════════════════════════════════════════════╝`);
         console.log('═'.repeat(64));
+        return;
+    }
+    
+    if (inputTrimmed.toLowerCase() === 'tutorial') {
+        showTutorial();
+        console.log('═'.repeat(64));
+        displayModeIndicator('chat');
         return;
     }
     

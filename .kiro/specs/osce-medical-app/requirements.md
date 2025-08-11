@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This feature transforms the existing chat application into an OSCE (Objective Structured Clinical Examination) training platform for medical students. The system will provide structured clinical cases where an AI acts as a patient, students can interact through natural conversation to gather information, request examinations and labs, and receive automated scoring based on their performance against predefined checklists.
+This feature transforms the existing chat application into an OSCE (Objective Structured Clinical Examination) training platform for medical students. The system will provide structured clinical cases where an AI acts as a patient, students can interact through natural conversation in Indonesian to gather information, request examinations and labs, and receive automated scoring based on their performance against predefined checklists. The system ensures that AI only reveals information when specifically requested and provides proper case completion mechanisms.
 
 ## Requirements
 
@@ -19,15 +19,16 @@ This feature transforms the existing chat application into an OSCE (Objective St
 
 ### Requirement 2
 
-**User Story:** As a medical student, I want to interact with an AI patient through natural conversation so that I can practice history taking and clinical communication skills.
+**User Story:** As a medical student, I want to interact with an AI patient through natural conversation in Indonesian so that I can practice history taking and clinical communication skills in my native language.
 
 #### Acceptance Criteria
 
-1. WHEN a case is active THEN the AI SHALL respond as the patient based on the case template
-2. WHEN I ask about symptoms THEN the AI SHALL provide responses consistent with the case presentation
-3. WHEN I request physical examinations THEN the AI SHALL provide examination findings only if appropriate
-4. WHEN I request laboratory tests THEN the AI SHALL provide results only when specifically asked
-5. WHEN I request imaging studies THEN the AI SHALL provide results only when specifically requested
+1. WHEN a case is active THEN the AI SHALL respond as the patient in Indonesian based on the case template
+2. WHEN I ask about symptoms THEN the AI SHALL provide responses consistent with the case presentation in Indonesian
+3. WHEN I request physical examinations THEN the AI SHALL ask which specific examination I want to perform before providing findings
+4. WHEN I request laboratory tests THEN the AI SHALL ask which specific tests I want to order before providing results
+5. WHEN I request imaging studies THEN the AI SHALL ask which specific imaging I want to order before providing results
+6. WHEN I ask general questions THEN the AI SHALL NOT volunteer unrequested information that could affect scoring
 
 ### Requirement 3
 
@@ -67,13 +68,39 @@ This feature transforms the existing chat application into an OSCE (Objective St
 
 ### Requirement 6
 
-**User Story:** As a medical educator, I want the initial case to be Acute Coronary Syndrome (STEMI) so that students can practice this critical emergency presentation.
+**User Story:** As a medical educator, I want the initial case to be Acute Coronary Syndrome (STEMI) with a non-revealing case ID so that students can practice this critical emergency presentation without bias.
 
 #### Acceptance Criteria
 
-1. WHEN the system starts THEN it SHALL include a complete STEMI case
-2. WHEN the STEMI case is loaded THEN it SHALL include realistic patient presentation
-3. WHEN students interact with the STEMI case THEN it SHALL include appropriate physical findings
+1. WHEN the system starts THEN it SHALL include a complete STEMI case with ID "chest-pain-1"
+2. WHEN the chest pain case is loaded THEN it SHALL include realistic patient presentation in Indonesian
+3. WHEN students interact with the chest pain case THEN it SHALL include appropriate physical findings only when specifically requested
 4. WHEN students request ECG THEN it SHALL show STEMI-consistent findings
 5. WHEN students request cardiac enzymes THEN it SHALL show elevated troponin levels
-6. WHEN students complete the STEMI case THEN it SHALL evaluate against cardiology best practices
+6. WHEN students complete the chest pain case THEN it SHALL evaluate against cardiology best practices
+
+### Requirement 7
+
+**User Story:** As a medical student, I want a clear mechanism to finish my case so that I can receive my final score and feedback.
+
+#### Acceptance Criteria
+
+1. WHEN I want to finish the case THEN I SHALL be able to type "selesai" or "finish" to end the session
+2. WHEN I finish a case THEN the system SHALL ask for my final diagnosis before scoring
+3. WHEN I provide my final diagnosis THEN the system SHALL calculate and display my complete score
+4. WHEN scoring is complete THEN the system SHALL show detailed feedback in Indonesian
+5. WHEN a case is finished THEN the system SHALL return to the main menu for case selection
+6. IF I try to finish without adequate interaction THEN the system SHALL warn me and allow me to continue
+
+### Requirement 8
+
+**User Story:** As a medical student, I want the AI to only provide information I specifically request so that my scoring accurately reflects my clinical reasoning skills.
+
+#### Acceptance Criteria
+
+1. WHEN I ask for physical examination THEN the AI SHALL ask "Pemeriksaan fisik apa yang ingin Anda lakukan?" before providing any findings
+2. WHEN I ask for laboratory tests THEN the AI SHALL ask "Pemeriksaan laboratorium apa yang ingin Anda pesan?" before providing results
+3. WHEN I ask for imaging THEN the AI SHALL ask "Pemeriksaan pencitraan apa yang ingin Anda pesan?" before providing results
+4. WHEN I provide a specific examination request THEN the AI SHALL provide only the requested information
+5. WHEN I ask general questions THEN the AI SHALL NOT provide examination findings, lab results, or imaging results unless specifically requested
+6. WHEN the AI provides information THEN the scoring system SHALL only award points if the student specifically requested that information

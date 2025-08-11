@@ -2,9 +2,9 @@
 
 ## Overview
 
-The OSCE Medical App extends the existing OpenRouter chat application to provide structured clinical examination training. The system transforms a general-purpose chatbot into a specialized medical education platform where AI simulates patients, tracks student performance, and provides automated assessment.
+The OSCE Medical App extends the existing OpenRouter chat application to provide structured clinical examination training in Indonesian. The system transforms a general-purpose chatbot into a specialized medical education platform where AI simulates patients, tracks student performance, and provides automated assessment with controlled information disclosure.
 
-The application maintains the existing chat infrastructure while adding case management, performance tracking, and specialized medical AI prompting to create an immersive clinical training experience.
+The application maintains the existing chat infrastructure while adding case management, performance tracking, Indonesian language support, controlled information revelation, and specialized medical AI prompting to create an immersive clinical training experience that accurately reflects real clinical interactions.
 
 ## Architecture
 
@@ -76,18 +76,22 @@ sequenceDiagram
 
 ### 1. OSCE Controller (Main Application Logic)
 
-**Purpose:** Central coordinator that manages the application flow and user interactions.
+**Purpose:** Central coordinator that manages the application flow and user interactions in Indonesian.
 
 **Key Methods:**
-- `startOSCE()`: Initialize the application and display case selection
+- `startOSCE()`: Initialize the application and display case selection in Indonesian
 - `selectCase(caseId)`: Load and start a specific case
 - `processUserInput(input)`: Handle student interactions and route to appropriate handlers
-- `endCase()`: Trigger scoring and display results
+- `endCase()`: Trigger scoring and display results in Indonesian
+- `handleFinishCommand()`: Process "selesai" or "finish" commands to end case
+- `requestFinalDiagnosis()`: Ask for student's final diagnosis before scoring
+- `displayIndonesianInterface()`: Show all UI elements in Indonesian
 
 **Interfaces:**
-- Extends existing readline interface for user input
+- Extends existing readline interface for user input with Indonesian prompts
 - Integrates with existing OpenRouter API calling mechanism
-- Manages application state transitions
+- Manages application state transitions including finish mechanism
+- Handles Indonesian language commands and responses
 
 ### 2. Case Manager
 
@@ -116,37 +120,44 @@ sequenceDiagram
 
 ### 3. AI Patient Simulator
 
-**Purpose:** Manages AI prompting to simulate realistic patient interactions.
+**Purpose:** Manages AI prompting to simulate realistic patient interactions in Indonesian with controlled information disclosure.
 
 **Key Methods:**
-- `initializePatient(caseData)`: Set up patient persona and medical history
-- `respondAsPatient(userInput, caseData)`: Generate contextual patient responses
-- `shouldRevealInformation(requestType, caseData)`: Determine if information should be disclosed
-- `formatMedicalResponse(data, requestType)`: Format medical data appropriately
+- `initializePatient(caseData)`: Set up patient persona and medical history with Indonesian language context
+- `respondAsPatient(userInput, caseData)`: Generate contextual patient responses in Indonesian
+- `shouldRevealInformation(requestType, caseData)`: Determine if information should be disclosed based on specific requests
+- `formatMedicalResponse(data, requestType)`: Format medical data appropriately in Indonesian
+- `askForSpecificRequest(category)`: Ask student to specify what examination/test they want
+- `validateSpecificRequest(userInput, category)`: Check if student provided specific enough request
 
 **Prompting Strategy:**
-- System prompt establishes patient persona and medical condition
+- System prompt establishes patient persona and medical condition in Indonesian context
 - Context includes case-specific symptoms, history, and examination findings
-- Response filtering based on what information should be available when requested
+- Response filtering ensures no unrequested information is revealed
+- Clarification prompts ask for specific examinations/tests before providing results
+- Indonesian language templates for medical terminology and patient responses
 
 ### 4. Performance Tracker
 
-**Purpose:** Monitors student actions and maps them to checklist items.
+**Purpose:** Monitors student actions and maps them to checklist items, ensuring points are only awarded for specifically requested information.
 
 **Key Methods:**
 - `initializeChecklist(caseData)`: Set up tracking for case-specific checklist
 - `trackAction(userInput, actionType)`: Record and categorize student actions
-- `markChecklistItem(itemId)`: Mark specific checklist items as completed
+- `markChecklistItem(itemId)`: Mark specific checklist items as completed only when specifically requested
 - `getCompletionStatus()`: Return current progress on checklist
 - `getDetailedLog()`: Return comprehensive action log
+- `validateSpecificRequest(userInput, category)`: Ensure student made specific request before awarding points
+- `trackFinishAttempt()`: Record when student attempts to finish case
 
 **Tracking Categories:**
-- History taking (anamnesis)
-- Physical examination requests
-- Laboratory test orders
-- Imaging study requests
+- History taking (anamnesis) - only when specific questions asked
+- Physical examination requests - only when specific examinations requested
+- Laboratory test orders - only when specific tests ordered
+- Imaging study requests - only when specific imaging ordered
 - Diagnostic reasoning
 - Treatment planning
+- Case completion and final diagnosis
 
 ### 5. Scoring Engine
 
@@ -169,32 +180,32 @@ sequenceDiagram
 
 ```json
 {
-  "id": "stemi-001",
-  "title": "Acute Coronary Syndrome - STEMI",
-  "description": "58-year-old male with acute chest pain",
-  "chiefComplaint": "Severe chest pain for 2 hours",
+  "id": "chest-pain-1",
+  "title": "Nyeri Dada Akut",
+  "description": "Laki-laki 58 tahun dengan nyeri dada akut",
+  "chiefComplaint": "Nyeri dada hebat selama 2 jam",
   "patientInfo": {
     "age": 58,
-    "gender": "male",
-    "name": "John Smith",
-    "occupation": "Construction worker"
+    "gender": "laki-laki",
+    "name": "Budi Santoso",
+    "occupation": "Pekerja konstruksi"
   },
   "presentingSymptoms": {
-    "primary": "Severe crushing chest pain",
-    "associated": ["Shortness of breath", "Nausea", "Sweating"],
-    "onset": "2 hours ago, sudden onset",
-    "character": "Crushing, pressure-like",
-    "radiation": "Left arm and jaw",
+    "primary": "Nyeri dada seperti ditekan benda berat",
+    "associated": ["Sesak napas", "Mual", "Berkeringat"],
+    "onset": "2 jam yang lalu, tiba-tiba",
+    "character": "Seperti ditekan, terasa berat",
+    "radiation": "Menjalar ke lengan kiri dan rahang",
     "severity": "9/10"
   },
   "medicalHistory": {
-    "pastMedical": ["Hypertension", "Diabetes mellitus type 2"],
+    "pastMedical": ["Hipertensi", "Diabetes mellitus tipe 2"],
     "medications": ["Metformin", "Lisinopril"],
-    "allergies": ["NKDA"],
+    "allergies": ["Tidak ada alergi obat yang diketahui"],
     "socialHistory": {
-      "smoking": "20 pack-years, quit 5 years ago",
-      "alcohol": "Occasional",
-      "familyHistory": "Father died of MI at age 62"
+      "smoking": "20 bungkus-tahun, berhenti 5 tahun lalu",
+      "alcohol": "Sesekali",
+      "familyHistory": "Ayah meninggal karena serangan jantung usia 62 tahun"
     }
   },
   "physicalExamination": {

@@ -19,10 +19,10 @@
     "setup": "node -e \"console.log('Run ./start.sh (Linux/Mac) or start.bat (Windows) for guided setup')\"",
     "validate-cases": "node utils/caseValidator.js"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["medical", "education", "osce", "training", "ai", "simulation"],
+  "author": "Medical Training System Team",
   "license": "ISC",
-  "description": "",
+  "description": "AI-powered medical training system with OSCE case simulation and performance tracking",
   "devDependencies": {
     "vitest": "^3.2.4"
   }
