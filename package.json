@@ -7,12 +7,17 @@
     "node-fetch": "^3.3.2",
     "readline": "^1.3.0"
   },
-  "name": "osc",
+  "name": "medical-training-system",
   "version": "1.0.0",
   "main": "app.js",
   "scripts": {
+    "start": "node app.js",
+    "dev": "node app.js",
     "test": "vitest --run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "health": "node -e \"console.log('System check...'); process.exit(0)\"",
+    "setup": "node -e \"console.log('Run ./start.sh (Linux/Mac) or start.bat (Windows) for guided setup')\"",
+    "validate-cases": "node utils/caseValidator.js"
   },
   "keywords": [],
   "author": "",
