@@ -338,6 +338,23 @@ function displayModeIndicator(mode, caseId = null) {
     process.stdout.write(`\r\x1b[K[${modeDisplay}] `);
 }
 
+// Ephemeral slash suggestions state and helpers
+let suggestionsVisible = false;
+let suggestionLinesPrinted = 0;
+let suggestionClearTimer = null;
+
+function clearSlashSuggestions() {
+    if (!suggestionsVisible || suggestionLinesPrinted <= 0) return;
+    // Save cursor, clear the previously printed suggestion block line-by-line, then restore
+    process.stdout.write('\x1b7'); // save cursor position
+    for (let i = 0; i < suggestionLinesPrinted; i++) {
+        process.stdout.write(`\x1b[1A\x1b[2K`); // up 1 line, clear line
+    }
+    process.stdout.write('\x1b8'); // restore cursor position
+    suggestionsVisible = false;
+    suggestionLinesPrinted = 0;
+}
+
 // Command catalogs for suggestions
 const chatCommands = [
     'help',
@@ -356,10 +373,21 @@ const osceCommands = [
 ];
 
 function renderSlashSuggestions(isOsceMode) {
+    if (suggestionsVisible) return; // Do not spam on key repeats
     const list = isOsceMode ? osceCommands : chatCommands;
     const header = isOsceMode ? 'OSCE Commands' : 'Chat/System Commands';
     const lines = list.map(cmd => `   • ${cmd}`).join('\n');
     process.stdout.write(`\n╔════════ ${header} ════════╗\n${lines}\n╚══════════════════════════════╝\n`);
+    // Track how many lines we printed so we can clear them later (blank + header + items + footer)
+    suggestionLinesPrinted = 1 + 1 + list.length + 1;
+    suggestionsVisible = true;
+    // Auto-hide after a short delay (acts like autocomplete popover)
+    if (suggestionClearTimer) clearTimeout(suggestionClearTimer);
+    suggestionClearTimer = setTimeout(() => {
+        clearSlashSuggestions();
+        // Ensure the mode indicator is still visible
+        displayModeIndicator(isOsceMode ? 'osce' : 'chat');
+    }, 1500);
     // Repaint mode indicator so user can keep typing
     displayModeIndicator(isOsceMode ? 'osce' : 'chat');
 }
