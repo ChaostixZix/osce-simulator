@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 import axios from 'axios';
 import readline from 'readline';
 import OSCEControllerWrapper from './lib/OSCEControllerWrapper.js';
+import { CHAT_COMMANDS, OSCE_COMMANDS } from './lib/CommandCatalog.js';
 
 dotenv.config();
 
@@ -338,58 +339,49 @@ function displayModeIndicator(mode, caseId = null) {
     process.stdout.write(`\r\x1b[K[${modeDisplay}] `);
 }
 
-// Ephemeral slash suggestions state and helpers
+// Inline suggestion overlay right at the cursor (no extra lines, no push)
 let suggestionsVisible = false;
-let suggestionLinesPrinted = 0;
-let suggestionClearTimer = null;
+let suggestionOverlayLength = 0;
 
 function clearSlashSuggestions() {
-    if (!suggestionsVisible || suggestionLinesPrinted <= 0) return;
-    // Save cursor, clear the previously printed suggestion block line-by-line, then restore
-    process.stdout.write('\x1b7'); // save cursor position
-    for (let i = 0; i < suggestionLinesPrinted; i++) {
-        process.stdout.write(`\x1b[1A\x1b[2K`); // up 1 line, clear line
-    }
-    process.stdout.write('\x1b8'); // restore cursor position
+    if (!suggestionsVisible) return;
+    process.stdout.write('\x1b7'); // save cursor
+    // Overwrite previously written overlay with spaces
+    process.stdout.write(' '.repeat(suggestionOverlayLength));
+    process.stdout.write('\x1b8'); // restore cursor
     suggestionsVisible = false;
-    suggestionLinesPrinted = 0;
+    suggestionOverlayLength = 0;
 }
 
-// Command catalogs for suggestions
-const chatCommands = [
-    'help',
-    'exit',
-    'system status',
-    'health check',
-    'tutorial',
-    'start osce',
-    'session stats',
-    'stats'
-];
-
-const osceCommands = [
-    'score', 'progress', 'status', 'help', '?',
-    'case info', 'end case', 'exit osce', 'new case', 'restart', 'list', 'cases'
-];
-
 function renderSlashSuggestions(isOsceMode) {
-    if (suggestionsVisible) return; // Do not spam on key repeats
-    const list = isOsceMode ? osceCommands : chatCommands;
-    const header = isOsceMode ? 'OSCE Commands' : 'Chat/System Commands';
-    const lines = list.map(cmd => `   • ${cmd}`).join('\n');
-    process.stdout.write(`\n╔════════ ${header} ════════╗\n${lines}\n╚══════════════════════════════╝\n`);
-    // Track how many lines we printed so we can clear them later (blank + header + items + footer)
-    suggestionLinesPrinted = 1 + 1 + list.length + 1;
+    // Non-intrusive inline ghost text appended at the cursor
+    const list = isOsceMode ? OSCE_COMMANDS : CHAT_COMMANDS;
+    const header = isOsceMode ? 'OSCE' : 'Chat';
+    const joined = list.join(' | ');
+    const cols = process.stdout.columns || 80;
+    // Keep overlay short to avoid wrapping
+    let content = `  \x1b[2m${header}: ${joined}\x1b[0m`;
+    // Hard cap to avoid wrapping regardless of cursor column
+    const maxLen = Math.max(10, Math.min(40, cols - 2));
+    if (stripAnsi(content).length > maxLen) {
+        // Truncate the non-ANSI part safely
+        const prefix = `  \x1b[2m${header}: `;
+        const remaining = maxLen - stripAnsi(prefix).length - 3;
+        const truncated = remaining > 0 ? joined.slice(0, remaining) + '...' : '';
+        content = `${prefix}${truncated}\x1b[0m`;
+    }
+    // Draw overlay without moving cursor
+    process.stdout.write('\x1b7'); // save cursor
+    process.stdout.write(content);
+    process.stdout.write('\x1b8'); // restore cursor
     suggestionsVisible = true;
-    // Auto-hide after a short delay (acts like autocomplete popover)
-    if (suggestionClearTimer) clearTimeout(suggestionClearTimer);
-    suggestionClearTimer = setTimeout(() => {
-        clearSlashSuggestions();
-        // Ensure the mode indicator is still visible
-        displayModeIndicator(isOsceMode ? 'osce' : 'chat');
-    }, 1500);
-    // Repaint mode indicator so user can keep typing
-    displayModeIndicator(isOsceMode ? 'osce' : 'chat');
+    suggestionOverlayLength = stripAnsi(content).length;
+}
+
+// Minimal ANSI stripper for length calculation
+function stripAnsi(str) {
+    // eslint-disable-next-line no-control-regex
+    return String(str).replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, '');
 }
 
 // Enhanced progress indicator
@@ -817,10 +809,7 @@ if (process.stdin.isTTY) {
             return;
         }
 
-        // On any other keypress, hide suggestions if visible (behaves like autocomplete)
-        if (suggestionsVisible) {
-            clearSlashSuggestions();
-            displayModeIndicator(osceMode ? 'osce' : 'chat');
-        }
+        // On any other keypress, hide suggestions immediately (autocomplete style)
+        if (suggestionsVisible) clearSlashSuggestions();
     });
 }
