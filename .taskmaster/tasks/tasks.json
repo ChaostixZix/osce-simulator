@@ -76,7 +76,7 @@
         "testStrategy": "Unit test to ensure both command catalogs contain the correct and complete list of commands as per the PRD.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -84,7 +84,7 @@
             "description": "Determine and define the optimal data structure (e.g., array of strings, array of objects) for storing both Chat and OSCE mode command catalogs, considering ease of access and potential future extensibility.",
             "dependencies": [],
             "details": "Decide if a simple array of strings is sufficient or if a more complex structure (e.g., array of objects with properties like 'name', 'description', 'alias') is needed for future features, even if only 'name' is populated initially. This structure should facilitate easy iteration and lookup.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "N/A (design phase)"
           },
           {
@@ -95,7 +95,7 @@
               "12.1"
             ],
             "details": "Populate the chosen data structure with the following commands: 'help', 'exit', 'system status', 'health check', 'tutorial', 'start osce', 'session stats'. Ensure the data structure adheres to the design established in subtask 1.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test to verify the Chat mode catalog contains exactly the specified commands and no others."
           },
           {
@@ -106,7 +106,7 @@
               "12.1"
             ],
             "details": "Populate the chosen data structure with the following commands: 'score', 'progress', 'status', 'help', '?', 'case info', 'end case', 'exit osce', 'new case', 'restart', 'list', 'cases'. Ensure the data structure adheres to the design established in subtask 1.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test to verify the OSCE mode catalog contains exactly the specified commands and no others."
           },
           {
@@ -118,7 +118,7 @@
               "12.3"
             ],
             "details": "Implement a mechanism (e.g., module exports, a dedicated utility function, or a global constant if appropriate for the architecture) to provide the command catalogs to other parts of the application, specifically the suggestion rendering logic. This ensures they can be retrieved based on the current application mode.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Integration test to confirm that the suggestion rendering logic can successfully retrieve the correct command catalog based on the current mode."
           },
           {
@@ -131,7 +131,7 @@
               "12.4"
             ],
             "details": "Write unit tests that iterate through each catalog and assert that every expected command is present and correctly formatted, and that no unexpected commands are included. Verify the exact count of commands in each catalog against the PRD specification.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Automated unit tests covering both Chat and OSCE command catalogs for content accuracy and completeness."
           }
         ]
@@ -423,7 +423,7 @@
     ],
     "metadata": {
       "created": "2025-08-12T14:24:58.954Z",
-      "updated": "2025-08-12T14:38:17.018Z",
+      "updated": "2025-08-12T14:44:19.062Z",
       "description": "Tasks for master context"
     }
   }
