@@ -808,11 +808,19 @@ if (process.stdin.isTTY) {
         // Trigger when actual '/' character is typed
         if (str === '/') {
             renderSlashSuggestions(osceMode);
+            return; // prevent repeated processing for the same keypress
         }
 
         // Allow exiting raw mode gracefully on Ctrl+C
         if (key.sequence === '\u0003') { // Ctrl+C
             rl.close();
+            return;
+        }
+
+        // On any other keypress, hide suggestions if visible (behaves like autocomplete)
+        if (suggestionsVisible) {
+            clearSlashSuggestions();
+            displayModeIndicator(osceMode ? 'osce' : 'chat');
         }
     });
 }
