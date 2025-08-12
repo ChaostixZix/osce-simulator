@@ -22,6 +22,16 @@ const rl = readline.createInterface({
     output: process.stdout
 });
 
+// Real-time keypress handling for slash command suggestions
+if (process.stdin.isTTY) {
+    readline.emitKeypressEvents(process.stdin);
+    try {
+        process.stdin.setRawMode(true);
+    } catch (_) {
+        // Ignore if raw mode cannot be set (e.g., non-interactive environments)
+    }
+}
+
 // OSCE Controller wrapper instance
 const osceController = new OSCEControllerWrapper({
     apiUrl: process.env.API_URL,
@@ -70,9 +80,9 @@ function trackError(error, context) {
 
 function getSessionSummary() {
     const totalTime = Math.round((new Date() - sessionStats.startTime) / 1000 / 60);
-    const avgOsceTime = sessionStats.osceSessionsCompleted > 0 ? 
+    const avgOsceTime = sessionStats.osceSessionsCompleted > 0 ?
         Math.round(sessionStats.totalOsceTime / sessionStats.osceSessionsCompleted / 1000 / 60) : 0;
-    
+
     return {
         totalSessionTime: totalTime,
         chatMessages: sessionStats.chatMessages,
@@ -160,7 +170,7 @@ function getFullContext() {
 async function callOpenRouter(messages) {
     const maxRetries = 3;
     let retryCount = 0;
-    
+
     while (retryCount < maxRetries) {
         try {
             const response = await axios.post(process.env.API_URL, {
@@ -177,10 +187,10 @@ async function callOpenRouter(messages) {
             });
 
             return response.data.choices[0].message.content;
-            
+
         } catch (error) {
             retryCount++;
-            
+
             // Log the error with more detail
             if (error.response) {
                 console.error(`API Error (attempt ${retryCount}/${maxRetries}):`, {
@@ -193,25 +203,25 @@ async function callOpenRouter(messages) {
             } else {
                 console.error(`Request Error (attempt ${retryCount}/${maxRetries}):`, error.message);
             }
-            
+
             // Don't retry on client errors (4xx) except rate limiting
             if (error.response && error.response.status >= 400 && error.response.status < 500 && error.response.status !== 429) {
                 console.error('Client error - not retrying');
                 break;
             }
-            
+
             // If this was the last retry, break
             if (retryCount >= maxRetries) {
                 break;
             }
-            
+
             // Wait before retrying (exponential backoff)
             const delay = Math.min(1000 * Math.pow(2, retryCount - 1), 10000);
             console.log(`Retrying in ${delay}ms...`);
             await new Promise(resolve => setTimeout(resolve, delay));
         }
     }
-    
+
     return null;
 }
 
@@ -239,7 +249,7 @@ function displayStartupMessage() {
     console.log(`\n🤖 AI Model: ${process.env.API_MODEL || 'Not configured'}`);
     console.log(`📍 Current Mode: Chat`);
     console.log(`📚 Available Cases: Loading...`);
-    
+
     // Asynchronously load and display case count
     setTimeout(async () => {
         try {
@@ -263,7 +273,7 @@ function displayStartupMessage() {
 // Enhanced command parsing for OSCE-specific actions
 function parseOSCECommand(input) {
     const inputLower = input.toLowerCase().trim();
-    
+
     // Direct command mappings
     const commandMap = {
         'score': 'score',
@@ -285,14 +295,14 @@ function parseOSCECommand(input) {
         'list': 'list',
         'cases': 'list'
     };
-    
+
     return commandMap[inputLower] || null;
 }
 
 // Format OSCE responses with enhanced display
 function formatOSCEResponse(response, state) {
     let formatted = '';
-    
+
     // Add session status header for active cases
     if (state && state.currentCase && !state.awaitingCaseSelection && !state.showingResults) {
         const duration = Math.round(state.sessionDuration / (1000 * 60));
@@ -301,10 +311,10 @@ function formatOSCEResponse(response, state) {
         formatted += `│ Duration: ${duration} minutes${' '.repeat(37 - duration.toString().length)} │\n`;
         formatted += `└──────────────────────────────────────────────────────────────┘\n\n`;
     }
-    
+
     // Format the main response
     formatted += response;
-    
+
     // Add command hints based on current state
     if (state) {
         formatted += '\n\n';
@@ -316,28 +326,54 @@ function formatOSCEResponse(response, state) {
             formatted += '💡 Tip: Ask questions, request exams/tests, "score" for progress, "help" for commands';
         }
     }
-    
+
     return formatted;
 }
 
 // Display mode indicator
 function displayModeIndicator(mode, caseId = null) {
-    const modeDisplay = mode === 'osce' ? 
+    const modeDisplay = mode === 'osce' ?
         (caseId ? `OSCE - ${caseId}` : 'OSCE') : 'Chat';
-    
+
     process.stdout.write(`\r\x1b[K[${modeDisplay}] `);
+}
+
+// Command catalogs for suggestions
+const chatCommands = [
+    'help',
+    'exit',
+    'system status',
+    'health check',
+    'tutorial',
+    'start osce',
+    'session stats',
+    'stats'
+];
+
+const osceCommands = [
+    'score', 'progress', 'status', 'help', '?',
+    'case info', 'end case', 'exit osce', 'new case', 'restart', 'list', 'cases'
+];
+
+function renderSlashSuggestions(isOsceMode) {
+    const list = isOsceMode ? osceCommands : chatCommands;
+    const header = isOsceMode ? 'OSCE Commands' : 'Chat/System Commands';
+    const lines = list.map(cmd => `   • ${cmd}`).join('\n');
+    process.stdout.write(`\n╔════════ ${header} ════════╗\n${lines}\n╚══════════════════════════════╝\n`);
+    // Repaint mode indicator so user can keep typing
+    displayModeIndicator(isOsceMode ? 'osce' : 'chat');
 }
 
 // Enhanced progress indicator
 function showProgressIndicator(message = 'Processing') {
     const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
     let i = 0;
-    
+
     const interval = setInterval(() => {
         process.stdout.write(`\r${frames[i]} ${message}...`);
         i = (i + 1) % frames.length;
     }, 100);
-    
+
     return interval;
 }
 
@@ -346,14 +382,14 @@ function checkFirstRun() {
     try {
         const fs = require('fs');
         const firstRunFile = '.first_run_complete';
-        
+
         if (!fs.existsSync(firstRunFile)) {
             // First run - offer tutorial
             setTimeout(() => {
                 console.log('\n🎓 Welcome to your first session!');
                 console.log('💡 Would you like a quick tutorial? Type "tutorial" to start');
                 console.log('   Or type "start osce" to jump right into medical case training');
-                
+
                 // Create the first run marker
                 fs.writeFileSync(firstRunFile, new Date().toISOString());
             }, 2000);
@@ -411,7 +447,7 @@ checkFirstRun();
 
 rl.on('line', async (input) => {
     const inputTrimmed = input.trim();
-    
+
     if (inputTrimmed.toLowerCase() === 'exit') {
         // Display session summary before exit
         const summary = getSessionSummary();
@@ -428,7 +464,7 @@ rl.on('line', async (input) => {
         if (summary.errorCount > 0) {
             console.log(`⚠️  Errors Encountered: ${summary.errorCount}`);
         }
-        
+
         // Show recent case performance if any
         if (sessionStats.casesAttempted.length > 0) {
             console.log('\n🎯 Recent Case Performance:');
@@ -437,13 +473,13 @@ rl.on('line', async (input) => {
                 console.log(`   • ${attempt.caseId}: ${attempt.score}% (${duration}min)`);
             });
         }
-        
+
         console.log('\n👋 Thank you for using the Medical Training System!');
         console.log('💡 Keep practicing to improve your clinical skills!');
         rl.close();
         return;
     }
-    
+
     if (inputTrimmed.toLowerCase() === 'help' && !osceMode) {
         console.log(`
 ╔══════════════════════════════════════════════════════════════╗
@@ -480,24 +516,24 @@ rl.on('line', async (input) => {
         console.log('═'.repeat(64));
         return;
     }
-    
+
     if (inputTrimmed.toLowerCase() === 'tutorial') {
         showTutorial();
         console.log('═'.repeat(64));
         displayModeIndicator('chat');
         return;
     }
-    
+
     if (inputTrimmed.toLowerCase() === 'start osce') {
         // Switch to OSCE mode with enhanced display
         osceMode = true;
         console.log('\n🏥 Initializing OSCE Medical Training System...');
-        
+
         const progressIndicator = showProgressIndicator('Loading cases');
         const response = await osceController.startOSCE();
         clearInterval(progressIndicator);
         process.stdout.write('\r\x1b[K'); // Clear progress line
-        
+
         const state = await osceController.getState();
         console.log(formatOSCEResponse(response, state));
         console.log('═'.repeat(64));
@@ -514,12 +550,12 @@ rl.on('line', async (input) => {
         console.log(`⏱️  Session Duration: ${summary.totalSessionTime} minutes`);
         console.log(`💬 Chat Messages Sent: ${summary.chatMessages}`);
         console.log(`🏥 OSCE Cases Completed: ${summary.osceSessionsCompleted}`);
-        
+
         if (summary.osceSessionsCompleted > 0) {
             console.log(`📚 Unique Cases Attempted: ${summary.uniqueCases} of ${summary.casesAttempted}`);
             console.log(`⏱️  Average Case Duration: ${summary.averageOsceTime} minutes`);
             console.log(`📈 Total OSCE Time: ${Math.round(sessionStats.totalOsceTime / 1000 / 60)} minutes`);
-            
+
             // Show performance trend
             if (sessionStats.casesAttempted.length >= 2) {
                 const recent = sessionStats.casesAttempted.slice(-2);
@@ -528,7 +564,7 @@ rl.on('line', async (input) => {
                 console.log(`${trendIcon} Performance Trend: ${trend > 0 ? '+' : ''}${trend.toFixed(1)}%`);
             }
         }
-        
+
         if (summary.errorCount > 0) {
             console.log(`⚠️  Errors Encountered: ${summary.errorCount}`);
             const recentErrors = sessionStats.errors.slice(-3);
@@ -537,7 +573,7 @@ rl.on('line', async (input) => {
                 console.log(`   • ${err.context}: ${err.error.substring(0, 50)}...`);
             });
         }
-        
+
         console.log('═'.repeat(64));
         displayModeIndicator(osceMode ? 'osce' : 'chat');
         return;
@@ -558,7 +594,7 @@ rl.on('line', async (input) => {
                 console.log(`🚨 Last Error: ${status.lastError}`);
             }
             console.log(`⏱️  Session Duration: ${Math.round(status.sessionDuration / 1000)}s`);
-            
+
             // Component status
             console.log('\n📋 Component Status:');
             console.log(`   • Case Manager: ${status.caseManagerStats.successRate.toFixed(1)}% success rate`);
@@ -576,15 +612,15 @@ rl.on('line', async (input) => {
         console.log('\n🏥 Performing health check...');
         try {
             const health = await osceController.performHealthCheck();
-            const statusIcon = health.overall === 'healthy' ? '🟢' : 
-                              health.overall === 'degraded' ? '🟡' : '🔴';
-            
+            const statusIcon = health.overall === 'healthy' ? '🟢' :
+                health.overall === 'degraded' ? '🟡' : '🔴';
+
             console.log(`\n${statusIcon} Overall Health: ${health.overall.toUpperCase()}`);
-            
+
             if (health.issues.length > 0) {
                 console.log('\n⚠️  Issues Found:');
                 health.issues.forEach(issue => console.log(`   • ${issue}`));
-                
+
                 console.log('\n💡 Recovery Suggestions:');
                 const suggestions = await osceController.getErrorRecoverySuggestions();
                 suggestions.forEach(suggestion => console.log(`   • ${suggestion}`));
@@ -598,11 +634,11 @@ rl.on('line', async (input) => {
         displayModeIndicator(osceMode ? 'osce' : 'chat');
         return;
     }
-    
+
     if (osceMode) {
         // Parse OSCE-specific commands
         const command = parseOSCECommand(inputTrimmed);
-        
+
         if (command === 'exit osce') {
             // Exit OSCE mode with confirmation
             osceMode = false;
@@ -612,73 +648,73 @@ rl.on('line', async (input) => {
             displayModeIndicator('chat');
             return;
         }
-        
+
         // Show enhanced progress indicator
         const state = await osceController.getState();
-        const progressMessage = state.awaitingCaseSelection ? 'Processing selection' : 
-                               state.showingResults ? 'Generating results' : 'Consulting patient';
-        
+        const progressMessage = state.awaitingCaseSelection ? 'Processing selection' :
+            state.showingResults ? 'Generating results' : 'Consulting patient';
+
         const progressIndicator = showProgressIndicator(progressMessage);
-        
+
         try {
             const response = await osceController.processUserInput(inputTrimmed);
             clearInterval(progressIndicator);
             process.stdout.write('\r\x1b[K'); // Clear progress line
-            
+
             const updatedState = await osceController.getState();
             console.log(formatOSCEResponse(response, updatedState));
-            
+
             // Check if case was just completed and track it
             if (updatedState.showingResults && updatedState.currentCase && updatedState.sessionDuration) {
                 const score = updatedState.lastScore || 0;
                 trackOsceSession(updatedState.currentCase, updatedState.sessionDuration, score);
-                
+
                 // Show completion celebration
                 console.log('\n🎉 Case completed! Great work on your clinical skills practice.');
                 console.log(`📊 Your score: ${score}% | ⏱️ Time: ${Math.round(updatedState.sessionDuration / 1000 / 60)} minutes`);
-                
+
                 // Suggest next actions
                 console.log('\n💡 What\'s next?');
                 console.log('   • Type "new case" to try another case');
                 console.log('   • Type "stats" to see your session statistics');
                 console.log('   • Type "exit osce" to return to chat mode');
             }
-            
+
         } catch (error) {
             clearInterval(progressIndicator);
             process.stdout.write('\r\x1b[K');
-            
+
             // Track error for session stats
             trackError(error, 'OSCE Mode');
-            
+
             // Enhanced error handling for OSCE mode
             console.log(`❌ Error: ${error.message}`);
-            
+
             // Provide recovery suggestions for common errors
             if (error.message.includes('API') || error.message.includes('network')) {
                 console.log('💡 Suggestion: Check your internet connection and API credentials');
             } else if (error.message.includes('case') || error.message.includes('file')) {
                 console.log('💡 Suggestion: Verify that case files are properly installed and formatted');
             }
-            
+
             // Offer to check system status
             console.log('💡 Type "system status" to check system health, or "help" for assistance');
         }
-        
+
         console.log('═'.repeat(64));
         const finalState = await osceController.getState();
         displayModeIndicator('osce', finalState.currentCase);
-        
+
     } else {
         // Regular chat mode with enhanced display
         if (!inputTrimmed) {
             displayModeIndicator('chat');
             return;
         }
-        
+
         // Track chat message for session stats
         trackChatMessage();
-        
+
         // Add user message to history
         chatHistory.push({
             role: "user",
@@ -694,7 +730,7 @@ rl.on('line', async (input) => {
             // Get full context and call API
             const fullContext = getFullContext();
             const response = await callOpenRouter(fullContext);
-            
+
             clearInterval(progressIndicator);
             process.stdout.write('\r\x1b[K');
 
@@ -704,7 +740,7 @@ rl.on('line', async (input) => {
                     role: "assistant",
                     content: response
                 });
-                
+
                 console.log(`🤖 ${response}`);
                 console.log(`\n📊 History: ${chatHistory.length} messages${summarizedHistory ? ' (with summary)' : ''}`);
             } else {
@@ -713,13 +749,13 @@ rl.on('line', async (input) => {
         } catch (error) {
             clearInterval(progressIndicator);
             process.stdout.write('\r\x1b[K');
-            
+
             // Track error for session stats
             trackError(error, 'Chat Mode');
-            
+
             // Enhanced error handling for chat mode
             console.log(`❌ Error: ${error.message}`);
-            
+
             // Provide helpful suggestions
             if (error.code === 'ETIMEDOUT') {
                 console.log('💡 The request timed out. Please try again.');
@@ -731,8 +767,24 @@ rl.on('line', async (input) => {
                 console.log('💡 Please try rephrasing your message or check your internet connection.');
             }
         }
-        
+
         console.log('═'.repeat(64));
         displayModeIndicator('chat');
     }
 });
+
+// Listen for real-time keypress to trigger slash suggestions without Enter
+if (process.stdin.isTTY) {
+    process.stdin.on('keypress', (str, key) => {
+        if (!key) return;
+        // Trigger when actual '/' character is typed
+        if (str === '/') {
+            renderSlashSuggestions(osceMode);
+        }
+
+        // Allow exiting raw mode gracefully on Ctrl+C
+        if (key.sequence === '\u0003') { // Ctrl+C
+            rl.close();
+        }
+    });
+}

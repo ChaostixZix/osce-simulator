@@ -216,10 +216,10 @@ sequenceDiagram
       "temp": "37.1",
       "o2sat": "94% on room air"
     },
-    "general": "Diaphoretic, anxious, in moderate distress",
-    "cardiovascular": "Tachycardic, regular rhythm, no murmurs",
-    "respiratory": "Mild bibasilar crackles",
-    "other": "Unremarkable"
+    "general": "Berkeringat, cemas, tampak kesakitan sedang",
+    "cardiovascular": "Takikardi, irama teratur, tidak ada murmur",
+    "respiratory": "Ronki basah halus bilateral ringan",
+    "other": "Dalam batas normal"
   },
   "investigations": {
     "ecg": {
@@ -409,19 +409,26 @@ sequenceDiagram
 ## Error Handling
 
 ### Case Loading Errors
-- **Missing case files**: Display user-friendly message and continue with available cases
+- **Missing case files**: Display user-friendly message in Indonesian and continue with available cases
 - **Malformed JSON**: Log error details and skip invalid cases
-- **Missing required fields**: Validate and provide specific error messages
+- **Missing required fields**: Validate and provide specific error messages in Indonesian
 
 ### AI API Errors
 - **Network failures**: Implement retry logic with exponential backoff
 - **Rate limiting**: Queue requests and implement appropriate delays
-- **Invalid responses**: Fallback to generic patient responses
+- **Invalid responses**: Fallback to generic patient responses in Indonesian
 
 ### User Input Validation
-- **Empty inputs**: Prompt for clarification
-- **Inappropriate requests**: Guide student toward appropriate clinical actions
-- **System commands**: Handle special commands (exit, score, help) appropriately
+- **Empty inputs**: Prompt for clarification in Indonesian
+- **Inappropriate requests**: Guide student toward appropriate clinical actions in Indonesian
+- **System commands**: Handle special commands (keluar, skor, bantuan, selesai) appropriately
+- **Finish attempts**: Validate if student has adequate interaction before allowing case completion
+
+### Language and Information Control
+- **Information disclosure**: Ensure AI never provides unrequested examination findings or test results
+- **Specific request validation**: Verify student made specific requests before revealing information
+- **Indonesian language consistency**: Maintain Indonesian throughout all interactions
+- **Scoring accuracy**: Only award points when student specifically requests information
 
 ## Testing Strategy
 

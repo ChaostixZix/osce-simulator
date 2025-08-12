@@ -1,0 +1,49 @@
+Title: Real-time Slash Command Suggestions in CLI App
+
+Overview:
+We will add a real-time "/" command trigger in the Node.js CLI application (`app.js`). When a user types "/" in either Chat mode or OSCE mode, the app will immediately display a list of available commands without requiring the user to press Enter. This improves discoverability and speed.
+
+Goals:
+- Detect keypress events in real time and respond to the "/" character.
+- Show a non-blocking list of available commands depending on the current mode (Chat vs OSCE).
+- Avoid disrupting the user's current input flow; keep the prompt/mode indicator intact after showing suggestions.
+
+User Experience:
+- In Chat mode, typing "/" instantly prints a list of chat/system commands.
+- In OSCE mode, typing "/" instantly prints a list of OSCE-specific commands.
+- After suggestions are shown, the mode indicator is reprinted so the user can continue typing normally.
+- No need to press Enter to see suggestions.
+
+Non-Goals (MVP):
+- No interactive scrolling or filtering in the suggestion list.
+- No fuzzy search. Future enhancements may include filtering as the user keeps typing.
+
+Core Features:
+1) Keypress Handling
+   - Use `readline.emitKeypressEvents(process.stdin)` and `process.stdin.setRawMode(true)` when TTY is available.
+   - Listen to `process.stdin` `keypress` events.
+   - On key `/`, trigger suggestion rendering for the current mode.
+
+2) Command Catalogs
+   - Chat mode commands (baseline): help, exit, system status, health check, tutorial, start osce, session stats (stats)
+   - OSCE mode commands (baseline): score, progress, status, help, ?, case info, end case, exit osce, new case, restart, list, cases
+
+3) Suggestion Rendering
+   - Print a compact, readable list with a short header.
+   - Re-display the current mode indicator after suggestions so the user can continue typing without confusion.
+
+Technical Notes:
+- Guard `process.stdin.setRawMode(true)` behind `process.stdin.isTTY` to avoid errors in non-TTY environments (e.g., when running tests).
+- Do not change existing `rl.on('line')` logic; suggestions should be purely additive.
+
+MVP Acceptance Criteria:
+- Typing "/" in Chat mode (without pressing Enter) displays a list of Chat commands immediately.
+- Typing "/" in OSCE mode (without pressing Enter) displays a list of OSCE commands immediately.
+- After suggestions are printed, the mode indicator is reprinted and the user can continue typing normally.
+
+Future Enhancements (Post-MVP):
+- Dynamic filtering as user types more characters (e.g., "/he" shows health/help).
+- Arrow-key navigation and Enter to auto-complete a selected command.
+- Colorized output and categorized sections.
+
+
