@@ -245,3 +245,53 @@ The tests ensure the OSCE Medical Training System meets all specified requiremen
 - Monitor test execution times for performance regression
 - Alert on test failures in critical workflows
 - Track test coverage metrics over time
+
+## Contributing to Tests
+
+When adding new tests:
+1. Follow the established patterns for mocking and setup
+2. Include both positive and negative test cases
+3. Test error handling and edge cases
+4. Document test purpose and key scenarios
+5. Ensure tests are independent and repeatable
+
+---
+
+*This comprehensive test suite ensures the OSCE Medical Training System maintains high reliability, medical accuracy, and educational effectiveness while providing robust error handling and performance optimization.*
+
+### 5. CaseValidator.test.js
+**Purpose**: Comprehensive validation testing for the CaseValidator utility class
+
+**Test Categories**:
+- **Constructor and Schema Loading**: Tests initialization and schema loading with error handling
+- **Case Validation**: Tests JSON schema validation against valid and invalid case data
+- **File Validation**: Tests reading and validating case files from disk
+- **Bulk Validation**: Tests validating all case files in a directory
+- **Required Fields Check**: Tests validation of required fields beyond schema requirements
+- **Checklist Integrity Validation**: Tests checklist weight validation and item structure
+- **Integration Tests**: Tests complete validation workflows
+- **Error Resilience**: Tests handling of corrupted data and system errors
+
+**Key Features**:
+- Tests all CaseValidator methods comprehensively
+- Validates JSON schema compliance for medical case files
+- Tests file system operations and error handling
+- Validates checklist integrity (weights sum to 100%)
+- Tests required field validation beyond schema
+- Includes edge cases and error conditions
+- Creates temporary test files for realistic testing
+- Tests integration between different validation methods
+- Validates proper error structure and messaging
+
+**Coverage Areas**:
+- ✅ JSON schema validation using Ajv library
+- ✅ File system operations (reading JSON files)
+- ✅ Directory scanning and bulk validation
+- ✅ Medical case data structure validation
+- ✅ Checklist weight and item validation
+- ✅ Required field checking for medical cases
+- ✅ Error handling for corrupted or missing files
+- ✅ Mock testing for file system errors
+- ✅ Temporary file creation and cleanup
+
+This test ensures the medical case validation system maintains data integrity and proper error handling for all medical training cases.
