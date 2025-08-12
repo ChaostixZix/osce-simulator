@@ -1635,3 +1635,97 @@
 {"timestamp":"2025-08-12T14:50:15.286Z","level":"WARN","context":"retry","message":"Operation failed, retrying in 11ms (attempt 1/4)","metadata":{"context":"operation","error":"Network error","attempt":1,"delay":11}}
 {"timestamp":"2025-08-12T14:50:15.299Z","level":"WARN","context":"retry","message":"Operation failed, retrying in 22ms (attempt 2/4)","metadata":{"context":"operation","error":"Timeout","attempt":2,"delay":22}}
 {"timestamp":"2025-08-12T14:50:15.322Z","level":"INFO","context":"retry","message":"Operation succeeded after 2 retries","metadata":{"context":"operation","attempts":3,"duration":0}}
+{"timestamp":"2025-08-12T14:51:26.061Z","level":"WARN","context":"retry","message":"Operation failed, retrying in 967ms (attempt 1/4)","metadata":{"context":"operation","error":"Temporary error","attempt":1,"delay":967}}
+{"timestamp":"2025-08-12T14:51:26.196Z","level":"INFO","context":"osce_controller","message":"Initializing OSCE Medical Training System"}
+{"timestamp":"2025-08-12T14:51:26.208Z","level":"INFO","context":"case_manager","message":"Starting case discovery and loading","metadata":{"directory":"/workspace/cases"}}
+{"timestamp":"2025-08-12T14:51:26.208Z","level":"INFO","context":"case_manager","message":"Found 1 potential case files","metadata":{"files":["stemi-001.json"]}}
+{"timestamp":"2025-08-12T14:51:26.209Z","level":"INFO","context":"case_manager","message":"Case loading completed: 1 successful, 0 failed","metadata":{"duration":1,"successCount":1,"errorCount":0,"totalCases":1}}
+{"timestamp":"2025-08-12T14:51:26.210Z","level":"INFO","context":"osce_controller","message":"OSCE system initialized successfully","metadata":{"availableCases":1,"duration":14,"caseIds":["stemi-001"]}}
+{"timestamp":"2025-08-12T14:51:26.214Z","level":"INFO","context":"osce_controller","message":"Initializing OSCE Medical Training System"}
+{"timestamp":"2025-08-12T14:51:26.226Z","level":"INFO","context":"case_manager","message":"Starting case discovery and loading","metadata":{"directory":"/workspace/cases"}}
+{"timestamp":"2025-08-12T14:51:26.227Z","level":"INFO","context":"case_manager","message":"Found 1 potential case files","metadata":{"files":["stemi-001.json"]}}
+{"timestamp":"2025-08-12T14:51:26.228Z","level":"INFO","context":"case_manager","message":"Case loading completed: 1 successful, 0 failed","metadata":{"duration":2,"successCount":1,"errorCount":0,"totalCases":1}}
+{"timestamp":"2025-08-12T14:51:26.228Z","level":"INFO","context":"osce_controller","message":"OSCE system initialized successfully","metadata":{"availableCases":1,"duration":14,"caseIds":["stemi-001"]}}
+{"timestamp":"2025-08-12T14:51:26.237Z","level":"INFO","context":"osce_controller","message":"Initializing OSCE Medical Training System"}
+{"timestamp":"2025-08-12T14:51:26.237Z","level":"INFO","context":"case_manager","message":"Starting case discovery and loading","metadata":{"directory":"/workspace/cases"}}
+{"timestamp":"2025-08-12T14:51:26.237Z","level":"INFO","context":"case_manager","message":"Found 1 potential case files","metadata":{"files":["stemi-001.json"]}}
+{"timestamp":"2025-08-12T14:51:26.238Z","level":"INFO","context":"case_manager","message":"Case loading completed: 1 successful, 0 failed","metadata":{"duration":1,"successCount":1,"errorCount":0,"totalCases":1}}
+{"timestamp":"2025-08-12T14:51:26.239Z","level":"INFO","context":"osce_controller","message":"OSCE system initialized successfully","metadata":{"availableCases":1,"duration":2,"caseIds":["stemi-001"]}}
+{"timestamp":"2025-08-12T14:51:26.242Z","level":"INFO","context":"osce_controller","message":"Initializing OSCE Medical Training System"}
+{"timestamp":"2025-08-12T14:51:26.242Z","level":"INFO","context":"case_manager","message":"Starting case discovery and loading","metadata":{"directory":"/workspace/cases"}}
+{"timestamp":"2025-08-12T14:51:26.243Z","level":"INFO","context":"case_manager","message":"Found 1 potential case files","metadata":{"files":["stemi-001.json"]}}
+{"timestamp":"2025-08-12T14:51:26.244Z","level":"INFO","context":"case_manager","message":"Case loading completed: 1 successful, 0 failed","metadata":{"duration":2,"successCount":1,"errorCount":0,"totalCases":1}}
+{"timestamp":"2025-08-12T14:51:26.244Z","level":"INFO","context":"osce_controller","message":"OSCE system initialized successfully","metadata":{"availableCases":1,"duration":2,"caseIds":["stemi-001"]}}
+{"timestamp":"2025-08-12T14:51:26.257Z","level":"INFO","context":"user","message":"User action: user_input","metadata":{"type":"user_action","action":"user_input","userId":null,"input":"test input","inputLength":10,"isActive":false,"awaitingCaseSelection":false}}
+{"timestamp":"2025-08-12T14:51:26.270Z","level":"INFO","context":"osce_controller","message":"Initializing OSCE Medical Training System"}
+{"timestamp":"2025-08-12T14:51:26.271Z","level":"INFO","context":"case_manager","message":"Starting case discovery and loading","metadata":{"directory":"/workspace/cases"}}
+{"timestamp":"2025-08-12T14:51:26.271Z","level":"INFO","context":"case_manager","message":"Found 1 potential case files","metadata":{"files":["stemi-001.json"]}}
+{"timestamp":"2025-08-12T14:51:26.272Z","level":"INFO","context":"case_manager","message":"Case loading completed: 1 successful, 0 failed","metadata":{"duration":1,"successCount":1,"errorCount":0,"totalCases":1}}
+{"timestamp":"2025-08-12T14:51:26.272Z","level":"INFO","context":"osce_controller","message":"OSCE system initialized successfully","metadata":{"availableCases":1,"duration":2,"caseIds":["stemi-001"]}}
+{"timestamp":"2025-08-12T14:51:26.273Z","level":"INFO","context":"user","message":"User action: user_input","metadata":{"type":"user_action","action":"user_input","userId":null,"input":"score","inputLength":5,"isActive":true,"awaitingCaseSelection":false,"currentCase":"stemi-001"}}
+{"timestamp":"2025-08-12T14:51:26.273Z","level":"INFO","context":"user","message":"User action: user_input","metadata":{"type":"user_action","action":"user_input","userId":null,"input":"help","inputLength":4,"isActive":true,"awaitingCaseSelection":false,"currentCase":"stemi-001"}}
+{"timestamp":"2025-08-12T14:51:26.273Z","level":"INFO","context":"user","message":"User action: user_input","metadata":{"type":"user_action","action":"user_input","userId":null,"input":"case info","inputLength":9,"isActive":true,"awaitingCaseSelection":false,"currentCase":"stemi-001"}}
+{"timestamp":"2025-08-12T14:51:27.042Z","level":"WARN","context":"retry","message":"Operation failed, retrying in 2049ms (attempt 2/4)","metadata":{"context":"operation","error":"Temporary error","attempt":2,"delay":2049}}
+{"timestamp":"2025-08-12T14:51:29.094Z","level":"INFO","context":"retry","message":"Operation succeeded after 2 retries","metadata":{"context":"operation","attempts":3,"duration":0}}
+{"timestamp":"2025-08-12T14:51:29.095Z","level":"ERROR","context":"retry","message":"Operation failed after 1 attempts","metadata":{"context":"api_call","error":"Client error","attempts":1,"finalError":true}}
+{"timestamp":"2025-08-12T14:51:29.095Z","level":"WARN","context":"retry","message":"Operation failed, retrying in 100ms (attempt 1/4)","metadata":{"context":"operation","error":"Retry error","attempt":1,"delay":100}}
+{"timestamp":"2025-08-12T14:51:29.195Z","level":"WARN","context":"retry","message":"Operation failed, retrying in 200ms (attempt 2/4)","metadata":{"context":"operation","error":"Retry error","attempt":2,"delay":200}}
+{"timestamp":"2025-08-12T14:51:29.396Z","level":"WARN","context":"retry","message":"Operation failed, retrying in 400ms (attempt 3/4)","metadata":{"context":"operation","error":"Retry error","attempt":3,"delay":400}}
+{"timestamp":"2025-08-12T14:51:29.796Z","level":"INFO","context":"retry","message":"Operation succeeded after 3 retries","metadata":{"context":"operation","attempts":4,"duration":0}}
+{"timestamp":"2025-08-12T14:51:29.797Z","level":"INFO","context":"app","message":"Test info message"}
+{"timestamp":"2025-08-12T14:51:29.798Z","level":"WARN","context":"app","message":"Test warning message"}
+{"timestamp":"2025-08-12T14:51:29.798Z","level":"ERROR","context":"app","message":"Test error message"}
+{"timestamp":"2025-08-12T14:51:29.798Z","level":"INFO","context":"api","message":"API POST /api/test - 200 (150ms)","metadata":{"type":"api_call","method":"POST","url":"/api/test","status":200,"duration":150,"test":"data"}}
+{"timestamp":"2025-08-12T14:51:29.798Z","level":"ERROR","context":"api","message":"API GET /api/error - 500 (300ms)","metadata":{"type":"api_call","method":"GET","url":"/api/error","status":500,"duration":300,"error":"Server error"}}
+{"timestamp":"2025-08-12T14:51:29.799Z","level":"INFO","context":"performance","message":"Performance: test_operation took 1500ms","metadata":{"type":"performance","operation":"test_operation","duration":1500,"items":10}}
+{"timestamp":"2025-08-12T14:51:29.799Z","level":"WARN","context":"performance","message":"Performance: slow_operation took 6000ms","metadata":{"type":"performance","operation":"slow_operation","duration":6000,"warning":true}}
+{"timestamp":"2025-08-12T14:51:29.799Z","level":"WARN","context":"retry","message":"Operation failed, retrying in 11ms (attempt 1/4)","metadata":{"context":"operation","error":"Network error","attempt":1,"delay":11}}
+{"timestamp":"2025-08-12T14:51:29.812Z","level":"WARN","context":"retry","message":"Operation failed, retrying in 20ms (attempt 2/4)","metadata":{"context":"operation","error":"Timeout","attempt":2,"delay":20}}
+{"timestamp":"2025-08-12T14:51:29.832Z","level":"INFO","context":"retry","message":"Operation succeeded after 2 retries","metadata":{"context":"operation","attempts":3,"duration":0}}
+{"timestamp":"2025-08-12T14:51:53.040Z","level":"WARN","context":"retry","message":"Operation failed, retrying in 914ms (attempt 1/4)","metadata":{"context":"operation","error":"Temporary error","attempt":1,"delay":914}}
+{"timestamp":"2025-08-12T14:51:53.173Z","level":"INFO","context":"osce_controller","message":"Initializing OSCE Medical Training System"}
+{"timestamp":"2025-08-12T14:51:53.183Z","level":"INFO","context":"case_manager","message":"Starting case discovery and loading","metadata":{"directory":"/workspace/cases"}}
+{"timestamp":"2025-08-12T14:51:53.184Z","level":"INFO","context":"case_manager","message":"Found 1 potential case files","metadata":{"files":["stemi-001.json"]}}
+{"timestamp":"2025-08-12T14:51:53.185Z","level":"INFO","context":"case_manager","message":"Case loading completed: 1 successful, 0 failed","metadata":{"duration":2,"successCount":1,"errorCount":0,"totalCases":1}}
+{"timestamp":"2025-08-12T14:51:53.186Z","level":"INFO","context":"osce_controller","message":"OSCE system initialized successfully","metadata":{"availableCases":1,"duration":13,"caseIds":["stemi-001"]}}
+{"timestamp":"2025-08-12T14:51:53.197Z","level":"INFO","context":"osce_controller","message":"Initializing OSCE Medical Training System"}
+{"timestamp":"2025-08-12T14:51:53.208Z","level":"INFO","context":"case_manager","message":"Starting case discovery and loading","metadata":{"directory":"/workspace/cases"}}
+{"timestamp":"2025-08-12T14:51:53.208Z","level":"INFO","context":"case_manager","message":"Found 1 potential case files","metadata":{"files":["stemi-001.json"]}}
+{"timestamp":"2025-08-12T14:51:53.209Z","level":"INFO","context":"osce_controller","message":"Initializing OSCE Medical Training System"}
+{"timestamp":"2025-08-12T14:51:53.210Z","level":"INFO","context":"case_manager","message":"Starting case discovery and loading","metadata":{"directory":"/workspace/cases"}}
+{"timestamp":"2025-08-12T14:51:53.210Z","level":"INFO","context":"case_manager","message":"Found 1 potential case files","metadata":{"files":["stemi-001.json"]}}
+{"timestamp":"2025-08-12T14:51:53.210Z","level":"INFO","context":"case_manager","message":"Case loading completed: 1 successful, 0 failed","metadata":{"duration":2,"successCount":1,"errorCount":0,"totalCases":1}}
+{"timestamp":"2025-08-12T14:51:53.210Z","level":"INFO","context":"osce_controller","message":"OSCE system initialized successfully","metadata":{"availableCases":1,"duration":13,"caseIds":["stemi-001"]}}
+{"timestamp":"2025-08-12T14:51:53.211Z","level":"INFO","context":"case_manager","message":"Case loading completed: 1 successful, 0 failed","metadata":{"duration":1,"successCount":1,"errorCount":0,"totalCases":1}}
+{"timestamp":"2025-08-12T14:51:53.212Z","level":"INFO","context":"osce_controller","message":"OSCE system initialized successfully","metadata":{"availableCases":1,"duration":3,"caseIds":["stemi-001"]}}
+{"timestamp":"2025-08-12T14:51:53.220Z","level":"INFO","context":"osce_controller","message":"Initializing OSCE Medical Training System"}
+{"timestamp":"2025-08-12T14:51:53.220Z","level":"INFO","context":"case_manager","message":"Starting case discovery and loading","metadata":{"directory":"/workspace/cases"}}
+{"timestamp":"2025-08-12T14:51:53.221Z","level":"INFO","context":"case_manager","message":"Found 1 potential case files","metadata":{"files":["stemi-001.json"]}}
+{"timestamp":"2025-08-12T14:51:53.221Z","level":"INFO","context":"case_manager","message":"Case loading completed: 1 successful, 0 failed","metadata":{"duration":1,"successCount":1,"errorCount":0,"totalCases":1}}
+{"timestamp":"2025-08-12T14:51:53.222Z","level":"INFO","context":"osce_controller","message":"OSCE system initialized successfully","metadata":{"availableCases":1,"duration":2,"caseIds":["stemi-001"]}}
+{"timestamp":"2025-08-12T14:51:53.229Z","level":"INFO","context":"user","message":"User action: user_input","metadata":{"type":"user_action","action":"user_input","userId":null,"input":"test input","inputLength":10,"isActive":false,"awaitingCaseSelection":false}}
+{"timestamp":"2025-08-12T14:51:53.238Z","level":"INFO","context":"osce_controller","message":"Initializing OSCE Medical Training System"}
+{"timestamp":"2025-08-12T14:51:53.239Z","level":"INFO","context":"case_manager","message":"Starting case discovery and loading","metadata":{"directory":"/workspace/cases"}}
+{"timestamp":"2025-08-12T14:51:53.239Z","level":"INFO","context":"case_manager","message":"Found 1 potential case files","metadata":{"files":["stemi-001.json"]}}
+{"timestamp":"2025-08-12T14:51:53.240Z","level":"INFO","context":"case_manager","message":"Case loading completed: 1 successful, 0 failed","metadata":{"duration":1,"successCount":1,"errorCount":0,"totalCases":1}}
+{"timestamp":"2025-08-12T14:51:53.240Z","level":"INFO","context":"osce_controller","message":"OSCE system initialized successfully","metadata":{"availableCases":1,"duration":2,"caseIds":["stemi-001"]}}
+{"timestamp":"2025-08-12T14:51:53.240Z","level":"INFO","context":"user","message":"User action: user_input","metadata":{"type":"user_action","action":"user_input","userId":null,"input":"score","inputLength":5,"isActive":true,"awaitingCaseSelection":false,"currentCase":"stemi-001"}}
+{"timestamp":"2025-08-12T14:51:53.241Z","level":"INFO","context":"user","message":"User action: user_input","metadata":{"type":"user_action","action":"user_input","userId":null,"input":"help","inputLength":4,"isActive":true,"awaitingCaseSelection":false,"currentCase":"stemi-001"}}
+{"timestamp":"2025-08-12T14:51:53.241Z","level":"INFO","context":"user","message":"User action: user_input","metadata":{"type":"user_action","action":"user_input","userId":null,"input":"case info","inputLength":9,"isActive":true,"awaitingCaseSelection":false,"currentCase":"stemi-001"}}
+{"timestamp":"2025-08-12T14:51:53.967Z","level":"WARN","context":"retry","message":"Operation failed, retrying in 2073ms (attempt 2/4)","metadata":{"context":"operation","error":"Temporary error","attempt":2,"delay":2073}}
+{"timestamp":"2025-08-12T14:51:56.042Z","level":"INFO","context":"retry","message":"Operation succeeded after 2 retries","metadata":{"context":"operation","attempts":3,"duration":0}}
+{"timestamp":"2025-08-12T14:51:56.043Z","level":"ERROR","context":"retry","message":"Operation failed after 1 attempts","metadata":{"context":"api_call","error":"Client error","attempts":1,"finalError":true}}
+{"timestamp":"2025-08-12T14:51:56.043Z","level":"WARN","context":"retry","message":"Operation failed, retrying in 100ms (attempt 1/4)","metadata":{"context":"operation","error":"Retry error","attempt":1,"delay":100}}
+{"timestamp":"2025-08-12T14:51:56.143Z","level":"WARN","context":"retry","message":"Operation failed, retrying in 200ms (attempt 2/4)","metadata":{"context":"operation","error":"Retry error","attempt":2,"delay":200}}
+{"timestamp":"2025-08-12T14:51:56.344Z","level":"WARN","context":"retry","message":"Operation failed, retrying in 400ms (attempt 3/4)","metadata":{"context":"operation","error":"Retry error","attempt":3,"delay":400}}
+{"timestamp":"2025-08-12T14:51:56.745Z","level":"INFO","context":"retry","message":"Operation succeeded after 3 retries","metadata":{"context":"operation","attempts":4,"duration":0}}
+{"timestamp":"2025-08-12T14:51:56.746Z","level":"INFO","context":"app","message":"Test info message"}
+{"timestamp":"2025-08-12T14:51:56.746Z","level":"WARN","context":"app","message":"Test warning message"}
+{"timestamp":"2025-08-12T14:51:56.746Z","level":"ERROR","context":"app","message":"Test error message"}
+{"timestamp":"2025-08-12T14:51:56.747Z","level":"INFO","context":"api","message":"API POST /api/test - 200 (150ms)","metadata":{"type":"api_call","method":"POST","url":"/api/test","status":200,"duration":150,"test":"data"}}
+{"timestamp":"2025-08-12T14:51:56.747Z","level":"ERROR","context":"api","message":"API GET /api/error - 500 (300ms)","metadata":{"type":"api_call","method":"GET","url":"/api/error","status":500,"duration":300,"error":"Server error"}}
+{"timestamp":"2025-08-12T14:51:56.747Z","level":"INFO","context":"performance","message":"Performance: test_operation took 1500ms","metadata":{"type":"performance","operation":"test_operation","duration":1500,"items":10}}
+{"timestamp":"2025-08-12T14:51:56.747Z","level":"WARN","context":"performance","message":"Performance: slow_operation took 6000ms","metadata":{"type":"performance","operation":"slow_operation","duration":6000,"warning":true}}
+{"timestamp":"2025-08-12T14:51:56.747Z","level":"WARN","context":"retry","message":"Operation failed, retrying in 11ms (attempt 1/4)","metadata":{"context":"operation","error":"Network error","attempt":1,"delay":11}}
+{"timestamp":"2025-08-12T14:51:56.760Z","level":"WARN","context":"retry","message":"Operation failed, retrying in 20ms (attempt 2/4)","metadata":{"context":"operation","error":"Timeout","attempt":2,"delay":20}}
+{"timestamp":"2025-08-12T14:51:56.779Z","level":"INFO","context":"retry","message":"Operation succeeded after 2 retries","metadata":{"context":"operation","attempts":3,"duration":0}}
