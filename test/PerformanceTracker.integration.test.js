@@ -33,20 +33,20 @@ describe('PerformanceTracker Integration Tests', () => {
         it('should track realistic clinical interactions', () => {
             // Simulate a realistic clinical interaction sequence
             const interactions = [
-                'Tell me about your chest pain',
-                'When did the pain start?',
-                'Can you describe the character of the pain?',
-                'Do you have any shortness of breath or nausea?',
-                'Let me check your vital signs',
-                'I need to listen to your heart',
-                'I want to order an ECG',
-                'Let\'s get some cardiac enzymes',
-                'I think you might be having a heart attack'
+                { input: 'Tell me about your chest pain', type: 'history' },
+                { input: 'When did the pain start?', type: 'history' },
+                { input: 'Can you describe the character of the pain?', type: 'history' },
+                { input: 'Do you have any shortness of breath or nausea?', type: 'history' },
+                { input: 'Let me check your vital signs', type: 'examination' },
+                { input: 'I need to listen to your heart', type: 'examination' },
+                { input: 'I want to order an ECG', type: 'investigation' },
+                { input: 'Let\'s get some cardiac enzymes', type: 'investigation' },
+                { input: 'I think you might be having a heart attack', type: 'diagnosis' }
             ];
 
             let totalTriggered = 0;
-            for (const interaction of interactions) {
-                const triggered = tracker.trackAction(interaction, 'clinical');
+            for (const step of interactions) {
+                const triggered = tracker.trackAction(step.input, step.type);
                 totalTriggered += triggered.length;
             }
 

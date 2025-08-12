@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import axios from 'axios';
 import readline from 'readline';
+import inquirer from 'inquirer';
 import OSCEControllerWrapper from './lib/OSCEControllerWrapper.js';
 
 dotenv.config();
@@ -411,6 +412,19 @@ checkFirstRun();
 
 rl.on('line', async (input) => {
     const inputTrimmed = input.trim();
+
+    // Slash command helper
+    if (inputTrimmed === '/') {
+        const { cmd } = await inquirer.prompt({
+            type: 'list',
+            name: 'cmd',
+            message: 'Select command',
+            choices: ['/history', '/exam', '/investigation', '/diagnosis', '/management']
+        });
+        rl.write(cmd + ' ');
+        displayModeIndicator(osceMode ? 'osce' : 'chat');
+        return;
+    }
     
     if (inputTrimmed.toLowerCase() === 'exit') {
         // Display session summary before exit

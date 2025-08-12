@@ -135,11 +135,17 @@ describe('PerformanceTracker', () => {
 
         it('should not mark already completed items again', () => {
             tracker.markChecklistItem('onset_timing');
-            
+
             const userInput = 'When did the pain start?';
             const triggeredItems = tracker.trackAction(userInput, 'history');
-            
+
             expect(triggeredItems).not.toContain('onset_timing');
+        });
+
+        it('should not trigger items for mismatched action type', () => {
+            const userInput = 'When did the pain start?';
+            const triggeredItems = tracker.trackAction(userInput, 'examination');
+            expect(triggeredItems).toHaveLength(0);
         });
 
         it('should throw error when tracking without initialization', () => {
