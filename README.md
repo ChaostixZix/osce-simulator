@@ -145,6 +145,16 @@ npm test -- --grep "OSCE"
 npm test -- --grep "Integration"
 ```
 
+## ⚡ Real-time Slash Suggestions
+
+- In any prompt, press `/` to see context-aware command suggestions.
+- The suggestions appear inline at the cursor and disappear on the next keypress.
+- In Chat mode, you’ll see chat/system commands; in OSCE mode, OSCE-specific commands.
+- Works only in a TTY terminal (raw mode enabled). If your environment doesn’t behave as a TTY, run with:
+  ```bash
+  script -q /dev/null npm start
+  ```
+
 ## 🔍 Troubleshooting
 
 ### Common Issues

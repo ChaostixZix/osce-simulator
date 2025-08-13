@@ -82,6 +82,12 @@ Chat mode provides free-form conversation with AI for medical education:
 ```
 
 **Session Statistics**: Track your learning progress
+**Real-time Command Suggestions**
+
+- Press `/` at any time to get a quick list of available commands for the current mode.
+- Suggestions appear inline at the cursor and disappear on the next keypress (autocomplete-like).
+- Works in both Chat mode and OSCE mode with context-appropriate commands.
+
 ```
 [Chat] stats
 
