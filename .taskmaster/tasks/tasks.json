@@ -146,7 +146,7 @@
         "dependencies": [
           12
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -154,7 +154,7 @@
             "description": "Create the basic function structure, defining its parameters: `commands` (array of strings/objects) and `modeIndicator` (string).",
             "dependencies": [],
             "details": "The function should be named `renderCommandSuggestions` (or similar) and accept `commands: string[]` and `modeIndicator: string`. This establishes the entry point for the rendering logic.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "N/A (This subtask focuses on function definition, not functional output.)"
           },
           {
@@ -165,7 +165,7 @@
               "13.1"
             ],
             "details": "Print a header like 'Available Commands:' or similar. Ensure proper line breaks before and after the header to separate it from previous output and the command list, maintaining readability.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test that the correct header string is printed and followed by appropriate newlines, without any command data."
           },
           {
@@ -177,7 +177,7 @@
               "13.2"
             ],
             "details": "Iterate over the `commands` array. For each command, format it concisely (e.g., `[command_name]`, or `command_name - description`). Consider using a fixed width or dynamic column layout if appropriate for 'compact'. Print each formatted command.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test with various command list sizes (empty, single, multiple, long names) to ensure compact and readable formatting. Verify output matches expected string for the command list section."
           },
           {
@@ -189,7 +189,7 @@
               "13.3"
             ],
             "details": "After printing the command list, print the `modeIndicator` string (e.g., `Chat > `) to the console. This is essential for the user to see their prompt again and continue typing. Ensure it appears on a new line or replaces the previous prompt line if necessary to restore the input prompt.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test that the exact mode indicator string is printed as the final output of the function, ensuring it's on a new line and correctly positioned for user input."
           },
           {
@@ -203,7 +203,7 @@
               "13.4"
             ],
             "details": "Call the `renderCommandSuggestions` function from the appropriate part of the application (e.g., after a specific keypress). Write unit tests using a testing framework (e.g., Jest) to mock `console.log` and assert the entire output string matches expected formats for different inputs. Test cases should include: empty command list, single command, multiple commands, and different mode indicator strings.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Comprehensive unit tests covering all aspects: header presence, command list formatting (empty, short, long), and final prompt restoration. Verify the entire output string from start to finish for various scenarios."
           }
         ]
@@ -220,7 +220,7 @@
           12,
           13
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -228,7 +228,7 @@
             "description": "Set up an event listener on `process.stdin` to detect keypress events. This listener will be the entry point for the slash command logic.",
             "dependencies": [],
             "details": "Add `process.stdin.on('keypress', (chunk, key) => { /* ... */ });` to capture real-time keypresses. This listener will be the primary handler for the slash command feature.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Verify that the `keypress` event listener is correctly registered and fires when any key is pressed (e.g., by logging `chunk` and `key` within the handler)."
           },
           {
@@ -239,7 +239,7 @@
               "14.1"
             ],
             "details": "Inside the `keypress` event handler, add a conditional check: `if (key && key.name === '/' && key.sequence === '/') { /* ... trigger logic ... */ }`. This ensures only the specific slash key triggers the next steps.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Manually test by typing various keys and then `/`. Verify that the subsequent logic (e.g., a console log) only executes when `/` is pressed, and not for other keys."
           },
           {
@@ -250,7 +250,7 @@
               "14.2"
             ],
             "details": "Introduce a function or access a global state variable, e.g., `getCurrentApplicationMode()`, which returns a string like 'Chat' or 'OSCE'. This function will be called immediately after the slash key is detected.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Set the application to Chat mode, press `/`, and verify the determined mode is 'Chat'. Switch to OSCE mode, press `/`, and verify the determined mode is 'OSCE'."
           },
           {
@@ -261,7 +261,7 @@
               "14.3"
             ],
             "details": "Using the mode obtained from subtask 14.3, select the correct command catalog (e.g., `chatCommandCatalog` or `osceCommandCatalog`) provided by Task 12. Store the selected catalog in a variable for the next step.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "After determining the mode, log the selected command catalog. Verify that the correct catalog (Chat or OSCE) is chosen based on the current application mode."
           },
           {
@@ -272,7 +272,7 @@
               "14.4"
             ],
             "details": "Invoke the suggestion rendering function, e.g., `renderSuggestions(selectedCatalog)`. Crucially, after rendering, manage the `readline` interface to ensure `rl.on('line')` continues to function. This may involve clearing the current line (`rl.write(null, { ctrl: true, name: 'u' })`), redrawing the prompt (`rl.prompt(true)`), or using `rl.write` to put the `/` back on the line if needed.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Press `/` in both Chat and OSCE modes. Verify that suggestions appear correctly. After suggestions are displayed, ensure the prompt is restored and you can continue typing normally, and `rl.on('line')` still captures your input."
           }
         ]
@@ -290,7 +290,7 @@
           13,
           14
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -298,7 +298,7 @@
             "description": "Implement the `process.stdin` keypress listener within `app.js` or a new dedicated module. Configure it to detect the `/` keypress and, upon detection, call the suggestion rendering function (from Task 13) with the appropriate command catalog (from Task 12) based on the current application mode.",
             "dependencies": [],
             "details": "This involves bringing the core logic from Task 14 into the main application flow. Ensure the listener is active when needed and inactive otherwise.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Manually test by running the app, typing `/` in different modes (Chat, OSCE) to verify suggestions appear. Observe if the prompt is correctly restored."
           },
           {
@@ -309,7 +309,7 @@
               "15.1"
             ],
             "details": "Create a dedicated module (e.g., `slashCommands.js`) to encapsulate the logic related to slash command detection, mode-based catalog selection, and calling the suggestion renderer. Export necessary functions for `app.js` to use.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Verify that the application still functions correctly after refactoring. Ensure modularity by checking if `app.js` is cleaner and the new module is self-contained."
           },
           {
@@ -321,7 +321,7 @@
               "15.2"
             ],
             "details": "Investigate how `process.stdin` `keypress` events interact with `readline`'s internal buffer and prompt management. Implement logic to prevent duplicate input, ensure `rl.on('line')` receives clean input after suggestions, and that the prompt is correctly re-rendered.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test typing `/`, observing suggestions, then continuing to type a regular command and pressing Enter. Verify that `rl.on('line')` correctly processes the command and that no input is lost or duplicated."
           },
           {
@@ -333,7 +333,7 @@
               "15.3"
             ],
             "details": "Verify that `process.stdin.setRawMode(true)` is managed correctly, especially when switching between modes or when `readline` is active. Address issues like cursor positioning, line clearing, and prompt re-rendering that might behave differently in various TTY setups.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test the feature in different terminal emulators (e.g., Git Bash, WSL, macOS Terminal) if possible. Verify behavior when `process.stdin.isTTY` is true/false."
           },
           {
@@ -347,7 +347,7 @@
               "15.4"
             ],
             "details": "Execute a test plan covering: typing `/` in Chat mode, typing `/` in OSCE mode, switching modes and then typing `/`, typing regular commands after suggestions, and ensuring no existing features are broken. Document any found issues and implement fixes.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Perform end-to-end testing of the entire CLI application. Verify that all existing functionalities work as expected alongside the new slash command suggestions. Test switching modes and using regular commands."
           }
         ]
@@ -362,7 +362,7 @@
         "dependencies": [
           15
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -370,7 +370,7 @@
             "description": "Prepare the necessary environment for testing the real-time slash command suggestion feature and review the dedicated test plan covering all acceptance criteria.",
             "dependencies": [],
             "details": "Ensure the application with the implemented feature is accessible and runnable for testing. Familiarize with the specific test cases outlined for verification.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "N/A (preparation step)"
           },
           {
@@ -381,7 +381,7 @@
               "16.1"
             ],
             "details": "Focus on the accuracy and completeness of the displayed Chat commands as per the defined catalog.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Manually or automatically input '/' in Chat mode and observe the output against the expected Chat command list. Record results."
           },
           {
@@ -392,7 +392,7 @@
               "16.1"
             ],
             "details": "Focus on the accuracy and completeness of the displayed OSCE commands as per the defined catalog.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Manually or automatically input '/' in OSCE mode and observe the output against the expected OSCE command list. Record results."
           },
           {
@@ -404,7 +404,7 @@
               "16.3"
             ],
             "details": "Test user experience after suggestions, ensuring the prompt is restored and further input is handled correctly without issues or visual glitches.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "After triggering suggestions in both Chat and OSCE modes, verify the prompt reappears and attempt to type further characters to ensure normal operation. Record results."
           },
           {
@@ -415,7 +415,7 @@
               "16.4"
             ],
             "details": "Include how the feature works, examples of usage, and any identified limitations or non-goals discovered during testing or development.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Review the updated documentation for accuracy, clarity, and completeness against the verified feature behavior."
           }
         ]
@@ -423,7 +423,7 @@
     ],
     "metadata": {
       "created": "2025-08-12T14:24:58.954Z",
-      "updated": "2025-08-12T14:44:19.062Z",
+      "updated": "2025-08-12T15:09:13.582Z",
       "description": "Tasks for master context"
     }
   }
