@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -23,7 +23,13 @@ import {
     TrendingUp,
     UserPlus,
     Hash,
-    Settings
+    Settings,
+    Bell,
+    Bookmark,
+    Eye,
+    EyeOff,
+    X,
+    Plus
 } from 'lucide-vue-next';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -50,7 +56,9 @@ const posts = ref([
         comments: 8,
         isLiked: false,
         isRetweeted: false,
-        images: []
+        isBookmarked: false,
+        images: [],
+        views: 1240
     },
     {
         id: 2,
@@ -67,7 +75,9 @@ const posts = ref([
         comments: 15,
         isLiked: true,
         isRetweeted: false,
-        images: []
+        isBookmarked: true,
+        images: [],
+        views: 2890
     },
     {
         id: 3,
@@ -84,17 +94,19 @@ const posts = ref([
         comments: 34,
         isLiked: false,
         isRetweeted: true,
-        images: []
+        isBookmarked: false,
+        images: [],
+        views: 5670
     }
 ]);
 
 // Mock data for trending topics
 const trendingTopics = ref([
-    { id: 1, topic: '#VueJS', posts: '12.5K posts' },
-    { id: 2, topic: '#Laravel', posts: '8.2K posts' },
-    { id: 3, topic: '#WebDev', posts: '15.7K posts' },
-    { id: 4, topic: '#AI', posts: '23.1K posts' },
-    { id: 5, topic: '#OpenSource', posts: '6.8K posts' }
+    { id: 1, topic: '#VueJS', posts: '12.5K posts', trending: 'up' },
+    { id: 2, topic: '#Laravel', posts: '8.2K posts', trending: 'up' },
+    { id: 3, topic: '#WebDev', posts: '15.7K posts', trending: 'stable' },
+    { id: 4, topic: '#AI', posts: '23.1K posts', trending: 'up' },
+    { id: 5, topic: '#OpenSource', posts: '6.8K posts', trending: 'down' }
 ]);
 
 // Mock data for who to follow
@@ -105,7 +117,8 @@ const whoToFollow = ref([
         handle: '@alexchen',
         avatar: 'https://github.com/shadcn.png',
         verified: true,
-        bio: 'Full-stack developer passionate about Vue and Laravel'
+        bio: 'Full-stack developer passionate about Vue and Laravel',
+        followers: '2.4K'
     },
     {
         id: 2,
@@ -113,7 +126,8 @@ const whoToFollow = ref([
         handle: '@mariagarcia',
         avatar: 'https://github.com/shadcn.png',
         verified: false,
-        bio: 'UI/UX designer and frontend developer'
+        bio: 'UI/UX designer and frontend developer',
+        followers: '1.8K'
     },
     {
         id: 3,
@@ -121,12 +135,25 @@ const whoToFollow = ref([
         handle: '@davidkim',
         avatar: 'https://github.com/shadcn.png',
         verified: true,
-        bio: 'Backend engineer specializing in scalable systems'
+        bio: 'Backend engineer specializing in scalable systems',
+        followers: '3.2K'
     }
+]);
+
+// Mock notifications
+const notifications = ref([
+    { id: 1, type: 'like', user: 'John Doe', action: 'liked your post', time: '5m', read: false },
+    { id: 2, type: 'retweet', user: 'Sarah Wilson', action: 'retweeted your post', time: '12m', read: false },
+    { id: 3, type: 'follow', user: 'Alex Chen', action: 'started following you', time: '1h', read: true }
 ]);
 
 const newPostContent = ref('');
 const searchQuery = ref('');
+const selectedImages = ref<File[]>([]);
+const showNotifications = ref(false);
+const showBookmarks = ref(false);
+const activeTab = ref('for-you');
+const maxPostLength = 280;
 
 const likePost = (postId: number) => {
     const post = posts.value.find(p => p.id === postId);
@@ -144,8 +171,15 @@ const retweetPost = (postId: number) => {
     }
 };
 
+const bookmarkPost = (postId: number) => {
+    const post = posts.value.find(p => p.id === postId);
+    if (post) {
+        post.isBookmarked = !post.isBookmarked;
+    }
+};
+
 const createPost = () => {
-    if (newPostContent.value.trim()) {
+    if (newPostContent.value.trim() && newPostContent.value.length <= maxPostLength) {
         const newPost = {
             id: posts.value.length + 1,
             user: {
@@ -161,10 +195,28 @@ const createPost = () => {
             comments: 0,
             isLiked: false,
             isRetweeted: false,
-            images: []
+            isBookmarked: false,
+            images: selectedImages.value,
+            views: 0
         };
         posts.value.unshift(newPost);
         newPostContent.value = '';
+        selectedImages.value = [];
+    }
+};
+
+const handleImageUpload = (event: Event) => {
+    const target = event.target as HTMLInputElement;
+    if (target.files) {
+        const files = Array.from(target.files);
+        selectedImages.value = [...selectedImages.value, ...files];
+    }
+};
+
+const removeImage = (index: number) => {
+    selectedImages.value.splice(index, 1);
+    if (selectedImages.value.length === 0) {
+        showImageUpload.value = false;
     }
 };
 
@@ -178,6 +230,101 @@ const followUser = (userId: number) => {
     // Mock follow functionality
     console.log(`Following user ${userId}`);
 };
+
+const sharePost = (postId: number) => {
+    const post = posts.value.find(p => p.id === postId);
+    if (post) {
+        // Mock share functionality - in a real app, this would open a share dialog
+        if (navigator.share) {
+            navigator.share({
+                title: `${post.user.name} on Forum`,
+                text: post.content,
+                url: `${window.location.origin}/forum/post/${post.id}`
+            });
+        } else {
+            // Fallback to copying to clipboard
+            navigator.clipboard.writeText(`${post.content}\n\n- ${post.user.name} on Forum`);
+            alert('Post content copied to clipboard!');
+        }
+    }
+};
+
+const markNotificationAsRead = (notificationId: number) => {
+    const notification = notifications.value.find(n => n.id === notificationId);
+    if (notification) {
+        notification.read = true;
+    }
+};
+
+const incrementPostViews = (postId: number) => {
+    const post = posts.value.find(p => p.id === postId);
+    if (post) {
+        post.views += 1;
+    }
+};
+
+const handlePostClick = (postId: number) => {
+    incrementPostViews(postId);
+    // In a real app, this would navigate to the post detail page
+    console.log(`Post ${postId} clicked`);
+};
+
+const getTrendingIcon = (trending: string) => {
+    switch (trending) {
+        case 'up': return '📈';
+        case 'down': return '📉';
+        default: return '➡️';
+    }
+};
+
+const handleTopicClick = (topic: string) => {
+    // In a real app, this would filter posts by topic or navigate to topic page
+    searchQuery.value = topic;
+    console.log(`Topic ${topic} clicked`);
+};
+
+const handleUserClick = (handle: string) => {
+    // In a real app, this would navigate to user profile
+    console.log(`User ${handle} clicked`);
+};
+
+const handleSearch = () => {
+    if (searchQuery.value.trim()) {
+        // In a real app, this would perform search and filter posts
+        console.log(`Searching for: ${searchQuery.value}`);
+        // You could filter posts here or navigate to search results
+    }
+};
+
+const handleSearchKeyPress = (event: KeyboardEvent) => {
+    if (event.key === 'Enter') {
+        handleSearch();
+    }
+};
+
+const handleNotificationClick = (notificationId: number) => {
+    markNotificationAsRead(notificationId);
+    // In a real app, this would navigate to the relevant content
+    console.log(`Notification ${notificationId} clicked`);
+};
+
+const handleBookmarkClick = () => {
+    showBookmarks.value = !showBookmarks.value;
+    // In a real app, this would show bookmarked posts
+    console.log('Bookmarks toggled');
+};
+
+const formatPostContent = (content: string) => {
+    // Highlight hashtags and mentions
+    return content
+        .replace(/#(\w+)/g, '<span class="text-blue-500 hover:underline cursor-pointer">#$1</span>')
+        .replace(/@(\w+)/g, '<span class="text-blue-500 hover:underline cursor-pointer">@$1</span>');
+};
+
+onMounted(() => {
+    // Initialize any necessary data
+    console.log('Forum component mounted');
+});
 </script>
 
 <template>
@@ -187,11 +334,48 @@ const followUser = (userId: number) => {
         <div class="flex h-full flex-1 flex-col lg:flex-row gap-6">
             <!-- Main Content -->
             <div class="flex-1 flex flex-col min-w-0">
-                <!-- Header -->
+                <!-- Header with Tabs -->
                 <div class="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
                     <div class="px-4 py-3">
                         <h1 class="text-xl font-bold">Forum</h1>
                         <p class="text-sm text-muted-foreground">Share your thoughts with the community</p>
+                    </div>
+                    
+                    <!-- Navigation Tabs -->
+                    <div class="flex border-b border-border">
+                        <button
+                            @click="activeTab = 'for-you'"
+                            :class="[
+                                'flex-1 px-4 py-3 text-sm font-medium transition-colors',
+                                activeTab === 'for-you'
+                                    ? 'border-b-2 border-primary text-primary'
+                                    : 'text-muted-foreground hover:text-foreground'
+                            ]"
+                        >
+                            For you
+                        </button>
+                        <button
+                            @click="activeTab = 'following'"
+                            :class="[
+                                'flex-1 px-4 py-3 text-sm font-medium transition-colors',
+                                activeTab === 'following'
+                                    ? 'border-b-2 border-primary text-primary'
+                                    : 'text-muted-foreground hover:text-foreground'
+                            ]"
+                        >
+                            Following
+                        </button>
+                        <button
+                            @click="activeTab = 'trending'"
+                            :class="[
+                                'flex-1 px-4 py-3 text-sm font-medium transition-colors',
+                                activeTab === 'trending'
+                                    ? 'border-b-2 border-primary text-primary'
+                                    : 'text-muted-foreground hover:text-foreground'
+                            ]"
+                        >
+                            Trending
+                        </button>
                     </div>
                 </div>
 
@@ -206,16 +390,50 @@ const followUser = (userId: number) => {
                                 </Avatar>
                                 <div class="flex-1">
                                     <Input
+                                        id="newPostInput"
                                         v-model="newPostContent"
                                         placeholder="What's happening?"
                                         class="border-0 text-lg focus-visible:ring-0 focus-visible:ring-offset-0"
                                         @keyup.enter="createPost"
                                     />
+                                    
+                                    <!-- Image Preview -->
+                                    <div v-if="selectedImages.length > 0" class="mt-3 grid grid-cols-2 gap-2">
+                                        <div v-for="(image, index) in selectedImages" :key="index" class="relative">
+                                            <img 
+                                                :src="URL.createObjectURL(image)" 
+                                                :alt="`Upload ${index + 1}`"
+                                                class="w-full h-24 object-cover rounded-lg"
+                                            />
+                                            <Button
+                                                @click="removeImage(index)"
+                                                variant="ghost"
+                                                size="sm"
+                                                class="absolute top-1 right-1 h-6 w-6 p-0 bg-black/50 text-white hover:bg-black/70"
+                                            >
+                                                <X class="h-3 w-3" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                    
                                     <div class="flex items-center justify-between mt-3">
                                         <div class="flex items-center gap-2 text-primary">
-                                            <Button variant="ghost" size="sm" class="h-8 w-8 p-0">
+                                            <Button 
+                                                variant="ghost" 
+                                                size="sm" 
+                                                class="h-8 w-8 p-0"
+                                                @click="() => document.getElementById('imageInput')?.click()"
+                                            >
                                                 <ImageIcon class="h-4 w-4" />
                                             </Button>
+                                            <input
+                                                type="file"
+                                                multiple
+                                                accept="image/*"
+                                                @change="handleImageUpload"
+                                                class="hidden"
+                                                id="imageInput"
+                                            />
                                             <Button variant="ghost" size="sm" class="h-8 w-8 p-0">
                                                 <Smile class="h-4 w-4" />
                                             </Button>
@@ -229,13 +447,20 @@ const followUser = (userId: number) => {
                                                 <LinkIcon class="h-4 w-4" />
                                             </Button>
                                         </div>
-                                        <Button 
-                                            @click="createPost"
-                                            :disabled="!newPostContent.trim()"
-                                            class="rounded-full px-6"
-                                        >
-                                            Post
-                                        </Button>
+                                        <div class="flex items-center gap-3">
+                                            <div class="flex items-center gap-2 text-sm text-muted-foreground">
+                                                <span :class="{ 'text-orange-500': newPostContent.length > maxPostLength * 0.8, 'text-red-500': newPostContent.length > maxPostLength }">
+                                                    {{ newPostContent.length }}/{{ maxPostLength }}
+                                                </span>
+                                            </div>
+                                            <Button 
+                                                @click="createPost"
+                                                :disabled="!newPostContent.trim() || newPostContent.length > maxPostLength"
+                                                class="rounded-full px-6"
+                                            >
+                                                Post
+                                            </Button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -257,9 +482,19 @@ const followUser = (userId: number) => {
                                 <!-- Post Content -->
                                 <div class="flex-1 min-w-0">
                                     <div class="flex items-center gap-2 mb-1">
-                                        <span class="font-semibold text-foreground">{{ post.user.name }}</span>
+                                        <span 
+                                            class="font-semibold text-foreground cursor-pointer hover:underline"
+                                            @click="handleUserClick(post.user.handle)"
+                                        >
+                                            {{ post.user.name }}
+                                        </span>
                                         <span v-if="post.user.verified" class="text-blue-500">✓</span>
-                                        <span class="text-muted-foreground">{{ post.user.handle }}</span>
+                                        <span 
+                                            class="text-muted-foreground cursor-pointer hover:underline"
+                                            @click="handleUserClick(post.user.handle)"
+                                        >
+                                            {{ post.user.handle }}
+                                        </span>
                                         <span class="text-muted-foreground">·</span>
                                         <span class="text-muted-foreground">{{ post.timestamp }}</span>
                                         <Button variant="ghost" size="sm" class="h-6 w-6 p-0 ml-auto">
@@ -267,7 +502,11 @@ const followUser = (userId: number) => {
                                         </Button>
                                     </div>
 
-                                    <p class="text-foreground mb-3 leading-relaxed">{{ post.content }}</p>
+                                    <p 
+                                        class="text-foreground mb-3 leading-relaxed cursor-pointer hover:bg-muted/30 p-2 rounded transition-colors" 
+                                        v-html="formatPostContent(post.content)"
+                                        @click="handlePostClick(post.id)"
+                                    ></p>
 
                                     <!-- Post Actions -->
                                     <div class="flex items-center justify-between max-w-md">
@@ -307,9 +546,25 @@ const followUser = (userId: number) => {
                                             variant="ghost" 
                                             size="sm" 
                                             class="h-8 px-3 text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10"
+                                            :class="{ 'text-blue-500 bg-blue-500/10': post.isBookmarked }"
+                                            @click="bookmarkPost(post.id)"
+                                        >
+                                            <Bookmark class="h-4 w-4 mr-2" />
+                                        </Button>
+
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            class="h-8 px-3 text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10"
+                                            @click="sharePost(post.id)"
                                         >
                                             <Share2 class="h-4 w-4" />
                                         </Button>
+
+                                        <div class="flex items-center gap-1 text-muted-foreground text-sm">
+                                            <Eye class="h-4 w-4" />
+                                            <span>{{ formatNumber(post.views) }}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -336,7 +591,33 @@ const followUser = (userId: number) => {
                         v-model="searchQuery"
                         placeholder="Search Forum"
                         class="pl-10"
+                        @keyup="handleSearchKeyPress"
                     />
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="flex gap-2">
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        class="flex-1"
+                        @click="() => showNotifications = !showNotifications"
+                    >
+                        <Bell class="h-4 w-4 mr-2" />
+                        Notifications
+                        <span v-if="notifications.filter(n => !n.read).length > 0" class="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-1">
+                            {{ notifications.filter(n => !n.read).length }}
+                        </span>
+                    </Button>
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        class="flex-1"
+                        @click="handleBookmarkClick"
+                    >
+                        <Bookmark class="h-4 w-4 mr-2" />
+                        Bookmarks
+                    </Button>
                 </div>
 
                 <!-- Trending Topics -->
@@ -348,9 +629,14 @@ const followUser = (userId: number) => {
                         </div>
                     </CardHeader>
                     <CardContent class="space-y-3">
-                        <div v-for="topic in trendingTopics" :key="topic.id" class="flex items-center justify-between hover:bg-muted/50 p-2 rounded-lg cursor-pointer transition-colors">
+                        <div 
+                            v-for="topic in trendingTopics" 
+                            :key="topic.id" 
+                            class="flex items-center justify-between hover:bg-muted/50 p-2 rounded-lg cursor-pointer transition-colors"
+                            @click="handleTopicClick(topic.topic)"
+                        >
                             <div class="flex items-center gap-2">
-                                <Hash class="h-4 w-4 text-muted-foreground" />
+                                <span class="text-lg">{{ getTrendingIcon(topic.trending) }}</span>
                                 <span class="font-medium">{{ topic.topic }}</span>
                             </div>
                             <span class="text-sm text-muted-foreground">{{ topic.posts }}</span>
@@ -379,6 +665,7 @@ const followUser = (userId: number) => {
                                 </div>
                                 <p class="text-xs text-muted-foreground truncate">{{ user.handle }}</p>
                                 <p class="text-xs text-muted-foreground truncate">{{ user.bio }}</p>
+                                <p class="text-xs text-muted-foreground">{{ user.followers }} followers</p>
                             </div>
                             <Button 
                                 variant="outline" 
@@ -403,6 +690,17 @@ const followUser = (userId: number) => {
                     <p>© 2024 Forum App. All rights reserved.</p>
                 </div>
             </div>
+        </div>
+
+        <!-- Floating Action Button for Mobile -->
+        <div class="fixed bottom-6 right-6 lg:hidden">
+            <Button 
+                size="lg" 
+                class="h-14 w-14 rounded-full shadow-lg"
+                @click="() => document.getElementById('newPostInput')?.focus()"
+            >
+                <Plus class="h-6 w-6" />
+            </Button>
         </div>
     </AppLayout>
 </template>
@@ -435,5 +733,20 @@ const followUser = (userId: number) => {
     .w-80 {
         width: 100%;
     }
+}
+
+/* Smooth transitions */
+.transition-colors {
+    transition: all 0.2s ease-in-out;
+}
+
+/* Hover effects */
+.hover\:bg-muted\/50:hover {
+    background-color: hsl(var(--muted) / 0.5);
+}
+
+/* Active tab styling */
+.border-b-2 {
+    border-bottom-width: 2px;
 }
 </style>
