@@ -60,4 +60,92 @@ class User extends Authenticatable
             'social_links' => 'array',
         ];
     }
+
+    /**
+     * Get the posts created by the user.
+     */
+    public function posts(): HasMany
+    {
+        return $this->hasMany(Post::class);
+    }
+
+    /**
+     * Get the comments created by the user.
+     */
+    public function comments(): HasMany
+    {
+        return $this->hasMany(Comment::class);
+    }
+
+    /**
+     * Get the post interactions made by the user.
+     */
+    public function postInteractions(): HasMany
+    {
+        return $this->hasMany(PostInteraction::class);
+    }
+
+    /**
+     * Get the notifications for the user.
+     */
+    public function notifications(): HasMany
+    {
+        return $this->hasMany(Notification::class);
+    }
+
+    /**
+     * Get the users that this user is following.
+     */
+    public function following(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'user_follows', 'follower_id', 'following_id');
+    }
+
+    /**
+     * Get the users that are following this user.
+     */
+    public function followers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'user_follows', 'following_id', 'follower_id');
+    }
+
+    /**
+     * Check if the user is following another user.
+     */
+    public function isFollowing(User $user): bool
+    {
+        return $this->following()->where('following_id', $user->id)->exists();
+    }
+
+    /**
+     * Check if the user is followed by another user.
+     */
+    public function isFollowedBy(User $user): bool
+    {
+        return $this->followers()->where('follower_id', $user->id)->exists();
+    }
+
+    /**
+     * Get the followers count.
+     */
+    public function getFollowersCountAttribute(): int
+    {
+        return $this->followers()->count();
+    }
+
+    /**
+     * Get the following count.
+     */
+    public function getFollowingCountAttribute(): int
+    {
+        return $this->following()->count();
+    }
+
+    /**
+     * Get the posts count.
+     */
+    public function getPostsCountAttribute(): int
+    {
+        return $this->posts()->count();
+    }
 }

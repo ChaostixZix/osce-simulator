@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Builder;
@@ -29,7 +29,7 @@ class Post extends Model
         'is_public' => 'boolean',
     ];
 
-    protected $with = ['user', 'hashtags'];
+    protected $with = ['user'];
 
     /**
      * Get the user that owns the post.
@@ -45,14 +45,6 @@ class Post extends Model
     public function comments(): HasMany
     {
         return $this->hasMany(Comment::class);
-    }
-
-    /**
-     * Get the hashtags for the post.
-     */
-    public function hashtags(): BelongsToMany
-    {
-        return $this->belongsToMany(Hashtag::class, 'post_hashtags');
     }
 
     /**
@@ -158,29 +150,10 @@ class Post extends Model
     }
 
     /**
-     * Extract hashtags from content and sync them.
-     */
-    public function syncHashtags(): void
-    {
-        preg_match_all('/#(\w+)/', $this->content, $matches);
-        $hashtagNames = $matches[1] ?? [];
-
-        $hashtagIds = collect($hashtagNames)->map(function ($name) {
-            return Hashtag::firstOrCreate(['name' => strtolower($name)])->id;
-        });
-
-        $this->hashtags()->sync($hashtagIds);
-    }
-
-    /**
      * Boot the model and add event listeners.
      */
     protected static function boot()
     {
         parent::boot();
-
-        static::saved(function ($post) {
-            $post->syncHashtags();
-        });
     }
 }
