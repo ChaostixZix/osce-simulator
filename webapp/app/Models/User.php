@@ -4,6 +4,8 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -22,6 +24,14 @@ class User extends Authenticatable
         'email',
         'workos_id',
         'avatar',
+        'username',
+        'bio',
+        'location',
+        'website',
+        'birth_date',
+        'is_verified',
+        'is_private',
+        'social_links',
     ];
 
     /**
@@ -44,6 +54,10 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'birth_date' => 'date',
+            'is_verified' => 'boolean',
+            'is_private' => 'boolean',
+            'social_links' => 'array',
         ];
     }
 }
