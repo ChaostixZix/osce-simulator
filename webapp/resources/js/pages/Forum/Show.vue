@@ -20,7 +20,7 @@ interface Post {
     id: number;
     title: string;
     content: string;
-    user: User;
+    user: User | null;
     comments_count: number;
     created_at: string;
     formatted_created_at: string;
@@ -29,7 +29,7 @@ interface Post {
 interface Comment {
     id: number;
     content: string;
-    user: User;
+    user: User | null;
     post_id: number;
     created_at: string;
     formatted_created_at: string;
@@ -78,11 +78,15 @@ const getInitials = (name: string) => {
         .toUpperCase()
         .slice(0, 2);
 };
+
+const getUserInitials = (user: User | null) => {
+    return user?.name ? getInitials(user.name) : '?';
+};
 </script>
 
 <template>
 
-    <Head :title="post.title" />
+    <Head :title="props.post.title" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4 overflow-x-auto">
@@ -99,31 +103,31 @@ const getInitials = (name: string) => {
                 <CardContent class="p-6">
                     <div class="flex gap-4">
                         <Avatar class="h-12 w-12 flex-shrink-0">
-                            <AvatarImage :src="post.user?.avatar" />
+                            <AvatarImage :src="props.post.user?.avatar" />
                             <AvatarFallback>
-                                {{ post.user?.name ? getInitials(post.user.name) : '?' }}
+                                {{ getUserInitials(props.post.user) }}
                             </AvatarFallback>
                         </Avatar>
 
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2 mb-3">
-                                <span class="font-medium text-lg">{{ post.user?.name || 'Unknown User' }}</span>
+                                <span class="font-medium text-lg">{{ props.post.user?.name || 'Unknown User' }}</span>
                                 <span class="text-muted-foreground">
-                                    {{ post.formatted_created_at }}
+                                    {{ props.post.formatted_created_at }}
                                 </span>
                             </div>
 
-                            <h1 class="text-2xl font-bold mb-4">{{ post.title }}</h1>
+                            <h1 class="text-2xl font-bold mb-4">{{ props.post.title }}</h1>
 
                             <div class="prose prose-neutral dark:prose-invert max-w-none">
-                                <p class="whitespace-pre-wrap">{{ post.content }}</p>
+                                <p class="whitespace-pre-wrap">{{ props.post.content }}</p>
                             </div>
 
                             <div class="flex items-center gap-4 mt-6 pt-4 border-t">
                                 <Badge variant="secondary" class="gap-1">
                                     <MessageSquare class="w-3 h-3" />
-                                    {{ comments.length }}
-                                    {{ comments.length === 1 ? 'comment' : 'comments' }}
+                                    {{ props.comments.length }}
+                                    {{ props.comments.length === 1 ? 'comment' : 'comments' }}
                                 </Badge>
 
                                 <Button variant="outline" @click="showCommentForm = !showCommentForm" class="gap-2">
@@ -165,10 +169,10 @@ const getInitials = (name: string) => {
             <div class="relative flex-1 rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
                 <div class="p-6">
                     <h2 class="text-xl font-semibold mb-4">
-                        Comments ({{ comments.length }})
+                        Comments ({{ props.comments.length }})
                     </h2>
 
-                    <div v-if="comments.length === 0" class="text-center py-12">
+                    <div v-if="props.comments.length === 0" class="text-center py-12">
                         <MessageSquare class="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                         <h3 class="text-lg font-medium">No comments yet</h3>
                         <p class="text-muted-foreground mb-4">Be the first to share your thoughts!</p>
@@ -179,14 +183,14 @@ const getInitials = (name: string) => {
                     </div>
 
                     <div v-else class="space-y-4">
-                        <Card v-for="comment in comments" :key="comment.id"
+                        <Card v-for="comment in props.comments" :key="comment.id"
                             class="border-sidebar-border/70 dark:border-sidebar-border">
                             <CardContent class="p-4">
                                 <div class="flex gap-3">
                                     <Avatar class="h-8 w-8 flex-shrink-0">
                                         <AvatarImage :src="comment.user?.avatar" />
                                         <AvatarFallback>
-                                            {{ comment.user?.name ? getInitials(comment.user.name) : '?' }}
+                                            {{ getUserInitials(comment.user) }}
                                         </AvatarFallback>
                                     </Avatar>
 
