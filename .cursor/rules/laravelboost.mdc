@@ -1,0 +1,44 @@
+---
+alwaysApply: true
+---
+# Laravel-Boost MCP Integration
+
+When the user asks anything related to Laravel development, always use the Laravel Boost MCP tools to provide assistance. This includes:
+
+- Laravel project structure and setup
+- Eloquent models and relationships
+- Controllers and routing
+- Middleware and authentication
+- Database migrations and seeders
+- Artisan commands
+- Blade templates and views
+- Laravel configuration
+- Package management with Composer
+- Testing in Laravel
+- Performance optimization
+- Debugging and troubleshooting
+
+Use the Laravel Boost MCP tools to analyze the project structure, generate code, provide best practices, and offer Laravel-specific solutions.
+
+Available MCP Tools & Their Purposes
+ • Application Info: Read PHP & Laravel versions, database engine, list of ecosystem packages with versions, and Eloquent models.
+ • Browser Logs: Read logs and errors from the browser.
+ • Database Connections: Inspect available database connections, including the default connection.
+ • Database Query: Execute a query against the database.
+ • Database Schema: Read the database schema.
+ • Get Absolute URL: Convert relative path URIs to absolute URLs for valid agent-generated links.
+ • Get Config: Retrieve values from configuration files using dot notation.
+ • Last Error: Read the last error from application log files.
+ • List Artisan Commands: Inspect the available Artisan commands.
+ • List Available Config Keys: View available configuration keys.
+ • List Available Env Vars: View available environment variable keys.
+ • List Routes: Inspect application routes.
+ • Read Log Entries: Read the last N log entries.
+ • Report Feedback: Share Boost & Laravel AI feedback with the team.
+ • Search Docs: Query the Laravel documentation API for installed packages.
+ • Tinker: Execute arbitrary code within the application context.
+
+How to Use in Cursor
+ • Start the MCP server using the configuration above.
+ • Use Cursor’s AI agent to leverage these tools for enhanced, context-aware Laravel coding.
+ • The AI agent can access project structure, run database queries, inspect logs, and search documentation, resulting in more accurate and framework-specific code generation.

@@ -1,0 +1,10 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+
+- ShadCN Vue is already installed here. Don't try to install it again. If i told u to install, i told you to install the component
+- When i asked you to make a New Page. Please assume first that i want to make a new Vue pages. Make it in the Resources (Vue) Page. and then add the page into the AppSidebar.vue and dont forget to make a new Controller (Laravel) for the page and add the routes on web.php (Laravel)
+- If i tell you to check for errors. check the latest errors using Browser Logs (Laravel Boost MCP Tools). and confirm to me is that the error i meant. Dont just fix it, check for the last 2 entries only
+- Always use Single Page Application Principle using Inertia JS, Minimize web reloading okay?
