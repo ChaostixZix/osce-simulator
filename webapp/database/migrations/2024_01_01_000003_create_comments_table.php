@@ -13,18 +13,10 @@ return new class extends Migration
     {
         Schema::create('comments', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('post_id')->constrained()->onDelete('cascade');
-            $table->foreignId('parent_id')->nullable()->constrained('comments')->onDelete('cascade'); // For threaded comments
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->text('content');
-            $table->json('images')->nullable();
-            $table->boolean('is_public')->default(true);
             $table->timestamps();
-            
-            // Indexes for better performance
-            $table->index(['post_id', 'created_at']);
-            $table->index(['parent_id', 'created_at']);
-            $table->index(['user_id', 'created_at']);
         });
     }
 
