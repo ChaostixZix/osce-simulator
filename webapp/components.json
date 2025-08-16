@@ -1,13 +1,11 @@
 {
     "$schema": "https://shadcn-vue.com/schema.json",
     "style": "default",
-    "tsx": true,
     "tailwind": {
         "config": "tailwind.config.js",
         "css": "resources/css/app.css",
         "baseColor": "neutral",
-        "cssVariables": true,
-        "prefix": ""
+        "cssVariables": true
     },
     "aliases": {
         "components": "@/components",
