@@ -1,456 +1,456 @@
-# Medical Training System - User Guide
+# medical training system - user guide
 
-This comprehensive guide will help you get the most out of the Medical Training System, whether you're a medical student practicing clinical skills or an educator supervising training.
+this comprehensive guide will help you get the most out of the medical training system, whether you're a medical student practicing clinical skills or an educator supervising training.
 
-## 📋 Table of Contents
+## 📋 table of contents
 
-1. [Getting Started](#getting-started)
-2. [Chat Mode Guide](#chat-mode-guide)
-3. [OSCE Mode Guide](#osce-mode-guide)
-4. [Case Walkthroughs](#case-walkthroughs)
-5. [Performance Optimization](#performance-optimization)
-6. [Troubleshooting](#troubleshooting)
+1. [getting started](#getting-started)
+2. [chat mode guide](#chat-mode-guide)
+3. [osce mode guide](#osce-mode-guide)
+4. [case walkthroughs](#case-walkthroughs)
+5. [performance optimization](#performance-optimization)
+6. [troubleshooting](#troubleshooting)
 
-## 🚀 Getting Started
+## 🚀 getting started
 
-### First Launch
+### first launch
 
-When you start the application, you'll see the welcome screen:
+when you start the application, you'll see the welcome screen:
 
 ```
 ╔══════════════════════════════════════════════════════════════╗
-║                    Medical Training System                   ║
+║                    medical training system                   ║
 ║                         v1.0.0                              ║
 ╠══════════════════════════════════════════════════════════════╣
 ║                                                              ║
-║  🗣️  Chat Mode: General conversation with AI                 ║
-║  🏥 OSCE Mode: Structured clinical examination training      ║
+║  🗣️  chat mode: general conversation with ai                 ║
+║  🏥 osce mode: structured clinical examination training      ║
 ║                                                              ║
-║  Quick Start:                                                ║
-║  • Type "start osce" to begin medical case training         ║
-║  • Type any message to chat with AI                         ║
-║  • Type "help" for detailed command reference               ║
+║  quick start:                                                ║
+║  • type "start osce" to begin medical case training         ║
+║  • type any message to chat with ai                         ║
+║  • type "help" for detailed command reference               ║
 ╚══════════════════════════════════════════════════════════════╝
 ```
 
-### Choosing Your Mode
+### choosing your mode
 
-**For General Learning**: Start with chat mode by typing any medical question
-**For Structured Practice**: Type `start osce` to begin case-based training
+**for general learning**: start with chat mode by typing any medical question
+**for structured practice**: type `start osce` to begin case-based training
 
-## 💬 Chat Mode Guide
+## 💬 chat mode guide
 
-### Basic Usage
+### basic usage
 
-Chat mode provides free-form conversation with AI for medical education:
+chat mode provides free-form conversation with ai for medical education:
 
 ```
-[Chat] What are the signs and symptoms of myocardial infarction?
+[chat] what are the signs and symptoms of myocardial infarction?
 
-🤖 Myocardial infarction (heart attack) presents with several key signs and symptoms:
+🤖 myocardial infarction (heart attack) presents with several key signs and symptoms:
 
-**Classic Symptoms:**
-• Chest pain or discomfort (often described as crushing, squeezing, or pressure)
-• Pain radiating to left arm, jaw, neck, or back
-• Shortness of breath
-• Nausea and vomiting
-• Diaphoresis (sweating)
-• Fatigue or weakness
+**classic symptoms:**
+• chest pain or discomfort (often described as crushing, squeezing, or pressure)
+• pain radiating to left arm, jaw, neck, or back
+• shortness of breath
+• nausea and vomiting
+• diaphoresis (sweating)
+• fatigue or weakness
 
-**Physical Signs:**
-• Tachycardia or bradycardia
-• Hypotension or hypertension
-• S3 or S4 gallop sounds
-• Pulmonary crackles (if heart failure develops)
+**physical signs:**
+• tachycardia or bradycardia
+• hypotension or hypertension
+• s3 or s4 gallop sounds
+• pulmonary crackles (if heart failure develops)
 ...
 ```
 
-### Advanced Chat Features
+### advanced chat features
 
-**Conversation Memory**: The system maintains context across messages
+**conversation memory**: the system maintains context across messages
 ```
-[Chat] What about atypical presentations?
+[chat] what about atypical presentations?
 
-🤖 Great follow-up question! Atypical MI presentations are especially important to recognize:
+🤖 great follow-up question! atypical mi presentations are especially important to recognize:
 
-**Common in:**
-• Elderly patients (>75 years)
-• Diabetic patients
-• Women
-• Patients with chronic kidney disease
+**common in:**
+• elderly patients (>75 years)
+• diabetic patients
+• women
+• patients with chronic kidney disease
 ...
 ```
 
-**Session Statistics**: Track your learning progress
-**Real-time Command Suggestions**
+**session statistics**: track your learning progress
+**real-time command suggestions**
 
-- Press `/` at any time to get a quick list of available commands for the current mode.
-- Suggestions appear inline at the cursor and disappear on the next keypress (autocomplete-like).
-- Works in both Chat mode and OSCE mode with context-appropriate commands.
+- press `/` at any time to get a quick list of available commands for the current mode.
+- suggestions appear inline at the cursor and disappear on the next keypress (autocomplete-like).
+- works in both chat mode and osce mode with context-appropriate commands.
 
 ```
-[Chat] stats
+[chat] stats
 
 ╔══════════════════════════════════════════════════════════════╗
-║                      Session Statistics                     ║
+║                      session statistics                     ║
 ╚══════════════════════════════════════════════════════════════╝
-⏱️  Session Duration: 15 minutes
-💬 Chat Messages Sent: 8
-🏥 OSCE Cases Completed: 0
+⏱️  session duration: 15 minutes
+💬 chat messages sent: 8
+🏥 osce cases completed: 0
 ```
 
-## 🏥 OSCE Mode Guide
+## 🏥 osce mode guide
 
-### Starting OSCE Mode
+### starting osce mode
 
 ```
-[Chat] start osce
+[chat] start osce
 
-🏥 Initializing OSCE Medical Training System...
+🏥 initializing osce medical training system...
 
 ╔══════════════════════════════════════════════════════════════╗
-║                    Available OSCE Cases                     ║
+║                    available osce cases                     ║
 ╚══════════════════════════════════════════════════════════════╝
 
-📋 Case ID: stemi-001
-   Title: Acute Coronary Syndrome - STEMI
-   Description: 58-year-old male with acute chest pain
-   Difficulty: Intermediate
-   Duration: ~20-30 minutes
-   Focus: Emergency Cardiology
+📋 case id: stemi-001
+   title: acute coronary syndrome - stemi
+   description: 58-year-old male with acute chest pain
+   difficulty: intermediate
+   duration: ~20-30 minutes
+   focus: emergency cardiology
 
-💡 To select a case, type the Case ID (e.g., "stemi-001")
-💡 Type "help" for OSCE commands
+💡 to select a case, type the case id (e.g., "stemi-001")
+💡 type "help" for osce commands
 ```
 
-### Case Selection and Initialization
+### case selection and initialization
 
 ```
-[OSCE] stemi-001
+[osce] stemi-001
 
-🏥 Loading case: Acute Coronary Syndrome - STEMI...
+🏥 loading case: acute coronary syndrome - stemi...
 
 ╔══════════════════════════════════════════════════════════════╗
-║                        Case Briefing                        ║
+║                        case briefing                        ║
 ╚══════════════════════════════════════════════════════════════╝
 
-👤 Patient: John Smith, 58-year-old male
-🏗️  Occupation: Construction worker
-📍 Setting: Emergency Department
-⏰ Time: 2:30 AM
+👤 patient: john smith, 58-year-old male
+🏗️  occupation: construction worker
+📍 setting: emergency department
+⏰ time: 2:30 am
 
-Chief Complaint: "I've been having severe chest pain for the past 2 hours"
+chief complaint: "i've been having severe chest pain for the past 2 hours"
 
-🎯 Your task: Conduct a focused history and examination, order appropriate 
+🎯 your task: conduct a focused history and examination, order appropriate 
    investigations, and provide a diagnosis and management plan.
 
-💡 The patient is waiting. Begin by introducing yourself and asking questions.
+💡 the patient is waiting. begin by introducing yourself and asking questions.
 ```
 
-### Patient Interaction Examples
+### patient interaction examples
 
-**History Taking:**
+**history taking:**
 ```
-[OSCE - stemi-001] Hello Mr. Smith, I'm Dr. [Name]. Can you tell me more about your chest pain?
+[osce - stemi-001] hello mr. smith, i'm dr. [name]. can you tell me more about your chest pain?
 
-👤 *Patient appears diaphoretic and anxious*
+👤 *patient appears diaphoretic and anxious*
 
-"Doctor, it started about 2 hours ago while I was sleeping. It woke me up - it's like someone is crushing my chest with a vice. It's the worst pain I've ever felt, maybe 9 out of 10. The pain goes down my left arm and up to my jaw too."
+"doctor, it started about 2 hours ago while i was sleeping. it woke me up - it's like someone is crushing my chest with a vice. it's the worst pain i've ever felt, maybe 9 out of 10. the pain goes down my left arm and up to my jaw too."
 
-*Patient clutches chest and appears uncomfortable*
+*patient clutches chest and appears uncomfortable*
 
-✅ Tracked: Pain onset, character, severity, radiation
-```
-
-**Physical Examination:**
-```
-[OSCE - stemi-001] I'd like to check your vital signs and examine your heart and lungs.
-
-👤 *Patient nods consent*
-
-**Vital Signs:**
-• Blood Pressure: 160/95 mmHg
-• Heart Rate: 110 bpm (regular)
-• Respiratory Rate: 22/min
-• Temperature: 37.1°C
-• Oxygen Saturation: 94% on room air
-
-**Cardiovascular Examination:**
-• Heart sounds: S1, S2 present, no murmurs audible
-• Rhythm: Regular tachycardia
-• No peripheral edema noted
-
-**Respiratory Examination:**
-• Mild bibasilar crackles
-• No wheeze or stridor
-
-✅ Tracked: Vital signs assessment, cardiovascular examination
+✅ tracked: pain onset, character, severity, radiation
 ```
 
-**Investigations:**
+**physical examination:**
 ```
-[OSCE - stemi-001] I'd like to order an ECG immediately, please.
+[osce - stemi-001] i'd like to check your vital signs and examine your heart and lungs.
 
-👤 *Nurse brings ECG machine*
+👤 *patient nods consent*
 
-**12-Lead ECG Results:**
-• ST elevation in leads II, III, aVF (2-4mm)
-• Reciprocal ST depression in leads I, aVL
-• Q waves beginning to form in inferior leads
-• Rate: 110 bpm, regular rhythm
+**vital signs:**
+• blood pressure: 160/95 mmhg
+• heart rate: 110 bpm (regular)
+• respiratory rate: 22/min
+• temperature: 37.1°c
+• oxygen saturation: 94% on room air
 
-**Interpretation:** Acute inferior STEMI
+**cardiovascular examination:**
+• heart sounds: s1, s2 present, no murmurs audible
+• rhythm: regular tachycardia
+• no peripheral edema noted
 
-✅ Tracked: ECG ordered - CRITICAL ITEM COMPLETED
-💡 This is a time-sensitive emergency requiring immediate intervention!
+**respiratory examination:**
+• mild bibasilar crackles
+• no wheeze or stridor
+
+✅ tracked: vital signs assessment, cardiovascular examination
 ```
 
-### Real-Time Progress Tracking
+**investigations:**
+```
+[osce - stemi-001] i'd like to order an ecg immediately, please.
+
+👤 *nurse brings ecg machine*
+
+**12-lead ecg results:**
+• st elevation in leads ii, iii, avf (2-4mm)
+• reciprocal st depression in leads i, avl
+• q waves beginning to form in inferior leads
+• rate: 110 bpm, regular rhythm
+
+**interpretation:** acute inferior stemi
+
+✅ tracked: ecg ordered - critical item completed
+💡 this is a time-sensitive emergency requiring immediate intervention!
+```
+
+### real-time progress tracking
 
 ```
-[OSCE - stemi-001] score
+[osce - stemi-001] score
 
-┌─ Current Progress ─────────────────────────────────────────────┐
-│ Case: stemi-001                    Duration: 12 minutes        │
+┌─ current progress ─────────────────────────────────────────────┐
+│ case: stemi-001                    duration: 12 minutes        │
 └────────────────────────────────────────────────────────────────┘
 
-📊 **Current Score: 68/100**
+📊 **current score: 68/100**
 
-✅ **Completed Items:**
-• History Taking (18/22 points)
-  ✓ Pain onset and timing (5/5)
-  ✓ Pain character and radiation (5/5)
-  ✓ Associated symptoms (3/3)
-  ✓ Cardiovascular risk factors (4/4)
-  ✗ Past medical history (0/3) - Not assessed
-  ✗ Current medications (0/2) - Not assessed
+✅ **completed items:**
+• history taking (18/22 points)
+  ✓ pain onset and timing (5/5)
+  ✓ pain character and radiation (5/5)
+  ✓ associated symptoms (3/3)
+  ✓ cardiovascular risk factors (4/4)
+  ✗ past medical history (0/3) - not assessed
+  ✗ current medications (0/2) - not assessed
 
-• Physical Examination (13/15 points)
-  ✓ Vital signs (5/5)
-  ✓ Cardiovascular exam (5/5)
-  ✓ Respiratory exam (3/3)
+• physical examination (13/15 points)
+  ✓ vital signs (5/5)
+  ✓ cardiovascular exam (5/5)
+  ✓ respiratory exam (3/3)
 
-• Investigations (8/25 points)
-  ✓ ECG ordered (8/8) - CRITICAL
-  ✗ Cardiac enzymes (0/6) - Not ordered
-  ✗ Basic labs (0/3) - Not ordered
+• investigations (8/25 points)
+  ✓ ecg ordered (8/8) - critical
+  ✗ cardiac enzymes (0/6) - not ordered
+  ✗ basic labs (0/3) - not ordered
 
-⚠️ **Missing Critical Items:**
-• Cardiac enzymes/troponin (6 points)
-• Primary diagnosis (10 points)
+⚠️ **missing critical items:**
+• cardiac enzymes/troponin (6 points)
+• primary diagnosis (10 points)
 
-💡 **Suggestions:**
-• Order cardiac enzymes to confirm diagnosis
-• Consider basic metabolic panel and CBC
-• Provide your diagnostic impression
+💡 **suggestions:**
+• order cardiac enzymes to confirm diagnosis
+• consider basic metabolic panel and cbc
+• provide your diagnostic impression
 ```
 
-### Case Completion
+### case completion
 
 ```
-[OSCE - stemi-001] Based on the presentation and ECG findings, I believe this is an acute inferior STEMI. I would start dual antiplatelet therapy, anticoagulation, and arrange urgent cardiac catheterization.
+[osce - stemi-001] based on the presentation and ecg findings, i believe this is an acute inferior stemi. i would start dual antiplatelet therapy, anticoagulation, and arrange urgent cardiac catheterization.
 
-👤 *Patient nods* "Thank you doctor, I feel a bit better knowing what's wrong."
+👤 *patient nods* "thank you doctor, i feel a bit better knowing what's wrong."
 
-🎉 **Case Completed!**
+🎉 **case completed!**
 
 ╔══════════════════════════════════════════════════════════════╗
-║                        Final Results                        ║
+║                        final results                        ║
 ╚══════════════════════════════════════════════════════════════╝
 
-📊 **Final Score: 85/100** (Grade: B+)
-⏱️ **Completion Time:** 18 minutes
-🎯 **Efficiency Rating:** Excellent
+📊 **final score: 85/100** (grade: b+)
+⏱️ **completion time:** 18 minutes
+🎯 **efficiency rating:** excellent
 
-**Performance Breakdown:**
-• History Taking: 20/22 (91%) ✅
-• Physical Examination: 15/15 (100%) ✅
-• Investigations: 20/25 (80%) ⚠️
-• Diagnosis: 15/15 (100%) ✅
-• Management: 8/10 (80%) ⚠️
+**performance breakdown:**
+• history taking: 20/22 (91%) ✅
+• physical examination: 15/15 (100%) ✅
+• investigations: 20/25 (80%) ⚠️
+• diagnosis: 15/15 (100%) ✅
+• management: 8/10 (80%) ⚠️
 
-**What You Did Well:**
-✅ Excellent history taking with focus on cardiac symptoms
-✅ Systematic physical examination approach
-✅ Immediate ECG recognition of STEMI
-✅ Correct diagnosis and understanding of urgency
-✅ Appropriate emergency management initiation
+**what you did well:**
+✅ excellent history taking with focus on cardiac symptoms
+✅ systematic physical examination approach
+✅ immediate ecg recognition of stemi
+✅ correct diagnosis and understanding of urgency
+✅ appropriate emergency management initiation
 
-**Areas for Improvement:**
-⚠️ Consider ordering cardiac enzymes earlier for confirmation
-⚠️ Basic labs (CBC, BMP) helpful for baseline assessment
-⚠️ Mention specific antiplatelet agents (aspirin, clopidogrel)
+**areas for improvement:**
+⚠️ consider ordering cardiac enzymes earlier for confirmation
+⚠️ basic labs (cbc, bmp) helpful for baseline assessment
+⚠️ mention specific antiplatelet agents (aspirin, clopidogrel)
 
-**Learning Points:**
-💡 STEMI is a time-critical emergency - "time is muscle"
-💡 Door-to-balloon time goal is <90 minutes
-💡 Consider contraindications to anticoagulation
-💡 Monitor for complications (arrhythmias, cardiogenic shock)
+**learning points:**
+💡 stemi is a time-critical emergency - "time is muscle"
+💡 door-to-balloon time goal is <90 minutes
+💡 consider contraindications to anticoagulation
+💡 monitor for complications (arrhythmias, cardiogenic shock)
 
-🎉 Congratulations! You successfully managed this cardiac emergency.
+🎉 congratulations! you successfully managed this cardiac emergency.
 ```
 
-## 📚 Case Walkthroughs
+## 📚 case walkthroughs
 
-### STEMI Case Strategy
+### stemi case strategy
 
-**Phase 1: Initial Assessment (5-7 minutes)**
-1. Introduce yourself professionally
-2. Obtain focused history of chest pain (OPQRST)
-3. Ask about associated symptoms
-4. Quick cardiovascular risk factor assessment
+**phase 1: initial assessment (5-7 minutes)**
+1. introduce yourself professionally
+2. obtain focused history of chest pain (opqrst)
+3. ask about associated symptoms
+4. quick cardiovascular risk factor assessment
 
-**Phase 2: Physical Examination (3-5 minutes)**
-1. Vital signs (always first in emergency)
-2. Cardiovascular examination
-3. Respiratory examination
-4. Brief neurological check if indicated
+**phase 2: physical examination (3-5 minutes)**
+1. vital signs (always first in emergency)
+2. cardiovascular examination
+3. respiratory examination
+4. brief neurological check if indicated
 
-**Phase 3: Investigations (5-8 minutes)**
-1. **Immediate**: 12-lead ECG (most critical)
-2. **Urgent**: Cardiac enzymes/troponin
-3. **Supportive**: Basic labs, chest X-ray
+**phase 3: investigations (5-8 minutes)**
+1. **immediate**: 12-lead ecg (most critical)
+2. **urgent**: cardiac enzymes/troponin
+3. **supportive**: basic labs, chest x-ray
 
-**Phase 4: Diagnosis and Management (3-5 minutes)**
-1. Interpret ECG findings
-2. Provide clear diagnosis
-3. Outline emergency management
-4. Discuss next steps (cardiac catheterization)
+**phase 4: diagnosis and management (3-5 minutes)**
+1. interpret ecg findings
+2. provide clear diagnosis
+3. outline emergency management
+4. discuss next steps (cardiac catheterization)
 
-### Common Pitfalls to Avoid
+### common pitfalls to avoid
 
-❌ **Don't**: Spend too much time on detailed past history in emergency cases
-✅ **Do**: Focus on immediate life-threatening conditions first
+❌ **don't**: spend too much time on detailed past history in emergency cases
+✅ **do**: focus on immediate life-threatening conditions first
 
-❌ **Don't**: Forget to order ECG in chest pain cases
-✅ **Do**: Make ECG your first investigation in cardiac presentations
+❌ **don't**: forget to order ecg in chest pain cases
+✅ **do**: make ecg your first investigation in cardiac presentations
 
-❌ **Don't**: Provide vague diagnoses like "chest pain"
-✅ **Do**: Be specific - "acute inferior STEMI"
+❌ **don't**: provide vague diagnoses like "chest pain"
+✅ **do**: be specific - "acute inferior stemi"
 
-## 📈 Performance Optimization
+## 📈 performance optimization
 
-### Maximizing Your OSCE Score
+### maximizing your osce score
 
-**Time Management:**
-- Spend 30% of time on history
-- Spend 20% of time on examination
-- Spend 25% of time on investigations
-- Spend 25% of time on diagnosis/management
+**time management:**
+- spend 30% of time on history
+- spend 20% of time on examination
+- spend 25% of time on investigations
+- spend 25% of time on diagnosis/management
 
-**Critical Item Focus:**
-- Always complete items marked as "critical"
-- These carry the highest point values
-- Missing critical items significantly impacts score
+**critical item focus:**
+- always complete items marked as "critical"
+- these carry the highest point values
+- missing critical items significantly impacts score
 
-**Systematic Approach:**
-- Follow the same structure for each case
-- Develop consistent examination routines
-- Practice common investigation ordering
+**systematic approach:**
+- follow the same structure for each case
+- develop consistent examination routines
+- practice common investigation ordering
 
-### Learning from Feedback
+### learning from feedback
 
-**Review Your Performance:**
+**review your performance:**
 ```
-[Chat] stats
+[chat] stats
 
-📈 Performance Trend: +12.5%
-🎯 Recent Cases:
-   • stemi-001: 85% (18min) - Excellent diagnosis
-   • pneumonia-002: 72% (25min) - Missed key examination
-   • diabetes-003: 90% (15min) - Perfect efficiency
-```
-
-**Focus Areas:**
-- Identify patterns in missed items
-- Practice weak areas in chat mode
-- Time yourself on similar cases
-
-## 🔧 Troubleshooting
-
-### Common Issues and Solutions
-
-**Case Won't Load:**
-```
-❌ Error: Could not load case file
-
-💡 Solutions:
-• Check that case files exist in cases/ directory
-• Verify JSON formatting with case validator
-• Try "system status" to check file system health
+📈 performance trend: +12.5%
+🎯 recent cases:
+   • stemi-001: 85% (18min) - excellent diagnosis
+   • pneumonia-002: 72% (25min) - missed key examination
+   • diabetes-003: 90% (15min) - perfect efficiency
 ```
 
-**AI Patient Not Responding:**
-```
-❌ Error: API request failed
+**focus areas:**
+- identify patterns in missed items
+- practice weak areas in chat mode
+- time yourself on similar cases
 
-💡 Solutions:
-• Check internet connection
-• Verify API key in .env file
-• Try "health check" for detailed diagnostics
-• Wait a moment and try again (may be rate limited)
-```
+## 🔧 troubleshooting
 
-**Score Calculation Issues:**
-```
-❌ Error: Unable to calculate performance score
+### common issues and solutions
 
-💡 Solutions:
-• Complete at least one checklist item
-• Ensure case has valid scoring criteria
-• Try "case info" to verify case integrity
+**case won't load:**
+```
+❌ error: could not load case file
+
+💡 solutions:
+• check that case files exist in cases/ directory
+• verify json formatting with case validator
+• try "system status" to check file system health
 ```
 
-### Getting Help
+**ai patient not responding:**
+```
+❌ error: api request failed
 
-**In-App Commands:**
-- `help` - Context-sensitive help
-- `system status` - Technical diagnostics
-- `health check` - Comprehensive system check
-- `stats` - Session and performance data
+💡 solutions:
+• check internet connection
+• verify api key in .env file
+• try "health check" for detailed diagnostics
+• wait a moment and try again (may be rate limited)
+```
 
-**Emergency Recovery:**
-- `exit osce` - Return to chat mode
-- `new case` - Start fresh case
-- `restart` - Reset current case
+**score calculation issues:**
+```
+❌ error: unable to calculate performance score
 
-## 🎓 Advanced Tips
+💡 solutions:
+• complete at least one checklist item
+• ensure case has valid scoring criteria
+• try "case info" to verify case integrity
+```
 
-### For Medical Students
+### getting help
 
-**Study Strategy:**
-1. Start with chat mode to review concepts
-2. Practice cases multiple times for consistency
-3. Focus on time management and efficiency
-4. Review feedback carefully after each case
+**in-app commands:**
+- `help` - context-sensitive help
+- `system status` - technical diagnostics
+- `health check` - comprehensive system check
+- `stats` - session and performance data
 
-**Skill Development:**
-- Practice history taking in different specialties
-- Develop systematic examination routines
-- Learn to prioritize investigations by urgency
-- Master common diagnostic patterns
+**emergency recovery:**
+- `exit osce` - return to chat mode
+- `new case` - start fresh case
+- `restart` - reset current case
 
-### For Educators
+## 🎓 advanced tips
 
-**Monitoring Student Progress:**
-- Review session statistics for engagement metrics
-- Analyze performance trends across multiple cases
-- Identify common areas where students struggle
-- Use case completion times to assess efficiency
+### for medical students
 
-**Curriculum Integration:**
-- Assign specific cases for different learning objectives
-- Use performance data to guide additional instruction
-- Encourage repeated practice for skill reinforcement
-- Supplement with real patient encounters
+**study strategy:**
+1. start with chat mode to review concepts
+2. practice cases multiple times for consistency
+3. focus on time management and efficiency
+4. review feedback carefully after each case
+
+**skill development:**
+- practice history taking in different specialties
+- develop systematic examination routines
+- learn to prioritize investigations by urgency
+- master common diagnostic patterns
+
+### for educators
+
+**monitoring student progress:**
+- review session statistics for engagement metrics
+- analyze performance trends across multiple cases
+- identify common areas where students struggle
+- use case completion times to assess efficiency
+
+**curriculum integration:**
+- assign specific cases for different learning objectives
+- use performance data to guide additional instruction
+- encourage repeated practice for skill reinforcement
+- supplement with real patient encounters
 
 ---
 
-**Need More Help?**
+**need more help?**
 
-- Type `help` in the application for immediate assistance
-- Check `system status` for technical issues
-- Review the main README.md for setup instructions
-- Use `stats` to monitor your learning progress
+- type `help` in the application for immediate assistance
+- check `system status` for technical issues
+- review the main readme.md for setup instructions
+- use `stats` to monitor your learning progress
 
-**Happy Learning! 🏥📚**
+**happy learning! 🏥📚**

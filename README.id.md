@@ -1,222 +1,222 @@
-# Sistem Pelatihan Medis
+# sistem pelatihan medis
 
-Platform pendidikan medis komprehensif yang menggabungkan kemampuan chat bertenaga AI dengan pelatihan OSCE (Objective Structured Clinical Examination) terstruktur untuk mahasiswa kedokteran.
+platform pendidikan medis komprehensif yang menggabungkan kemampuan chat bertenaga ai dengan pelatihan osce (objective structured clinical examination) terstruktur untuk mahasiswa kedokteran.
 
-## 🚀 Mulai Cepat
+## 🚀 mulai cepat
 
-1. **Instal Dependensi**
+1. **instal dependensi**
    ```bash
    npm install
    ```
 
-2. **Konfigurasi Lingkungan**
-   Buat berkas `.env` dengan kredensial API OpenRouter Anda:
+2. **konfigurasi lingkungan**
+   buat berkas `.env` dengan kredensial api openrouter anda:
    ```env
    API_URL=https://openrouter.ai/api/v1/chat/completions
    API_KEY=masukkan_api_key_openrouter_anda_di_sini
    API_MODEL=anthropic/claude-3.5-sonnet
    ```
 
-3. **Jalankan Aplikasi**
+3. **jalankan aplikasi**
    ```bash
    node app.js
    ```
 
-4. **Mulai Pelatihan**
-   - Ketik `start osce` untuk memulai pelatihan kasus medis
-   - Ketik pesan apa pun untuk mengobrol dengan AI
-   - Ketik `help` untuk perintah rinci
+4. **mulai pelatihan**
+   - ketik `start osce` untuk memulai pelatihan kasus medis
+   - ketik pesan apa pun untuk mengobrol dengan ai
+   - ketik `help` untuk perintah rinci
 
-## 🏥 Fitur
+## 🏥 fitur
 
-### Mode Chat
-- **Percakapan Bertenaga AI**: Interaksi bahasa alami dengan model AI canggih
-- **Memori Percakapan**: Manajemen riwayat otomatis dengan ringkasan cerdas
-- **Pemulihan Kesalahan**: Logika ulang dan penanganan error yang tangguh
-- **Pelacakan Sesi**: Pantau aktivitas dan statistik chat Anda
+### mode chat
+- **percakapan bertenaga ai**: interaksi bahasa alami dengan model ai canggih
+- **memori percakapan**: manajemen riwayat otomatis dengan ringkasan cerdas
+- **pemulihan kesalahan**: logika ulang dan penanganan error yang tangguh
+- **pelacakan sesi**: pantau aktivitas dan statistik chat anda
 
-### Mode OSCE
-- **Kasus Klinis Terstruktur**: Latih diri dengan skenario medis realistis
-- **Simulasi Pasien AI**: Respons pasien interaktif berdasarkan data kasus
-- **Pelacakan Kinerja**: Pemantauan checklist otomatis dan pelacakan progres
-- **Penilaian Cerdas**: Sistem penilaian berbobot dengan umpan balik detail
-- **Berbagai Kasus**: Beragam kondisi medis dan spesialisasi
+### mode osce
+- **kasus klinis terstruktur**: latih diri dengan skenario medis realistis
+- **simulasi pasien ai**: respons pasien interaktif berdasarkan data kasus
+- **pelacakan kinerja**: pemantauan checklist otomatis dan pelacakan progres
+- **penilaian cerdas**: sistem penilaian berbobot dengan umpan balik detail
+- **berbagai kasus**: beragam kondisi medis dan spesialisasi
 
-## 📚 Kasus yang Tersedia
+## 📚 kasus yang tersedia
 
-### STEMI-001: Sindrom Koroner Akut
-- **Skenario**: Pria 58 tahun dengan nyeri dada akut
-- **Fokus**: Kardiologi darurat, interpretasi EKG, manajemen waktu kritis
-- **Keterampilan yang Dilatih**: Anamnesis, pemeriksaan fisik, penalaran diagnostik
-- **Tujuan Pembelajaran**: Pengenalan STEMI, protokol darurat, stratifikasi risiko
+### stemi-001: sindrom koroner akut
+- **skenario**: pria 58 tahun dengan nyeri dada akut
+- **fokus**: kardiologi darurat, interpretasi ekg, manajemen waktu kritis
+- **keterampilan yang dilatih**: anamnesis, pemeriksaan fisik, penalaran diagnostik
+- **tujuan pembelajaran**: pengenalan stemi, protokol darurat, stratifikasi risiko
 
-*Kasus lainnya tersedia di direktori `cases/`*
+*kasus lainnya tersedia di direktori `cases/`*
 
-## 🎯 Cara Menggunakan Mode OSCE
+## 🎯 cara menggunakan mode osce
 
-### Memulai Kasus
-1. Ketik `start osce` untuk masuk mode OSCE
-2. Pilih kasus dari daftar yang tersedia
-3. Baca keluhan utama dan mulai pemeriksaan
+### memulai kasus
+1. ketik `start osce` untuk masuk mode osce
+2. pilih kasus dari daftar yang tersedia
+3. baca keluhan utama dan mulai pemeriksaan
 
-### Berinteraksi dengan Pasien
-- **Ajukan Pertanyaan**: "Bisakah Anda jelaskan nyeri dada Anda?"
-- **Minta Pemeriksaan**: "Saya ingin memeriksa tanda vital Anda"
-- **Pesan Tes**: "Tolong lakukan EKG" atau "Saya perlu enzim jantung"
-- **Berikan Diagnosis**: "Saya pikir ini STEMI"
+### berinteraksi dengan pasien
+- **ajukan pertanyaan**: "bisakah anda jelaskan nyeri dada anda?"
+- **minta pemeriksaan**: "saya ingin memeriksa tanda vital anda"
+- **pesan tes**: "tolong lakukan ekg" atau "saya perlu enzim jantung"
+- **berikan diagnosis**: "saya pikir ini stemi"
 
-### Perintah OSCE
-- `score` atau `progress` - Cek kinerja saat ini
-- `case info` - Lihat detail dan tujuan kasus
-- `help` - Tampilkan perintah khusus OSCE
-- `end case` - Selesaikan kasus dan dapatkan hasil
-- `new case` - Mulai kasus berbeda
-- `exit osce` - Kembali ke mode chat
+### perintah osce
+- `score` atau `progress` - cek kinerja saat ini
+- `case info` - lihat detail dan tujuan kasus
+- `help` - tampilkan perintah khusus osce
+- `end case` - selesaikan kasus dan dapatkan hasil
+- `new case` - mulai kasus berbeda
+- `exit osce` - kembali ke mode chat
 
-### Memahami Skor Anda
-- **Anamnesis (30%)**: Wawancara pasien komprehensif
-- **Pemeriksaan Fisik (20%)**: Pemeriksaan klinis yang sesuai
-- **Investigasi (25%)**: Memesan tes yang relevan dan menginterpretasi hasil
-- **Diagnosis (15%)**: Penalaran diagnostik yang akurat
-- **Manajemen (10%)**: Keputusan terapi yang sesuai
+### memahami skor anda
+- **anamnesis (30%)**: wawancara pasien komprehensif
+- **pemeriksaan fisik (20%)**: pemeriksaan klinis yang sesuai
+- **investigasi (25%)**: memesan tes yang relevan dan menginterpretasi hasil
+- **diagnosis (15%)**: penalaran diagnostik yang akurat
+- **manajemen (10%)**: keputusan terapi yang sesuai
 
-## 💬 Perintah Mode Chat
+## 💬 perintah mode chat
 
-### Perintah Dasar
-- `help` - Tampilkan informasi bantuan lengkap
-- `exit` - Keluar dari aplikasi dengan ringkasan sesi
-- `stats` - Lihat statistik sesi saat ini
+### perintah dasar
+- `help` - tampilkan informasi bantuan lengkap
+- `exit` - keluar dari aplikasi dengan ringkasan sesi
+- `stats` - lihat statistik sesi saat ini
 
-### Perintah Sistem
-- `system status` - Periksa kesehatan dan performa aplikasi
-- `health check` - Lakukan pemeriksaan diagnostik komprehensif
+### perintah sistem
+- `system status` - periksa kesehatan dan performa aplikasi
+- `health check` - lakukan pemeriksaan diagnostik komprehensif
 
-## 📊 Pelacakan Sesi
+## 📊 pelacakan sesi
 
-Sistem secara otomatis melacak kemajuan belajar Anda:
+sistem secara otomatis melacak kemajuan belajar anda:
 
-- **Pesan Chat**: Jumlah interaksi dengan AI
-- **Sesi OSCE**: Kasus medis yang diselesaikan
-- **Tren Kinerja**: Peningkatan skor dari waktu ke waktu
-- **Manajemen Waktu**: Durasi sesi dan waktu penyelesaian kasus
-- **Pemantauan Error**: Masalah sistem dan saran pemulihan
+- **pesan chat**: jumlah interaksi dengan ai
+- **sesi osce**: kasus medis yang diselesaikan
+- **tren kinerja**: peningkatan skor dari waktu ke waktu
+- **manajemen waktu**: durasi sesi dan waktu penyelesaian kasus
+- **pemantauan error**: masalah sistem dan saran pemulihan
 
-## 🔧 Persyaratan Sistem
+## 🔧 persyaratan sistem
 
-- **Node.js**: Versi 16 atau lebih tinggi
-- **Koneksi Internet**: Diperlukan untuk akses API AI
-- **API Key OpenRouter**: Untuk akses model AI
-- **Terminal/Command Line**: Untuk menjalankan aplikasi
+- **node.js**: versi 16 atau lebih tinggi
+- **koneksi internet**: diperlukan untuk akses api ai
+- **api key openrouter**: untuk akses model ai
+- **terminal/command line**: untuk menjalankan aplikasi
 
-## 📁 Struktur Proyek
+## 📁 struktur proyek
 
 ```
 medical-training-system/
-├── app.js                 # Titik masuk aplikasi utama
-├── lib/                   # Modul inti aplikasi
-│   ├── OSCEController.js  # Kontroler logika OSCE utama
-│   ├── CaseManager.js     # Manajemen dan pemuatan kasus
-│   ├── PatientSimulator.js # Simulasi pasien AI
-│   ├── PerformanceTracker.js # Pelacakan progres
-│   ├── ScoringEngine.js   # Penilaian dan umpan balik
-│   └── ErrorHandler.js    # Penanganan error
-├── cases/                 # Berkas kasus medis
-│   ├── case-schema.json   # Skema validasi kasus
-│   ├── stemi-001.json     # Contoh kasus STEMI
-│   └── README.md          # Dokumentasi kasus
-├── test/                  # Berkas uji
-├── utils/                 # Fungsi utilitas
-└── docs/                  # Dokumentasi tambahan
+├── app.js                 # titik masuk aplikasi utama
+├── lib/                   # modul inti aplikasi
+│   ├── OSCEController.js  # kontroler logika osce utama
+│   ├── CaseManager.js     # manajemen dan pemuatan kasus
+│   ├── PatientSimulator.js # simulasi pasien ai
+│   ├── PerformanceTracker.js # pelacakan progres
+│   ├── ScoringEngine.js   # penilaian dan umpan balik
+│   └── ErrorHandler.js    # penanganan error
+├── cases/                 # berkas kasus medis
+│   ├── case-schema.json   # skema validasi kasus
+│   ├── stemi-001.json     # contoh kasus stemi
+│   └── README.md          # dokumentasi kasus
+├── test/                  # berkas uji
+├── utils/                 # fungsi utilitas
+└── docs/                  # dokumentasi tambahan
 ```
 
-## 🧪 Pengujian
+## 🧪 pengujian
 
-Jalankan rangkaian uji untuk memverifikasi fungsionalitas sistem:
+jalankan rangkaian uji untuk memverifikasi fungsionalitas sistem:
 
 ```bash
-# Jalankan semua tes
+# jalankan semua tes
 npm test
 
-# Jalankan tes dalam mode watch
+# jalankan tes dalam mode watch
 npm run test:watch
 
-# Jalankan kategori tes spesifik
-npm test -- --grep "OSCE"
-npm test -- --grep "Integration"
+# jalankan kategori tes spesifik
+npm test -- --grep "osce"
+npm test -- --grep "integration"
 ```
 
-## 🔍 Pemecahan Masalah
+## 🔍 pemecahan masalah
 
-### Masalah Umum
+### masalah umum
 
-**Kesalahan Koneksi API**
-- Pastikan berkas `.env` Anda berisi kredensial API yang valid
-- Periksa koneksi internet Anda
-- Pastikan API_URL sudah benar
+**kesalahan koneksi api**
+- pastikan berkas `.env` anda berisi kredensial api yang valid
+- periksa koneksi internet anda
+- pastikan api_url sudah benar
 
-**Kesalahan Memuat Kasus**
-- Pastikan berkas kasus dalam format JSON yang benar
-- Periksa bahwa direktori `cases/` berisi berkas kasus yang valid
-- Jalankan validasi kasus: `node utils/caseValidator.js`
+**kesalahan memuat kasus**
+- pastikan berkas kasus dalam format json yang benar
+- periksa bahwa direktori `cases/` berisi berkas kasus yang valid
+- jalankan validasi kasus: `node utils/caseValidator.js`
 
-**Masalah Performa**
-- Gunakan `system status` untuk memeriksa kesehatan sistem
-- Jalankan `health check` untuk diagnostik komprehensif
-- Pantau statistik sesi dengan perintah `stats`
+**masalah performa**
+- gunakan `system status` untuk memeriksa kesehatan sistem
+- jalankan `health check` untuk diagnostik komprehensif
+- pantau statistik sesi dengan perintah `stats`
 
-### Mendapatkan Bantuan
+### mendapatkan bantuan
 
-1. **Bantuan dalam Aplikasi**: Ketik `help` untuk bantuan kontekstual
-2. **Diagnostik Sistem**: Gunakan `system status` dan `health check`
-3. **Informasi Sesi**: Cek `stats` untuk data sesi saat ini
-4. **Pemulihan Error**: Ikuti saran pemulihan untuk error
+1. **bantuan dalam aplikasi**: ketik `help` untuk bantuan kontekstual
+2. **diagnostik sistem**: gunakan `system status` dan `health check`
+3. **informasi sesi**: cek `stats` untuk data sesi saat ini
+4. **pemulihan error**: ikuti saran pemulihan untuk error
 
-## 🎓 Manfaat Pendidikan
+## 🎓 manfaat pendidikan
 
-### Untuk Mahasiswa Kedokteran
-- **Latihan Realistis**: Berinteraksi dengan pasien AI dalam skenario terstruktur
-- **Umpan Balik Langsung**: Dapatkan penilaian kinerja dan poin pembelajaran langsung
-- **Belajar Fleksibel**: Berlatih kapan saja, di mana saja dengan berbagai tipe kasus
-- **Pelacakan Progres**: Pantau peningkatan dari waktu ke waktu dengan analitik detail
+### untuk mahasiswa kedokteran
+- **latihan realistis**: berinteraksi dengan pasien ai dalam skenario terstruktur
+- **umpan balik langsung**: dapatkan penilaian kinerja dan poin pembelajaran langsung
+- **belajar fleksibel**: berlatih kapan saja, di mana saja dengan berbagai tipe kasus
+- **pelacakan progres**: pantau peningkatan dari waktu ke waktu dengan analitik detail
 
-### Untuk Pendidik Medis
-- **Penilaian Terstandar**: Kriteria evaluasi konsisten untuk semua mahasiswa
-- **Cakupan Komprehensif**: Kasus mencakup keterampilan dan pengetahuan klinis penting
-- **Analitik Kinerja**: Lacak progres mahasiswa dan identifikasi kekurangan belajar
-- **Pelatihan Skalabel**: Dukung banyak mahasiswa dengan penilaian otomatis
+### untuk pendidik medis
+- **penilaian terstandar**: kriteria evaluasi konsisten untuk semua mahasiswa
+- **cakupan komprehensif**: kasus mencakup keterampilan dan pengetahuan klinis penting
+- **analitik kinerja**: lacak progres mahasiswa dan identifikasi kekurangan belajar
+- **pelatihan skalabel**: dukung banyak mahasiswa dengan penilaian otomatis
 
-## 🔮 Pengembangan Mendatang
+## 🔮 pengembangan mendatang
 
-- **Kasus Medis Tambahan**: Perluas pustaka kasus dengan lebih banyak spesialisasi
-- **Mode Multipemain**: Penyelesaian kasus kolaboratif dengan rekan
-- **Analitik Lanjutan**: Wawasan kinerja detail dan rekomendasi
-- **Dukungan Seluler**: Antarmuka berbasis web untuk perangkat seluler
-- **Integrasi**: Integrasi LMS untuk institusi pendidikan
+- **kasus medis tambahan**: perluas pustaka kasus dengan lebih banyak spesialisasi
+- **mode multipemain**: penyelesaian kasus kolaboratif dengan rekan
+- **analitik lanjutan**: wawasan kinerja detail dan rekomendasi
+- **dukungan seluler**: antarmuka berbasis web untuk perangkat seluler
+- **integrasi**: integrasi lms untuk institusi pendidikan
 
-## 📄 Lisensi
+## 📄 lisensi
 
-Proyek ini dilisensikan di bawah LISENSI ISC. Lihat berkas LICENSE untuk detailnya.
+proyek ini dilisensikan di bawah lisensi isc. lihat berkas license untuk detailnya.
 
-## 🤝 Kontribusi
+## 🤝 kontribusi
 
-Kami menerima kontribusi untuk meningkatkan Sistem Pelatihan Medis:
+kami menerima kontribusi untuk meningkatkan sistem pelatihan medis:
 
-1. Fork repositori
-2. Buat branch fitur
-3. Lakukan perubahan Anda
-4. Tambahkan tes untuk fungsi baru
-5. Ajukan pull request
+1. fork repositori
+2. buat branch fitur
+3. lakukan perubahan anda
+4. tambahkan tes untuk fungsi baru
+5. ajukan pull request
 
-## 📞 Dukungan
+## 📞 dukungan
 
-Untuk dukungan teknis atau pertanyaan:
-- Periksa bagian pemecahan masalah di atas
-- Gunakan perintah diagnostik dalam aplikasi
-- Tinjau dokumentasi di direktori `docs/`
-- Laporkan isu untuk bug atau permintaan fitur
+untuk dukungan teknis atau pertanyaan:
+- periksa bagian pemecahan masalah di atas
+- gunakan perintah diagnostik dalam aplikasi
+- tinjau dokumentasi di direktori `docs/`
+- laporkan isu untuk bug atau permintaan fitur
 
 ---
 
-**Selamat Belajar! 🏥📚**
+**selamat belajar! 🏥📚**
 
-*Tingkatkan keterampilan klinis Anda dengan pelatihan medis bertenaga AI.*
+*tingkatkan keterampilan klinis anda dengan pelatihan medis bertenaga ai.*

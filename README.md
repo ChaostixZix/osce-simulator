@@ -1,232 +1,232 @@
-# Medical Training System
+# medical training system
 
-A comprehensive medical education platform that combines AI-powered chat capabilities with structured OSCE (Objective Structured Clinical Examination) training for medical students.
+a comprehensive medical education platform that combines ai-powered chat capabilities with structured osce (objective structured clinical examination) training for medical students.
 
-## 🚀 Quick Start
+## 🚀 quick start
 
-1. **Install Dependencies**
+1. **install dependencies**
    ```bash
    npm install
    ```
 
-2. **Configure Environment**
-   Create a `.env` file with your OpenRouter API credentials:
+2. **configure environment**
+   create a `.env` file with your openrouter api credentials:
    ```env
    API_URL=https://openrouter.ai/api/v1/chat/completions
    API_KEY=your_openrouter_api_key_here
    API_MODEL=anthropic/claude-3.5-sonnet
    ```
 
-3. **Run the Application**
+3. **run the application**
    ```bash
    node app.js
    ```
 
-4. **Start Training**
-   - Type `start osce` to begin medical case training
-   - Type any message to chat with AI
-   - Type `help` for detailed commands
+4. **start training**
+   - type `start osce` to begin medical case training
+   - type any message to chat with ai
+   - type `help` for detailed commands
 
-## 🏥 Features
+## 🏥 features
 
-### Chat Mode
-- **AI-Powered Conversations**: Natural language interaction with advanced AI models
-- **Conversation Memory**: Automatic history management with intelligent summarization
-- **Error Recovery**: Robust retry logic and error handling
-- **Session Tracking**: Monitor your chat activity and statistics
+### chat mode
+- **ai-powered conversations**: natural language interaction with advanced ai models
+- **conversation memory**: automatic history management with intelligent summarization
+- **error recovery**: robust retry logic and error handling
+- **session tracking**: monitor your chat activity and statistics
 
-### OSCE Mode
-- **Structured Clinical Cases**: Practice with realistic medical scenarios
-- **AI Patient Simulation**: Interactive patient responses based on case data
-- **Performance Tracking**: Automated checklist monitoring and progress tracking
-- **Intelligent Scoring**: Weighted scoring system with detailed feedback
-- **Multiple Cases**: Various medical conditions and specialties
+### osce mode
+- **structured clinical cases**: practice with realistic medical scenarios
+- **ai patient simulation**: interactive patient responses based on case data
+- **performance tracking**: automated checklist monitoring and progress tracking
+- **intelligent scoring**: weighted scoring system with detailed feedback
+- **multiple cases**: various medical conditions and specialties
 
-## 📚 Available Cases
+## 📚 available cases
 
-### STEMI-001: Acute Coronary Syndrome
-- **Scenario**: 58-year-old male with acute chest pain
-- **Focus**: Emergency cardiology, ECG interpretation, time-critical management
-- **Skills Practiced**: History taking, physical examination, diagnostic reasoning
-- **Learning Objectives**: STEMI recognition, emergency protocols, risk stratification
+### stemi-001: acute coronary syndrome
+- **scenario**: 58-year-old male with acute chest pain
+- **focus**: emergency cardiology, ecg interpretation, time-critical management
+- **skills practiced**: history taking, physical examination, diagnostic reasoning
+- **learning objectives**: stemi recognition, emergency protocols, risk stratification
 
-*More cases available in the `cases/` directory*
+*more cases available in the `cases/` directory*
 
-## 🎯 How to Use OSCE Mode
+## 🎯 how to use osce mode
 
-### Starting a Case
-1. Type `start osce` to enter OSCE mode
-2. Select a case from the available list
-3. Read the chief complaint and begin your examination
+### starting a case
+1. type `start osce` to enter osce mode
+2. select a case from the available list
+3. read the chief complaint and begin your examination
 
-### Interacting with the Patient
-- **Ask Questions**: "Can you describe your chest pain?"
-- **Request Examinations**: "I'd like to check your vital signs"
-- **Order Tests**: "Please get an ECG" or "I need cardiac enzymes"
-- **Provide Diagnosis**: "I think this is a STEMI"
+### interacting with the patient
+- **ask questions**: "can you describe your chest pain?"
+- **request examinations**: "i'd like to check your vital signs"
+- **order tests**: "please get an ecg" or "i need cardiac enzymes"
+- **provide diagnosis**: "i think this is a stemi"
 
-### OSCE Commands
-- `score` or `progress` - Check current performance
-- `case info` - View case details and objectives
-- `help` - Show OSCE-specific commands
-- `end case` - Complete the case and get results
-- `new case` - Start a different case
-- `exit osce` - Return to chat mode
+### osce commands
+- `score` or `progress` - check current performance
+- `case info` - view case details and objectives
+- `help` - show osce-specific commands
+- `end case` - complete the case and get results
+- `new case` - start a different case
+- `exit osce` - return to chat mode
 
-### Understanding Your Score
-- **History Taking (30%)**: Comprehensive patient interview
-- **Physical Examination (20%)**: Appropriate clinical examinations
-- **Investigations (25%)**: Ordering relevant tests and interpreting results
-- **Diagnosis (15%)**: Accurate diagnostic reasoning
-- **Management (10%)**: Appropriate treatment decisions
+### understanding your score
+- **history taking (30%)**: comprehensive patient interview
+- **physical examination (20%)**: appropriate clinical examinations
+- **investigations (25%)**: ordering relevant tests and interpreting results
+- **diagnosis (15%)**: accurate diagnostic reasoning
+- **management (10%)**: appropriate treatment decisions
 
-## 💬 Chat Mode Commands
+## 💬 chat mode commands
 
-### Basic Commands
-- `help` - Show comprehensive help information
-- `exit` - Quit the application with session summary
-- `stats` - View current session statistics
+### basic commands
+- `help` - show comprehensive help information
+- `exit` - quit the application with session summary
+- `stats` - view current session statistics
 
-### System Commands
-- `system status` - Check application health and performance
-- `health check` - Perform comprehensive diagnostic check
+### system commands
+- `system status` - check application health and performance
+- `health check` - perform comprehensive diagnostic check
 
-## 📊 Session Tracking
+## 📊 session tracking
 
-The system automatically tracks your learning progress:
+the system automatically tracks your learning progress:
 
-- **Chat Messages**: Number of AI interactions
-- **OSCE Sessions**: Completed medical cases
-- **Performance Trends**: Score improvements over time
-- **Time Management**: Session duration and case completion times
-- **Error Monitoring**: System issues and recovery suggestions
+- **chat messages**: number of ai interactions
+- **osce sessions**: completed medical cases
+- **performance trends**: score improvements over time
+- **time management**: session duration and case completion times
+- **error monitoring**: system issues and recovery suggestions
 
-## 🔧 System Requirements
+## 🔧 system requirements
 
-- **Node.js**: Version 16 or higher
-- **Internet Connection**: Required for AI API access
-- **OpenRouter API Key**: For AI model access
-- **Terminal/Command Line**: For running the application
+- **node.js**: version 16 or higher
+- **internet connection**: required for ai api access
+- **openrouter api key**: for ai model access
+- **terminal/command line**: for running the application
 
-## 📁 Project Structure
+## 📁 project structure
 
 ```
 medical-training-system/
-├── app.js                 # Main application entry point
-├── lib/                   # Core application modules
-│   ├── OSCEController.js  # Main OSCE logic controller
-│   ├── CaseManager.js     # Case loading and management
-│   ├── PatientSimulator.js # AI patient simulation
-│   ├── PerformanceTracker.js # Progress tracking
-│   ├── ScoringEngine.js   # Assessment and feedback
-│   └── ErrorHandler.js    # Error management
-├── cases/                 # Medical case files
-│   ├── case-schema.json   # Case validation schema
-│   ├── stemi-001.json     # Sample STEMI case
-│   └── README.md          # Case documentation
-├── test/                  # Test files
-├── utils/                 # Utility functions
-└── docs/                  # Additional documentation
+├── app.js                 # main application entry point
+├── lib/                   # core application modules
+│   ├── OSCEController.js  # main osce logic controller
+│   ├── CaseManager.js     # case loading and management
+│   ├── PatientSimulator.js # ai patient simulation
+│   ├── PerformanceTracker.js # progress tracking
+│   ├── ScoringEngine.js   # assessment and feedback
+│   └── ErrorHandler.js    # error management
+├── cases/                 # medical case files
+│   ├── case-schema.json   # case validation schema
+│   ├── stemi-001.json     # sample stemi case
+│   └── README.md          # case documentation
+├── test/                  # test files
+├── utils/                 # utility functions
+└── docs/                  # additional documentation
 ```
 
-## 🧪 Testing
+## 🧪 testing
 
-Run the test suite to verify system functionality:
+run the test suite to verify system functionality:
 
 ```bash
-# Run all tests
+# run all tests
 npm test
 
-# Run tests in watch mode
+# run tests in watch mode
 npm run test:watch
 
-# Run specific test categories
-npm test -- --grep "OSCE"
-npm test -- --grep "Integration"
+# run specific test categories
+npm test -- --grep "osce"
+npm test -- --grep "integration"
 ```
 
-## ⚡ Real-time Slash Suggestions
+## ⚡ real-time slash suggestions
 
-- In any prompt, press `/` to see context-aware command suggestions.
-- The suggestions appear inline at the cursor and disappear on the next keypress.
-- In Chat mode, you’ll see chat/system commands; in OSCE mode, OSCE-specific commands.
-- Works only in a TTY terminal (raw mode enabled). If your environment doesn’t behave as a TTY, run with:
+- in any prompt, press `/` to see context-aware command suggestions.
+- the suggestions appear inline at the cursor and disappear on the next keypress.
+- in chat mode, you'll see chat/system commands; in osce mode, osce-specific commands.
+- works only in a tty terminal (raw mode enabled). if your environment doesn't behave as a tty, run with:
   ```bash
   script -q /dev/null npm start
   ```
 
-## 🔍 Troubleshooting
+## 🔍 troubleshooting
 
-### Common Issues
+### common issues
 
-**API Connection Errors**
-- Verify your `.env` file contains valid API credentials
-- Check your internet connection
-- Ensure the API_URL is correct
+**api connection errors**
+- verify your `.env` file contains valid api credentials
+- check your internet connection
+- ensure the api_url is correct
 
-**Case Loading Errors**
-- Verify case files are properly formatted JSON
-- Check that `cases/` directory contains valid case files
-- Run case validation: `node utils/caseValidator.js`
+**case loading errors**
+- verify case files are properly formatted json
+- check that `cases/` directory contains valid case files
+- run case validation: `node utils/caseValidator.js`
 
-**Performance Issues**
-- Use `system status` to check system health
-- Run `health check` for comprehensive diagnostics
-- Monitor session stats with `stats` command
+**performance issues**
+- use `system status` to check system health
+- run `health check` for comprehensive diagnostics
+- monitor session stats with `stats` command
 
-### Getting Help
+### getting help
 
-1. **In-App Help**: Type `help` for context-sensitive assistance
-2. **System Diagnostics**: Use `system status` and `health check`
-3. **Session Information**: Check `stats` for current session data
-4. **Error Recovery**: Follow suggested recovery actions for errors
+1. **in-app help**: type `help` for context-sensitive assistance
+2. **system diagnostics**: use `system status` and `health check`
+3. **session information**: check `stats` for current session data
+4. **error recovery**: follow suggested recovery actions for errors
 
-## 🎓 Educational Benefits
+## 🎓 educational benefits
 
-### For Medical Students
-- **Realistic Practice**: Interact with AI patients in structured scenarios
-- **Immediate Feedback**: Get instant performance assessment and learning points
-- **Flexible Learning**: Practice anytime, anywhere with various case types
-- **Progress Tracking**: Monitor improvement over time with detailed analytics
+### for medical students
+- **realistic practice**: interact with ai patients in structured scenarios
+- **immediate feedback**: get instant performance assessment and learning points
+- **flexible learning**: practice anytime, anywhere with various case types
+- **progress tracking**: monitor improvement over time with detailed analytics
 
-### For Medical Educators
-- **Standardized Assessment**: Consistent evaluation criteria across all students
-- **Comprehensive Coverage**: Cases cover essential clinical skills and knowledge
-- **Performance Analytics**: Track student progress and identify learning gaps
-- **Scalable Training**: Support multiple students with automated assessment
+### for medical educators
+- **standardized assessment**: consistent evaluation criteria across all students
+- **comprehensive coverage**: cases cover essential clinical skills and knowledge
+- **performance analytics**: track student progress and identify learning gaps
+- **scalable training**: support multiple students with automated assessment
 
-## 🔮 Future Enhancements
+## 🔮 future enhancements
 
-- **Additional Medical Cases**: Expand case library with more specialties
-- **Multiplayer Mode**: Collaborative case solving with peers
-- **Advanced Analytics**: Detailed performance insights and recommendations
-- **Mobile Support**: Web-based interface for mobile devices
-- **Integration**: LMS integration for educational institutions
+- **additional medical cases**: expand case library with more specialties
+- **multiplayer mode**: collaborative case solving with peers
+- **advanced analytics**: detailed performance insights and recommendations
+- **mobile support**: web-based interface for mobile devices
+- **integration**: lms integration for educational institutions
 
-## 📄 License
+## 📄 license
 
-This project is licensed under the ISC License. See the LICENSE file for details.
+this project is licensed under the isc license. see the license file for details.
 
-## 🤝 Contributing
+## 🤝 contributing
 
-We welcome contributions to improve the Medical Training System:
+we welcome contributions to improve the medical training system:
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Submit a pull request
+1. fork the repository
+2. create a feature branch
+3. make your changes
+4. add tests for new functionality
+5. submit a pull request
 
-## 📞 Support
+## 📞 support
 
-For technical support or questions:
-- Check the troubleshooting section above
-- Use in-app diagnostic commands
-- Review the documentation in the `docs/` directory
-- Submit issues for bugs or feature requests
+for technical support or questions:
+- check the troubleshooting section above
+- use in-app diagnostic commands
+- review the documentation in the `docs/` directory
+- submit issues for bugs or feature requests
 
 ---
 
-**Happy Learning! 🏥📚**
+**happy learning! 🏥📚**
 
-*Improve your clinical skills with AI-powered medical training.*
+*improve your clinical skills with ai-powered medical training.*

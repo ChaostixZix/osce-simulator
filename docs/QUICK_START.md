@@ -1,125 +1,125 @@
-# Quick Start Guide
+# quick start guide
 
-Get up and running with the Medical Training System in 5 minutes!
+get up and running with the medical training system in 5 minutes!
 
-## ⚡ 5-Minute Setup
+## ⚡ 5-minute setup
 
-### 1. Install and Configure (2 minutes)
+### 1. install and configure (2 minutes)
 
 ```bash
-# Clone or download the project
+# clone or download the project
 cd medical-training-system
 
-# Install dependencies
+# install dependencies
 npm install
 
-# Create environment file
+# create environment file
 echo "API_URL=https://openrouter.ai/api/v1/chat/completions" > .env
 echo "API_KEY=your_api_key_here" >> .env
 echo "API_MODEL=anthropic/claude-3.5-sonnet" >> .env
 ```
 
-**Get your API key**: Sign up at [OpenRouter.ai](https://openrouter.ai) and get your API key
+**get your api key**: sign up at [openrouter.ai](https://openrouter.ai) and get your api key
 
-### 2. Launch the Application (30 seconds)
+### 2. launch the application (30 seconds)
 
 ```bash
 node app.js
 ```
 
-You'll see the welcome screen with available modes and commands.
+you'll see the welcome screen with available modes and commands.
 
-### 3. Try Your First OSCE Case (2.5 minutes)
+### 3. try your first osce case (2.5 minutes)
 
 ```
-# In the application:
-start osce          # Enter OSCE mode
-stemi-001          # Select the heart attack case
+# in the application:
+start osce          # enter osce mode
+stemi-001          # select the heart attack case
 ```
 
-Follow the patient interaction and complete the case!
+follow the patient interaction and complete the case!
 
-## 🎯 Your First Case: STEMI-001
+## 🎯 your first case: stemi-001
 
-This is a 58-year-old construction worker with chest pain. Here's how to approach it:
+this is a 58-year-old construction worker with chest pain. here's how to approach it:
 
-### Step 1: History (1 minute)
+### step 1: history (1 minute)
 ```
-Hello Mr. Smith, can you tell me about your chest pain?
-When did it start?
-Can you describe the pain?
-Any other symptoms?
-```
-
-### Step 2: Examination (30 seconds)
-```
-I'd like to check your vital signs
-Let me examine your heart and lungs
+hello mr. smith, can you tell me about your chest pain?
+when did it start?
+can you describe the pain?
+any other symptoms?
 ```
 
-### Step 3: Tests (30 seconds)
+### step 2: examination (30 seconds)
 ```
-I need an ECG immediately
-Please get cardiac enzymes
-```
-
-### Step 4: Diagnosis (30 seconds)
-```
-Based on the ECG, this appears to be a STEMI
-I recommend immediate cardiac catheterization
+i'd like to check your vital signs
+let me examine your heart and lungs
 ```
 
-## 💡 Essential Commands
+### step 3: tests (30 seconds)
+```
+i need an ecg immediately
+please get cardiac enzymes
+```
 
-### In Chat Mode:
-- `start osce` - Begin medical case training
-- `help` - Show all available commands
-- `stats` - View your session statistics
-- `exit` - Quit with session summary
+### step 4: diagnosis (30 seconds)
+```
+based on the ecg, this appears to be a stemi
+i recommend immediate cardiac catheterization
+```
 
-### In OSCE Mode:
-- `score` - Check your current progress
-- `help` - Show OSCE-specific commands
-- `case info` - View case details
-- `end case` - Complete and get results
-- `new case` - Try another case
-- `exit osce` - Return to chat mode
+## 💡 essential commands
 
-## 🚀 What's Next?
+### in chat mode:
+- `start osce` - begin medical case training
+- `help` - show all available commands
+- `stats` - view your session statistics
+- `exit` - quit with session summary
 
-### Explore More Features:
-- **Chat Mode**: Ask medical questions for learning
-- **Multiple Cases**: Try different medical scenarios
-- **Performance Tracking**: Monitor your improvement
-- **System Diagnostics**: Use `system status` and `health check`
+### in osce mode:
+- `score` - check your current progress
+- `help` - show osce-specific commands
+- `case info` - view case details
+- `end case` - complete and get results
+- `new case` - try another case
+- `exit osce` - return to chat mode
 
-### Improve Your Skills:
-1. **Practice Regularly**: Complete cases multiple times
-2. **Focus on Weak Areas**: Review feedback carefully
-3. **Time Management**: Aim for efficient case completion
-4. **Systematic Approach**: Develop consistent routines
+## 🚀 what's next?
 
-### Get Help:
-- Type `help` anytime for context-sensitive assistance
-- Check the full [User Guide](USER_GUIDE.md) for detailed instructions
-- Use `stats` to track your learning progress
+### explore more features:
+- **chat mode**: ask medical questions for learning
+- **multiple cases**: try different medical scenarios
+- **performance tracking**: monitor your improvement
+- **system diagnostics**: use `system status` and `health check`
 
-## 🎉 Success Tips
+### improve your skills:
+1. **practice regularly**: complete cases multiple times
+2. **focus on weak areas**: review feedback carefully
+3. **time management**: aim for efficient case completion
+4. **systematic approach**: develop consistent routines
 
-**For Your First Case:**
-- Don't worry about perfect scores initially
-- Focus on completing all sections
-- Read the feedback carefully
-- Try the same case again to improve
+### get help:
+- type `help` anytime for context-sensitive assistance
+- check the full [user guide](USER_GUIDE.md) for detailed instructions
+- use `stats` to track your learning progress
 
-**For Ongoing Learning:**
-- Set aside regular practice time
-- Challenge yourself with time limits
-- Review medical concepts in chat mode
-- Track your progress with session stats
+## 🎉 success tips
+
+**for your first case:**
+- don't worry about perfect scores initially
+- focus on completing all sections
+- read the feedback carefully
+- try the same case again to improve
+
+**for ongoing learning:**
+- set aside regular practice time
+- challenge yourself with time limits
+- review medical concepts in chat mode
+- track your progress with session stats
 
 ---
 
-**Ready to start? Run `node app.js` and type `start osce`!**
+**ready to start? run `node app.js` and type `start osce`!**
 
-🏥 **Happy Learning!** 📚
+🏥 **happy learning!** 📚
