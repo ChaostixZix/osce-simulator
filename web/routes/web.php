@@ -32,6 +32,22 @@ Route::prefix('osce')->name('osce.')->group(function () {
     Route::get('/sessions/{sessionId}', [OSCEController::class, 'getSessionHistory'])->name('session-history');
 });
 
+// Blog Routes
+Route::prefix('blog')->name('blog.')->group(function () {
+    // Public blog routes
+    Route::get('/', [App\Http\Controllers\BlogController::class, 'index'])->name('index');
+    Route::get('/{post:slug}', [App\Http\Controllers\BlogController::class, 'show'])->name('show');
+    
+    // Protected blog management routes
+    Route::middleware('auth')->group(function () {
+        Route::get('/create', [App\Http\Controllers\BlogController::class, 'create'])->name('create');
+        Route::post('/', [App\Http\Controllers\BlogController::class, 'store'])->name('store');
+        Route::get('/{post:slug}/edit', [App\Http\Controllers\BlogController::class, 'edit'])->name('edit');
+        Route::put('/{post:slug}', [App\Http\Controllers\BlogController::class, 'update'])->name('update');
+        Route::delete('/{post:slug}', [App\Http\Controllers\BlogController::class, 'destroy'])->name('destroy');
+    });
+});
+
 // Chat Mode Routes
 Route::get('/chat', function () {
     return Inertia::render('Chat/Dashboard');
