@@ -13,6 +13,10 @@ Route::middleware([
     Route::get('dashboard', function () {
         return Inertia::render('Dashboard');
     })->name('dashboard');
+    
+    Route::get('forum', function () {
+        return Inertia::render('Forum');
+    })->name('forum');
 });
 
 require __DIR__.'/settings.php';
