@@ -8,10 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select/index';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { toast } from 'vue-sonner';
-import { ArrowLeft, Send, User, Bot, Clock, AlertCircle, CheckCircle, FlaskConical, Stethoscope, FileText } from 'lucide-vue-next';
+import { ArrowLeft, Send, User, Bot, Clock, AlertCircle, CheckCircle, FlaskConical } from 'lucide-vue-next';
 
 interface OsceCase {
 	id: number;
@@ -55,28 +54,11 @@ interface ChatMessage {
 	updated_at: string;
 }
 
-const props = defineProps<{
-	session: OsceSession;
-	user: any;
-	sessionData?: {
-		lab_results: any[];
-		procedure_results: any[];
-		examination_findings: any[];
-		available_labs: string[];
-		available_procedures: string[];
-		available_examinations: any;
-	};
-}>();
+const props = defineProps<{ session: OsceSession; user: any; sessionData?: { lab_results: any[]; procedure_results: any[]; examination_findings: any[]; }; }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
-	{
-		title: 'OSCE Station',
-		href: '/osce',
-	},
-	{
-		title: 'Chat with AI Patient',
-		href: '#',
-	},
+	{ title: 'OSCE Station', href: '/osce' },
+	{ title: 'Chat with AI Patient', href: '#' },
 ];
 
 const message = ref('');
@@ -84,18 +66,25 @@ const messages = ref<ChatMessage[]>([]);
 const isLoading = ref(false);
 const chatContainer = ref<HTMLElement>();
 
-// New refs for examination system
-const selectedLab = ref('');
-const selectedProcedure = ref('');
-const selectedExaminations = ref<Array<{category: string, type: string}>>([]);
+// UI state
 const showLabModal = ref(false);
-const showProcedureModal = ref(false);
-const showExamModal = ref(false);
+const isSubmittingOrders = ref(false);
+
+type Notification = { id: number; title: string; description?: string; variant?: 'success' | 'error' | 'info' };
+const notifications = ref<Notification[]>([]);
+const pushNotification = (n: Omit<Notification, 'id'>) => {
+	const id = Date.now() + Math.floor(Math.random() * 1000);
+	notifications.value.push({ id, ...n });
+	setTimeout(() => { notifications.value = notifications.value.filter(nn => nn.id !== id); }, 4000);
+};
+const removeNotification = (id: number) => { notifications.value = notifications.value.filter(n => n.id !== id); };
+
+// Clinical reasoning-based ordering UI state
+type MedicalTest = { id: number; name: string; category: string; type: 'lab' | 'imaging' | 'procedure' | 'physical_exam'; description?: string; indications?: string[]; contraindications?: string[]; cost: number; turnaround_minutes: number; requires_consent: boolean; risk_level: number; clinicalReasoning?: string; priority?: 'immediate' | 'urgent' | 'routine'; };
 
 const session = ref<OsceSession>(props.session);
 const osceCase = computed(() => session.value.osce_case);
 
-// Get page errors for Inertia error handling
 const page = usePage();
 const errors = computed(() => page.props.errors || {});
 
@@ -130,9 +119,7 @@ const getStatusIcon = (status: string) => {
 
 const scrollToBottom = async () => {
 	await nextTick();
-	if (chatContainer.value) {
-		chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
-	}
+	if (chatContainer.value) chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
 };
 
 const loadChatHistory = async () => {
@@ -143,9 +130,7 @@ const loadChatHistory = async () => {
 			messages.value = data.messages || [];
 			await scrollToBottom();
 		}
-	} catch (error) {
-		console.error('Error loading chat history:', error);
-	}
+	} catch (error) { console.error('Error loading chat history:', error); }
 };
 
 const startChat = async () => {
@@ -153,55 +138,31 @@ const startChat = async () => {
 		isLoading.value = true;
 		const response = await fetch('/api/osce/chat/start', {
 			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-			},
+			headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '' },
 			body: JSON.stringify({ session_id: session.value.id })
 		});
 
 		if (response.ok) {
 			const data = await response.json();
-			if (data.system_message) {
-				messages.value.push(data.system_message);
-				await scrollToBottom();
-			}
+			if (data.system_message) { messages.value.push(data.system_message); await scrollToBottom(); }
 		} else {
 			const error = await response.json();
-			toast.error('Failed to start chat', {
-				description: error.error || 'An unexpected error occurred'
-			});
+			pushNotification({ title: 'Failed to start chat', description: error.error || 'An unexpected error occurred', variant: 'error' });
 		}
 	} catch (error) {
 		console.error('Error starting chat:', error);
-		toast.error('Network error', {
-			description: 'Please check your connection and try again'
-		});
-	} finally {
-		isLoading.value = false;
-	}
+		pushNotification({ title: 'Network error', description: 'Please check your connection and try again', variant: 'error' });
+	} finally { isLoading.value = false; }
 };
 
 const sendMessage = async () => {
 	if (message.value.trim() === '' || isLoading.value) return;
-
-	const userMessage = message.value;
-	message.value = '';
-	isLoading.value = true;
-
+	const userMessage = message.value; message.value = ''; isLoading.value = true;
 	try {
 		const response = await fetch('/api/osce/chat/message', {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-			},
-			body: JSON.stringify({
-				session_id: session.value.id,
-				message: userMessage
-			})
+			method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '' },
+			body: JSON.stringify({ session_id: session.value.id, message: userMessage })
 		});
-
 		if (response.ok) {
 			const data = await response.json();
 			if (data.user_message) messages.value.push(data.user_message);
@@ -209,328 +170,163 @@ const sendMessage = async () => {
 			await scrollToBottom();
 		} else {
 			const error = await response.json();
-			toast.error('Failed to send message', {
-				description: error.error || 'An unexpected error occurred'
-			});
-			// Re-add the user message back to input
+			pushNotification({ title: 'Failed to send message', description: error.error || 'An unexpected error occurred', variant: 'error' });
 			message.value = userMessage;
 		}
 	} catch (error) {
 		console.error('Error sending message:', error);
-		toast.error('Network error', {
-			description: 'Please check your connection and try again'
-		});
-		// Re-add the user message back to input
+		pushNotification({ title: 'Network error', description: 'Please check your connection and try again', variant: 'error' });
 		message.value = userMessage;
-	} finally {
-		isLoading.value = false;
-	}
+	} finally { isLoading.value = false; }
 };
 
-const handleKeyPress = (event: KeyboardEvent) => {
-	if (event.key === 'Enter' && !event.shiftKey) {
-		event.preventDefault();
-		sendMessage();
-	}
+// Clinical reasoning ordering state and actions
+const testSearchQuery = ref('');
+const searchResults = ref<MedicalTest[]>([]);
+const selectedTests = ref<MedicalTest[]>([]);
+
+const isTestOrdered = (id: number) => selectedTests.value.some(t => t.id === id);
+const selectTest = (test: MedicalTest) => { if (!isTestOrdered(test.id)) selectedTests.value.push({ ...test, clinicalReasoning: '', priority: undefined }); };
+const removeTest = (id: number) => { selectedTests.value = selectedTests.value.filter(t => t.id !== id); };
+const totalCost = computed(() => selectedTests.value.reduce((sum, t) => sum + (t.cost || 0), 0));
+const maxTurnaroundTime = computed(() => selectedTests.value.reduce((max, t) => Math.max(max, t.turnaround_minutes || 0), 0));
+
+const searchMedicalTests = async () => {
+	if (testSearchQuery.value.length < 2) { searchResults.value = []; return; }
+	try { const resp = await fetch(`/api/medical-tests/search?q=${encodeURIComponent(testSearchQuery.value)}`);
+		if (resp.ok) searchResults.value = await resp.json(); } catch (e) { console.error('Search error', e); }
 };
 
-// Available examination options
-const examinationOptions = [
-	{ category: 'cardiovascular', type: 'auscultation', label: 'Cardiovascular Auscultation' },
-	{ category: 'cardiovascular', type: 'palpation', label: 'Cardiovascular Palpation' },
-	{ category: 'cardiovascular', type: 'inspection', label: 'Cardiovascular Inspection' },
-	{ category: 'respiratory', type: 'auscultation', label: 'Respiratory Auscultation' },
-	{ category: 'respiratory', type: 'percussion', label: 'Respiratory Percussion' },
-	{ category: 'respiratory', type: 'palpation', label: 'Respiratory Palpation' },
-	{ category: 'respiratory', type: 'inspection', label: 'Respiratory Inspection' },
-	{ category: 'abdominal', type: 'inspection', label: 'Abdominal Inspection' },
-	{ category: 'abdominal', type: 'auscultation', label: 'Abdominal Auscultation' },
-	{ category: 'abdominal', type: 'palpation', label: 'Abdominal Palpation' },
-	{ category: 'abdominal', type: 'percussion', label: 'Abdominal Percussion' },
-	{ category: 'neurological', type: 'reflexes', label: 'Neurological Reflexes' },
-	{ category: 'neurological', type: 'sensation', label: 'Neurological Sensation' },
-	{ category: 'neurological', type: 'motor', label: 'Neurological Motor' },
-	{ category: 'neurological', type: 'cranial_nerves', label: 'Cranial Nerves' },
-	{ category: 'musculoskeletal', type: 'range_of_motion', label: 'Range of Motion' },
-	{ category: 'musculoskeletal', type: 'strength', label: 'Muscle Strength' },
-	{ category: 'musculoskeletal', type: 'inspection', label: 'Musculoskeletal Inspection' }
-];
-
-// Order lab test using Inertia
-const orderLab = () => {
-	if (!selectedLab.value) return;
-
-	router.post('/osce/order-lab', {
-		session_id: session.value.id,
-		test_name: selectedLab.value
-	}, {
-		preserveState: true,
-		preserveScroll: true,
-		onSuccess: (page) => {
-			toast.success('Lab Test Ordered', {
-				description: `Lab test '${selectedLab.value}' has been ordered.`
-			});
-			showLabModal.value = false;
-			selectedLab.value = '';
-		},
-		onError: (errors) => {
-			toast.error('Failed to order lab test', {
-				description: errors.error || 'An unexpected error occurred'
-			});
-		}
-	});
+const canSubmitOrders = computed(() => selectedTests.value.length > 0 && selectedTests.value.every(t => (t.clinicalReasoning || '').length >= 20 && !!t.priority));
+const submitTestOrders = async () => {
+	if (!canSubmitOrders.value || isSubmittingOrders.value) return;
+	isSubmittingOrders.value = true;
+	const payload = { session_id: session.value.id, orders: selectedTests.value.map(t => ({ medical_test_id: t.id, clinical_reasoning: t.clinicalReasoning, priority: t.priority })) };
+	try {
+		const resp = await fetch('/api/osce/order-tests', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '' }, body: JSON.stringify(payload) });
+		if (!resp.ok) { const err = await resp.json().catch(() => ({})); pushNotification({ title: 'Order failed', description: err?.error || 'Please try again', variant: 'error' }); return; }
+		const data = await resp.json();
+		pushNotification({ title: 'Tests ordered', description: `${selectedTests.value.length} test(s) have been ordered.`, variant: 'success' });
+		selectedTests.value = []; testSearchQuery.value = ''; searchResults.value = []; showLabModal.value = false;
+		router.reload({ only: ['session', 'sessionData'], preserveScroll: true });
+	} catch (e: any) {
+		pushNotification({ title: 'Order failed', description: e?.message || 'Network error', variant: 'error' });
+	} finally { isSubmittingOrders.value = false; }
 };
 
-// Order procedure using Inertia
-const orderProcedure = () => {
-	if (!selectedProcedure.value) return;
+watch(errors, (newErrors) => { if (newErrors && (newErrors as any).error) pushNotification({ title: 'Error', description: (newErrors as any).error, variant: 'error' }); }, { deep: true });
 
-	router.post('/osce/order-procedure', {
-		session_id: session.value.id,
-		procedure_name: selectedProcedure.value
-	}, {
-		preserveState: true,
-		preserveScroll: true,
-		onSuccess: (page) => {
-			toast.success('Procedure Ordered', {
-				description: `Procedure '${selectedProcedure.value}' has been ordered.`
-			});
-			showProcedureModal.value = false;
-			selectedProcedure.value = '';
-		},
-		onError: (errors) => {
-			toast.error('Failed to order procedure', {
-				description: errors.error || 'An unexpected error occurred'
-			});
-		}
-	});
-};
-
-// Perform physical examination using Inertia
-const performExamination = () => {
-	if (selectedExaminations.value.length === 0) return;
-
-	router.post('/osce/perform-examination', {
-		session_id: session.value.id,
-		examinations: selectedExaminations.value
-	}, {
-		preserveState: true,
-		preserveScroll: true,
-		onSuccess: (page) => {
-			toast.success('Examination Completed', {
-				description: `${selectedExaminations.value.length} examination(s) completed.`
-			});
-			showExamModal.value = false;
-			selectedExaminations.value = [];
-		},
-		onError: (errors) => {
-			toast.error('Failed to perform examination', {
-				description: errors.error || 'An unexpected error occurred'
-			});
-		}
-	});
-};
-
-// Handle examination selection
-const toggleExamination = (exam: {category: string, type: string}) => {
-	const index = selectedExaminations.value.findIndex(
-		e => e.category === exam.category && e.type === exam.type
-	);
-	
-	if (index > -1) {
-		selectedExaminations.value.splice(index, 1);
-	} else {
-		selectedExaminations.value.push(exam);
-	}
-};
-
-const isExaminationSelected = (exam: {category: string, type: string}) => {
-	return selectedExaminations.value.some(
-		e => e.category === exam.category && e.type === exam.type
-	);
-};
-
-// Watch for Inertia errors and display toast
-watch(errors, (newErrors) => {
-	if (newErrors && newErrors.error) {
-		toast.error('Error', {
-			description: newErrors.error
-		});
-	}
-}, { deep: true });
-
-onMounted(async () => {
-	await loadChatHistory();
-	if (messages.value.length === 0) {
-		await startChat();
-	}
-});
+onMounted(async () => { await loadChatHistory(); if (messages.value.length === 0) { await startChat(); } });
 </script>
 
 <template>
 	<Head title="OSCE Chat - AI Patient" />
-
 	<AppLayout :breadcrumbs="breadcrumbs">
 		<div class="flex h-full flex-1 flex-col gap-6 rounded-xl p-4">
+			<!-- Notification Container -->
+			<div class="fixed top-4 right-4 z-50 space-y-2">
+				<div v-for="n in notifications" :key="n.id" class="rounded shadow px-4 py-3 text-sm"
+					:class="{
+						'bg-green-600 text-white': n.variant === 'success',
+						'bg-red-600 text-white': n.variant === 'error',
+						'bg-gray-900 text-white': !n.variant || n.variant === 'info',
+					}">
+					<div class="flex items-start justify-between gap-3">
+						<div>
+							<div class="font-medium">{{ n.title }}</div>
+							<div v-if="n.description" class="text-xs opacity-90">{{ n.description }}</div>
+						</div>
+						<button class="text-white/80 hover:text-white" @click="removeNotification(n.id)">✕</button>
+					</div>
+				</div>
+			</div>
+
 			<!-- Header -->
 			<div class="flex items-center justify-between">
 				<div class="flex items-center gap-4">
-					<Button variant="outline" size="sm" @click="router.visit('/osce')">
-						<ArrowLeft class="h-4 w-4 mr-2" />
-						Back to OSCE
-					</Button>
+					<Button variant="outline" size="sm" @click="router.visit('/osce')"><ArrowLeft class="h-4 w-4 mr-2" />Back to OSCE</Button>
 					<div>
-						<h1 class="text-2xl font-bold text-gray-900 dark:text-white">
-							OSCE Chat Session
-						</h1>
-						<p class="text-sm text-gray-600 dark:text-gray-400">
-							Chat with AI Patient for Case: {{ osceCase?.title }}
-						</p>
+						<h1 class="text-2xl font-bold text-gray-900 dark:text-white">OSCE Chat Session</h1>
+						<p class="text-sm text-gray-600 dark:text-gray-400">Chat with AI Patient for Case: {{ osceCase?.title }}</p>
 					</div>
 				</div>
-				
 				<div class="flex items-center gap-2">
-					<Badge :class="getStatusColor(session.status)" class="flex items-center gap-1">
-						<component :is="getStatusIcon(session.status)" class="h-3 w-3" />
-						{{ session.status.replace('_', ' ') }}
-					</Badge>
-					<Badge :class="getDifficultyColor(osceCase?.difficulty || 'medium')">
-						{{ osceCase?.difficulty || 'medium' }}
-					</Badge>
+					<Badge :class="getStatusColor(session.status)" class="flex items-center gap-1"><component :is="getStatusIcon(session.status)" class="h-3 w-3" />{{ session.status.replace('_', ' ') }}</Badge>
+					<Badge :class="getDifficultyColor(osceCase?.difficulty || 'medium')">{{ osceCase?.difficulty || 'medium' }}</Badge>
 				</div>
 			</div>
 
 			<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
-				<!-- Enhanced Left Sidebar -->
+				<!-- Left Sidebar -->
 				<div class="lg:col-span-1 space-y-4 max-h-screen overflow-y-auto">
-					<!-- Action Buttons -->
+					<!-- Actions -->
 					<Card>
-						<CardHeader>
-							<CardTitle class="text-lg">Medical Actions</CardTitle>
-						</CardHeader>
+						<CardHeader><CardTitle class="text-lg">Medical Actions</CardTitle></CardHeader>
 						<CardContent class="space-y-3">
 							<Dialog v-model:open="showLabModal">
 								<DialogTrigger asChild>
-									<Button variant="outline" class="w-full flex items-center gap-2">
-										<FlaskConical class="h-4 w-4" />
-										Order Labs
-									</Button>
+									<Button variant="outline" class="w-full flex items-center gap-2"><FlaskConical class="h-4 w-4" />Order Tests</Button>
 								</DialogTrigger>
-								<DialogContent>
+								<DialogContent class="max-w-3xl">
 									<DialogHeader>
-										<DialogTitle>Order Laboratory Tests</DialogTitle>
-										<DialogDescription>
-											Select a laboratory test to order for this patient
-										</DialogDescription>
+										<DialogTitle>Order Medical Tests</DialogTitle>
+										<DialogDescription>Search and select tests. Provide reasoning and priority.</DialogDescription>
 									</DialogHeader>
 									<div class="space-y-4">
-										<Select v-model="selectedLab">
-											<SelectTrigger>
-												<SelectValue placeholder="Select a lab test..." />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectItem 
-													v-for="lab in props.sessionData?.available_labs || []" 
-													:key="lab" 
-													:value="lab"
-												>
-													{{ lab }}
-												</SelectItem>
-											</SelectContent>
-										</Select>
-										<div class="flex gap-2">
-											<Button @click="orderLab" :disabled="!selectedLab" class="flex-1">
-												Order Test
-											</Button>
-											<Button variant="outline" @click="showLabModal = false" class="flex-1">
-												Cancel
-											</Button>
-										</div>
-									</div>
-								</DialogContent>
-							</Dialog>
-
-							<Dialog v-model:open="showProcedureModal">
-								<DialogTrigger asChild>
-									<Button variant="outline" class="w-full flex items-center gap-2">
-										<FileText class="h-4 w-4" />
-										Order Procedure
-									</Button>
-								</DialogTrigger>
-								<DialogContent>
-									<DialogHeader>
-										<DialogTitle>Order Medical Procedure</DialogTitle>
-										<DialogDescription>
-											Select a medical procedure to order for this patient
-										</DialogDescription>
-									</DialogHeader>
-									<div class="space-y-4">
-										<Select v-model="selectedProcedure">
-											<SelectTrigger>
-												<SelectValue placeholder="Select a procedure..." />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectItem 
-													v-for="procedure in props.sessionData?.available_procedures || []" 
-													:key="procedure" 
-													:value="procedure"
-												>
-													{{ procedure }}
-												</SelectItem>
-											</SelectContent>
-										</Select>
-										<div class="flex gap-2">
-											<Button @click="orderProcedure" :disabled="!selectedProcedure" class="flex-1">
-												Order Procedure
-											</Button>
-											<Button variant="outline" @click="showProcedureModal = false" class="flex-1">
-												Cancel
-											</Button>
-										</div>
-									</div>
-								</DialogContent>
-							</Dialog>
-
-							<Dialog v-model:open="showExamModal">
-								<DialogTrigger asChild>
-									<Button variant="outline" class="w-full flex items-center gap-2">
-										<Stethoscope class="h-4 w-4" />
-										Physical Exam
-									</Button>
-								</DialogTrigger>
-								<DialogContent class="max-w-2xl max-h-96 overflow-y-auto">
-									<DialogHeader>
-										<DialogTitle>Physical Examination</DialogTitle>
-										<DialogDescription>
-											Select multiple examinations to perform on the patient
-										</DialogDescription>
-									</DialogHeader>
-									<div class="space-y-4">
-										<div class="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto">
-											<div 
-												v-for="exam in examinationOptions" 
-												:key="`${exam.category}-${exam.type}`"
-												class="flex items-center space-x-2 p-2 border rounded cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
-												:class="isExaminationSelected(exam) ? 'bg-blue-50 dark:bg-blue-900 border-blue-200 dark:border-blue-700' : ''"
-												@click="toggleExamination(exam)"
-											>
-												<input 
-													type="checkbox" 
-													:checked="isExaminationSelected(exam)"
-													class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-													readonly
-												/>
-												<label class="text-sm cursor-pointer">{{ exam.label }}</label>
+										<div>
+											<Input v-model="testSearchQuery" placeholder="Search tests... (e.g. 'troponin', 'ecg', 'chest x-ray')" @input="searchMedicalTests" />
+											<div v-if="searchResults.length" class="mt-2 max-h-48 overflow-y-auto space-y-2">
+												<div v-for="test in searchResults" :key="test.id" class="p-2 border rounded hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer" :class="{ 'opacity-60 pointer-events-none': isTestOrdered(test.id) }" @click="selectTest(test)">
+													<div class="flex justify-between text-sm font-medium"><span>{{ test.name }}</span><Badge variant="outline">{{ test.category }}</Badge></div>
+													<div class="text-xs text-gray-500 mt-1 flex gap-2 items-center">
+														<Badge>${{ test.cost }}</Badge><Badge>{{ test.turnaround_minutes }}min</Badge>
+														<Badge v-if="test.requires_consent" variant="destructive">Consent</Badge>
+														<Badge v-if="test.risk_level > 3" variant="destructive">High Risk</Badge>
+													</div>
+												</div>
 											</div>
 										</div>
-										<div class="flex gap-2">
-											<Button @click="performExamination" :disabled="selectedExaminations.length === 0" class="flex-1">
-												Perform Examination(s)
-											</Button>
-											<Button variant="outline" @click="showExamModal = false" class="flex-1">
-												Cancel
+										<div>
+											<h4 class="font-medium mb-2">Selected Tests ({{ selectedTests.length }})</h4>
+											<div v-if="!selectedTests.length" class="text-sm text-gray-500">No tests selected yet.</div>
+											<div v-for="t in selectedTests" :key="t.id" class="mb-3 border rounded p-3">
+												<div class="flex justify-between items-start mb-2">
+													<div>
+														<div class="text-sm font-medium">{{ t.name }}</div>
+														<div class="text-xs text-gray-500">{{ t.category }} • ${{ t.cost }}</div>
+													</div>
+													<Button variant="ghost" size="sm" @click="removeTest(t.id)">✕</Button>
+												</div>
+												<div class="space-y-2">
+													<label class="text-xs">Clinical Reasoning (required)</label>
+													<Textarea v-model="t.clinicalReasoning" rows="3" placeholder="Explain why you're ordering this test..." />
+													<label class="text-xs">Priority</label>
+													<Select v-model="t.priority">
+														<SelectTrigger><SelectValue placeholder="Select priority" /></SelectTrigger>
+														<SelectContent>
+															<SelectItem value="immediate">STAT (Immediate)</SelectItem>
+															<SelectItem value="urgent">Urgent (1 hour)</SelectItem>
+															<SelectItem value="routine">Routine</SelectItem>
+														</SelectContent>
+													</Select>
+												</div>
+											</div>
+										</div>
+										<div class="flex items-center justify-between text-sm">
+											<div class="flex gap-4">
+												<div>Tests: <span class="font-medium">{{ selectedTests.length }}</span></div>
+												<div>Total Cost: <span class="font-medium">${{ totalCost.toFixed(2) }}</span></div>
+												<div>Max ETA: <span class="font-medium">{{ maxTurnaroundTime }} min</span></div>
+											</div>
+											<Button class="ml-auto" :disabled="!canSubmitOrders || isSubmittingOrders" @click="submitTestOrders">
+												<span v-if="!isSubmittingOrders">Submit Orders</span>
+												<span v-else class="inline-flex items-center gap-2">
+													<svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
+													Processing...
+												</span>
 											</Button>
 										</div>
+										<p v-if="!canSubmitOrders && selectedTests.length" class="text-xs text-red-600">Provide reasoning (min 20 chars) and priority for all tests.</p>
 									</div>
 								</DialogContent>
 							</Dialog>
@@ -539,69 +335,27 @@ onMounted(async () => {
 
 					<!-- Case Information -->
 					<Card>
-						<CardHeader>
-							<CardTitle class="text-lg">Case Information</CardTitle>
-						</CardHeader>
+						<CardHeader><CardTitle class="text-lg">Case Information</CardTitle></CardHeader>
 						<CardContent class="space-y-4">
-							<div>
-								<h4 class="font-medium text-gray-900 dark:text-white mb-2">Scenario</h4>
-								<p class="text-sm text-gray-600 dark:text-gray-400">
-									{{ osceCase?.scenario || 'No scenario provided' }}
-								</p>
-							</div>
-							
-							<div>
-								<h4 class="font-medium text-gray-900 dark:text-white mb-2">Objectives</h4>
-								<p class="text-sm text-gray-600 dark:text-gray-400">
-									{{ osceCase?.objectives || 'No objectives provided' }}
-								</p>
-							</div>
-
-							<div v-if="osceCase?.ai_patient_profile">
-								<h4 class="font-medium text-gray-900 dark:text-white mb-2">Patient Profile</h4>
-								<p class="text-sm text-gray-600 dark:text-gray-400">
-									{{ osceCase.ai_patient_profile }}
-								</p>
-							</div>
-
-							<div v-if="osceCase?.ai_patient_symptoms">
-								<h4 class="font-medium text-gray-900 dark:text-white mb-2">Patient Symptoms</h4>
-								<div class="flex flex-wrap gap-1">
-									<Badge v-for="symptom in osceCase.ai_patient_symptoms" :key="symptom" variant="outline" class="text-xs">
-										{{ symptom }}
-									</Badge>
-								</div>
-							</div>
-
-							<div v-if="osceCase?.ai_patient_vitals">
-								<h4 class="font-medium text-gray-900 dark:text-white mb-2">Vital Signs</h4>
-								<div class="grid grid-cols-2 gap-2 text-sm">
-									<div v-for="(value, key) in osceCase.ai_patient_vitals" :key="key" class="flex justify-between">
-										<span class="text-gray-600 dark:text-gray-400">{{ key }}:</span>
-										<span class="font-medium">{{ value }}</span>
-									</div>
-								</div>
-							</div>
+							<div><h4 class="font-medium text-gray-900 dark:text-white mb-2">Scenario</h4><p class="text-sm text-gray-600 dark:text-gray-400">{{ osceCase?.scenario || 'No scenario provided' }}</p></div>
+							<div><h4 class="font-medium text-gray-900 dark:text-white mb-2">Objectives</h4><p class="text-sm text-gray-600 dark:text-gray-400">{{ osceCase?.objectives || 'No objectives provided' }}</p></div>
+							<div v-if="osceCase?.ai_patient_profile"><h4 class="font-medium text-gray-900 dark:text-white mb-2">Patient Profile</h4><p class="text-sm text-gray-600 dark:text-gray-400">{{ osceCase.ai_patient_profile }}</p></div>
+							<div v-if="osceCase?.ai_patient_symptoms"><h4 class="font-medium text-gray-900 dark:text-white mb-2">Patient Symptoms</h4><div class="flex flex-wrap gap-1"><Badge v-for="symptom in osceCase.ai_patient_symptoms" :key="symptom" variant="outline" class="text-xs">{{ symptom }}</Badge></div></div>
+							<div v-if="osceCase?.ai_patient_vitals"><h4 class="font-medium text-gray-900 dark:text-white mb-2">Vital Signs</h4><div class="grid grid-cols-2 gap-2 text-sm"><div v-for="(value, key) in osceCase.ai_patient_vitals" :key="key" class="flex justify-between"><span class="text-gray-600 dark:text-gray-400">{{ key }}:</span><span class="font-medium">{{ value }}</span></div></div></div>
 						</CardContent>
 					</Card>
 
 					<!-- Lab Results -->
 					<Card v-if="props.sessionData?.lab_results && props.sessionData.lab_results.length > 0">
-						<CardHeader>
-							<CardTitle class="text-lg flex items-center gap-2">
-								<FlaskConical class="h-5 w-5 text-blue-600" />
-								Lab Results
-							</CardTitle>
-						</CardHeader>
+						<CardHeader><CardTitle class="text-lg flex items-center gap-2">Lab Results</CardTitle></CardHeader>
 						<CardContent class="space-y-3">
 							<div v-for="test in props.sessionData?.lab_results" :key="test.id" class="border-l-4 border-blue-500 pl-3">
 								<div class="font-medium text-sm">{{ test.test_name }}</div>
 								<div class="text-xs text-gray-500 mb-2">{{ new Date(test.ordered_at).toLocaleString() }}</div>
 								<div class="text-sm space-y-1">
-									<div v-for="(value, key) in test.results" :key="key" class="flex justify-between">
-										<span class="text-gray-600 dark:text-gray-400">{{ key }}:</span>
-										<span class="font-mono text-xs">{{ value }}</span>
-									</div>
+									<div v-if="Array.isArray(test.results) && test.results.length === 0" class="text-xs italic text-gray-500">No results available yet.</div>
+									<div v-else-if="test.results?.status === 'no_data'" class="text-xs italic text-gray-500">{{ test.results.message }}</div>
+									<div v-else v-for="(value, key) in test.results" :key="key" class="flex justify-between"><span class="text-gray-600 dark:text-gray-400">{{ key }}:</span><span class="font-mono text-xs">{{ value }}</span></div>
 								</div>
 							</div>
 						</CardContent>
@@ -609,38 +363,24 @@ onMounted(async () => {
 
 					<!-- Procedure Results -->
 					<Card v-if="props.sessionData?.procedure_results && props.sessionData.procedure_results.length > 0">
-						<CardHeader>
-							<CardTitle class="text-lg flex items-center gap-2">
-								<FileText class="h-5 w-5 text-green-600" />
-								Procedure Results
-							</CardTitle>
-						</CardHeader>
+						<CardHeader><CardTitle class="text-lg flex items-center gap-2">Procedure Results</CardTitle></CardHeader>
 						<CardContent class="space-y-3">
 							<div v-for="procedure in props.sessionData?.procedure_results" :key="procedure.id" class="border-l-4 border-green-500 pl-3">
 								<div class="font-medium text-sm">{{ procedure.test_name }}</div>
 								<div class="text-xs text-gray-500 mb-2">{{ new Date(procedure.ordered_at).toLocaleString() }}</div>
-								<div class="text-sm text-gray-700 dark:text-gray-300">
-									{{ procedure.results.description || JSON.stringify(procedure.results) }}
-								</div>
+								<div class="text-sm text-gray-700 dark:text-gray-300">{{ procedure.results?.description || JSON.stringify(procedure.results) }}</div>
 							</div>
 						</CardContent>
 					</Card>
 
 					<!-- Physical Examination Findings -->
 					<Card v-if="props.sessionData?.examination_findings && props.sessionData.examination_findings.length > 0">
-						<CardHeader>
-							<CardTitle class="text-lg flex items-center gap-2">
-								<Stethoscope class="h-5 w-5 text-purple-600" />
-								Examination Findings
-							</CardTitle>
-						</CardHeader>
+						<CardHeader><CardTitle class="text-lg flex items-center gap-2">Examination Findings</CardTitle></CardHeader>
 						<CardContent class="space-y-3">
 							<div v-for="exam in props.sessionData?.examination_findings" :key="exam.id" class="border-l-4 border-purple-500 pl-3">
 								<div class="font-medium text-sm capitalize">{{ exam.examination_category }} - {{ exam.examination_type.replace('_', ' ') }}</div>
 								<div class="text-xs text-gray-500 mb-2">{{ new Date(exam.performed_at).toLocaleString() }}</div>
-								<div class="text-sm text-gray-700 dark:text-gray-300">
-									<div v-for="finding in exam.findings" :key="finding" class="mb-1">• {{ finding }}</div>
-								</div>
+								<div class="text-sm text-gray-700 dark:text-gray-300"><div v-for="finding in exam.findings" :key="finding" class="mb-1">• {{ finding }}</div></div>
 							</div>
 						</CardContent>
 					</Card>
@@ -650,50 +390,19 @@ onMounted(async () => {
 				<div class="lg:col-span-2 flex flex-col h-full">
 					<Card class="flex-1 flex flex-col">
 						<CardHeader>
-							<CardTitle class="flex items-center gap-2">
-								<Bot class="h-5 w-5 text-blue-600" />
-								AI Patient Chat
-							</CardTitle>
-							<CardDescription>
-								Ask questions and interact with the AI patient to practice your clinical skills
-							</CardDescription>
+							<CardTitle class="flex items-center gap-2"><Bot class="h-5 w-5 text-blue-600" />AI Patient Chat</CardTitle>
+							<CardDescription>Ask questions and interact with the AI patient to practice your clinical skills</CardDescription>
 						</CardHeader>
-						
 						<CardContent class="flex-1 flex flex-col p-0">
 							<!-- Chat Messages -->
 							<div ref="chatContainer" class="flex-1 overflow-y-auto p-4 space-y-4 max-h-96">
-								<div v-if="messages.length === 0" class="text-center text-gray-500 dark:text-gray-400 py-8">
-									<Bot class="h-12 w-12 mx-auto mb-4 text-gray-300" />
-									<p>No messages yet. Start the conversation!</p>
-								</div>
-								
+								<div v-if="messages.length === 0" class="text-center text-gray-500 dark:text-gray-400 py-8"><Bot class="h-12 w-12 mx-auto mb-4 text-gray-300" /><p>No messages yet. Start the conversation!</p></div>
 								<div v-for="msg in messages" :key="msg.id" class="flex gap-3">
-									<div v-if="msg.sender_type === 'user'" class="flex-1 flex justify-end">
-										<div class="flex items-end gap-2 max-w-xs lg:max-w-md">
-											<div class="bg-blue-600 text-white rounded-lg px-3 py-2 text-sm">
-												{{ msg.message }}
-											</div>
-											<User class="h-6 w-6 text-blue-600" />
-										</div>
-									</div>
-									
-									<div v-else-if="msg.sender_type === 'ai_patient'" class="flex-1 flex justify-start">
-										<div class="flex items-end gap-2 max-w-xs lg:max-w-md">
-											<Bot class="h-6 w-6 text-green-600" />
-											<div class="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
-												{{ msg.message }}
-											</div>
-										</div>
-									</div>
-									
-									<div v-else-if="msg.sender_type === 'system'" class="flex-1 flex justify-center">
-										<div class="bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded-lg px-3 py-2 text-xs text-center max-w-md">
-											{{ msg.message }}
-										</div>
-									</div>
+									<div v-if="msg.sender_type === 'user'" class="flex-1 flex justify-end"><div class="flex items-end gap-2 max-w-xs lg:max-w-md"><div class="bg-blue-600 text-white rounded-lg px-3 py-2 text-sm">{{ msg.message }}</div><User class="h-6 w-6 text-blue-600" /></div></div>
+									<div v-else-if="msg.sender_type === 'ai_patient'" class="flex-1 flex justify-start"><div class="flex items-end gap-2 max-w-xs lg:max-w-md"><Bot class="h-6 w-6 text-green-600" /><div class="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">{{ msg.message }}</div></div></div>
+									<div v-else-if="msg.sender_type === 'system'" class="flex-1 flex justify-center"><div class="bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded-lg px-3 py-2 text-xs text-center max-w-md">{{ msg.message }}</div></div>
 								</div>
-								
-								<div v-if="isLoading" class="flex justify-start">
+								<div v-if="isLoading" class="flex justify-start p-4">
 									<div class="flex items-end gap-2">
 										<Bot class="h-6 w-6 text-green-600" />
 										<div class="bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2">
@@ -705,30 +414,6 @@ onMounted(async () => {
 										</div>
 									</div>
 								</div>
-							</div>
-
-							<!-- Chat Input -->
-							<div class="border-t p-4">
-								<div class="flex gap-2">
-									<Textarea
-										v-model="message"
-										placeholder="Type your question or message to the AI patient..."
-										class="flex-1 resize-none"
-										:rows="2"
-										@keydown="handleKeyPress"
-										:disabled="isLoading"
-									/>
-									<Button 
-										@click="sendMessage" 
-										:disabled="isLoading || !message.trim()"
-										class="px-4"
-									>
-										<Send class="h-4 w-4" />
-									</Button>
-								</div>
-								<p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-									Press Enter to send, Shift+Enter for new line
-								</p>
 							</div>
 						</CardContent>
 					</Card>
