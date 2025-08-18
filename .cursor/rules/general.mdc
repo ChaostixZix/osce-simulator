@@ -1,10 +1,55 @@
 ---
-description:
-globs:
+description: General development rules for Laravel + Inertia.js + Vue.js project with documentation and tooling preferences
+globs: **/*
 alwaysApply: true
 ---
 
-- ShadCN Vue is already installed here. Don't try to install it again. If i told u to install, i told you to install the component
-- When i asked you to make a New Page. Please assume first that i want to make a new Vue pages. Make it in the Resources (Vue) Page. and then add the page into the AppSidebar.vue and dont forget to make a new Controller (Laravel) for the page and add the routes on web.php (Laravel)
-- If i tell you to check for errors. check the latest errors using Browser Logs (Laravel Boost MCP Tools). and confirm to me is that the error i meant. Dont just fix it, check for the last 2 entries only
-- Always use Single Page Application Principle using Inertia JS, Minimize web reloading okay?
+## **Core Architecture & Development Principles**
+
+- **Always use Laravel Boost MCP tools when possible** for Laravel-specific operations including:
+  - Database queries and schema inspection
+  - Application configuration retrieval
+  - Route analysis and Artisan commands
+  - Error logging and debugging
+  - Documentation searches
+
+- **Always document critical information using ByteRover** after completing tasks:
+  - Store implementation patterns and code solutions
+  - Document error resolutions and debugging steps
+  - Capture API integration details and configurations
+  - Record testing patterns and best practices
+
+- **Always use Inertia.js Architecture whenever possible:**
+  - Use `Inertia.get()`, `Inertia.post()`, `Inertia.put()`, `Inertia.delete()` instead of regular APIs
+  - Leverage `Inertia.visit()` for navigation
+  - Use `router.visit()` with proper options for form submissions
+  - Always check todos to ensure Inertia architecture is used first before considering alternatives
+
+## **Component & Page Management**
+
+- **ShadCN Vue is already installed** - Don't reinstall it. If asked to install, install the specific component only
+
+- **New Page Creation Process:**
+  1. Create Vue page in Resources/js/Pages/
+  2. Add page to AppSidebar.vue navigation
+  3. Create corresponding Laravel Controller
+  4. Add routes in web.php with proper Inertia responses
+
+- **Error Handling:**
+  - Use Browser Logs (Laravel Boost MCP Tools) to check latest errors
+  - Confirm specific error before fixing (check last 2 entries only)
+  - Don't assume - always verify the exact error first
+
+## **Single Page Application Guidelines**
+
+- **Minimize web reloading** - Always use Inertia.js SPA principles
+- **Form Submissions:** Use `router.post()` with proper success/error handling
+- **Navigation:** Use `Inertia.visit()` or `Link` component instead of traditional links
+- **Data Fetching:** Prefer server-side data loading through Inertia props over client-side API calls
+
+## **Development Workflow**
+
+- **Before implementing any solution:** Check if Inertia.js architecture can be used
+- **For API operations:** Default to Inertia methods (`Inertia.fetch`, `Inertia.post`) over traditional REST APIs
+- **Documentation:** Always store successful implementation patterns in ByteRover knowledge base
+- **Laravel Integration:** Leverage Laravel Boost MCP tools for project analysis and debugging
