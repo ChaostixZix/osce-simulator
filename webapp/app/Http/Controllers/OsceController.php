@@ -227,7 +227,8 @@ class OsceController extends Controller
                     'priority' => $orderData['priority'],
                     'cost' => $test->cost,
                     'ordered_at' => now(),
-                    'results_available_at' => now()->addMinutes($test->turnaround_minutes),
+                    // memory ID 6519270: turnaround is in seconds now
+                    'results_available_at' => now()->addSeconds($test->turnaround_minutes),
                     'results' => [],
                 ]);
 
@@ -461,5 +462,59 @@ class OsceController extends Controller
         } catch (\Exception $e) {
             return back()->withErrors(['error' => 'Failed to perform examination']);
         }
+    }
+
+    public function extendSession(OsceSession $session, Request $request)
+    {
+        $user = auth()->user();
+        if ($session->user_id !== $user->id) {
+            abort(403, 'Unauthorized access to session');
+        }
+        $data = $request->validate([
+            'minutes' => 'required|integer|min:1|max:180'
+        ]);
+        $session->time_extended = (int) ($session->time_extended ?? 0) + (int) $data['minutes'];
+        $session->save();
+        return response()->json([
+            'message' => 'Session extended',
+            'session' => $session->fresh()->load('osceCase')
+        ]);
+    }
+
+    public function updateCaseDuration(OsceCase $case, Request $request)
+    {
+        // Optional policy check; comment if not using policies
+        // $this->authorize('update', $case);
+        $data = $request->validate([
+            'duration_minutes' => 'required|integer|min:1|max:240'
+        ]);
+        $case->duration_minutes = (int) $data['duration_minutes'];
+        $case->save();
+        return response()->json([
+            'message' => 'Case duration updated',
+            'case' => $case
+        ]);
+    }
+
+    public function refreshTestResults(OsceSession $session)
+    {
+        $user = auth()->user();
+        
+        // Ensure the session belongs to the authenticated user
+        if ($session->user_id !== $user->id) {
+            abort(403, 'Unauthorized access to session');
+        }
+
+        // Run ProcessTestResultsJob to update any ready results
+        \App\Jobs\ProcessTestResultsJob::dispatch();
+
+        // Load fresh session data with all relationships
+        $session = $session->fresh(['osceCase', 'orderedTests', 'examinations']);
+
+        return response()->json([
+            'message' => 'Test results refreshed',
+            'session' => $session,
+            'ordered_tests' => $session->orderedTests
+        ]);
     }
 }
