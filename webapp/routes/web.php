@@ -24,6 +24,7 @@ Route::middleware([
 	Route::post('api/osce/sessions/start', [App\Http\Controllers\OsceController::class, 'startSession']);
 	Route::get('api/osce/sessions/{session}/timer', [App\Http\Controllers\OsceController::class, 'getSessionTimer']);
 	Route::post('api/osce/sessions/{session}/complete', [App\Http\Controllers\OsceController::class, 'completeSession']);
+	Route::post('api/osce/sessions/{session}/extend', [App\Http\Controllers\OsceController::class, 'extendSession']);
 	
 	// OSCE Chat routes
 	Route::post('api/osce/chat/start', [App\Http\Controllers\OsceChatController::class, 'startChat']);
@@ -38,6 +39,7 @@ Route::middleware([
 	Route::post('api/osce/order-tests', [App\Http\Controllers\OsceController::class, 'orderTests']);
 	Route::get('api/medical-tests/search', [App\Http\Controllers\MedicalTestController::class, 'search']);
 	Route::get('api/medical-tests/categories', [App\Http\Controllers\MedicalTestController::class, 'getCategories']);
+	Route::post('api/osce/cases/{case}/duration', [App\Http\Controllers\OsceController::class, 'updateCaseDuration']);
 	
 	Route::get('mcq-demo', [App\Http\Controllers\MCQController::class, 'index'])->name('mcq-demo');
 
