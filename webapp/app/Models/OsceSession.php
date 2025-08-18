@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class OsceSession extends Model
 {
@@ -34,5 +35,15 @@ class OsceSession extends Model
     public function osceCase(): BelongsTo
     {
         return $this->belongsTo(OsceCase::class);
+    }
+
+    public function chatMessages(): HasMany
+    {
+        return $this->hasMany(OsceChatMessage::class)->orderBy('sent_at', 'asc');
+    }
+
+    public function getLatestChatMessage(): ?OsceChatMessage
+    {
+        return $this->chatMessages()->latest('sent_at')->first();
     }
 }

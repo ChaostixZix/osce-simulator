@@ -41,4 +41,9 @@ return [
         'redirect_url' => env('WORKOS_REDIRECT_URL'),
     ],
 
+    'gemini' => [
+        'api_key' => env('GEMINI_API_KEY'),
+        'model' => env('GEMINI_MODEL', 'gemini-1.5-flash'),
+    ],
+
 ];

@@ -290,7 +290,7 @@ const sendMessage = () => {
                                         <span v-else class="text-gray-500">-</span>
                                     </TableCell>
                                     <TableCell>
-                                        <Button v-if="session.status === 'in_progress'" variant="outline" size="sm">
+                                        <Button v-if="session.status === 'in_progress'" variant="outline" size="sm" @click="router.visit(`/osce/chat/${session.id}`)">
                                             Continue
                                         </Button>
                                         <Button v-else-if="session.status === 'completed'" variant="ghost" size="sm">
