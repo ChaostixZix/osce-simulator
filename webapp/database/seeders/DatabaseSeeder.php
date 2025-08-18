@@ -8,21 +8,24 @@ use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
-    public function run(): void
-    {
-        // User::factory(10)->create();
+	/**
+	 * Seed the application's database.
+	 */
+	public function run(): void
+	{
+		// Create default user if not exists
+		User::firstOrCreate(
+			['email' => 'test@example.com'],
+			[
+				'name' => 'Test User',
+			]
+		);
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
-
-        // Seed forum data
-        $this->call([
-            ForumSeeder::class,
-        ]);
-    }
+		// Seed initial app data
+		$this->call([
+			ForumSeeder::class,
+			MedicalTestSeeder::class,
+			OsceCaseSeeder::class,
+		]);
+	}
 }

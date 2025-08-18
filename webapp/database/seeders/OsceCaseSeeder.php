@@ -196,6 +196,42 @@ class OsceCaseSeeder extends Seeder
                 'radiation' => 'It started in my chest and now it\'s going down my left arm. My jaw hurts too.',
                 'onset' => 'It started about 2 hours ago while I was watching TV. It came on suddenly.',
                 'history' => 'I have high blood pressure and cholesterol. My doctor warned me about this.'
+            ],
+
+            // New clinical reasoning fields
+            'clinical_setting' => 'emergency',
+            'urgency_level' => 5,
+            'highly_appropriate_tests' => [
+                'Troponin I',
+                'Electrocardiogram (ECG)',
+                'Chest X-Ray'
+            ],
+            'appropriate_tests' => [
+                'Complete Blood Count (CBC)'
+            ],
+            'acceptable_tests' => [
+            ],
+            'inappropriate_tests' => [
+                'Thyroid Stimulating Hormone',
+                'Prostate Specific Antigen',
+                'Stool Culture',
+                'Pap Smear'
+            ],
+            'contraindicated_tests' => [
+                'Exercise Stress Test'
+            ],
+            'required_tests' => [
+                'Troponin I',
+                'Electrocardiogram (ECG)'
+            ],
+            'setting_limitations' => [
+                'cardiac_catheterization' => false,
+                'advanced_imaging' => true,
+                'specialist_availability' => ['emergency_medicine', 'cardiology_consult']
+            ],
+            'case_budget' => 2000.00,
+            'test_results_templates' => [
+                // These IDs will correspond after seeding medical tests; using names in controller resolution as fallback
             ]
         ]);
     }

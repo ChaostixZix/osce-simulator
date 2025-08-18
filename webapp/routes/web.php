@@ -28,10 +28,14 @@ Route::middleware([
 	Route::post('api/osce/chat/message', [App\Http\Controllers\OsceChatController::class, 'sendMessage']);
 	Route::get('api/osce/chat/history/{session}', [App\Http\Controllers\OsceChatController::class, 'getChatHistory']);
 	
-	// OSCE Examination routes (Inertia-based)
-	Route::post('osce/order-lab', [App\Http\Controllers\OsceController::class, 'orderLab'])->name('osce.order-lab');
+	// OSCE Examination routes (legacy ordering replaced by clinical reasoning system)
 	Route::post('osce/order-procedure', [App\Http\Controllers\OsceController::class, 'orderProcedure'])->name('osce.order-procedure');
 	Route::post('osce/perform-examination', [App\Http\Controllers\OsceController::class, 'performExamination'])->name('osce.perform-examination');
+
+	// Clinical reasoning ordering API
+	Route::post('api/osce/order-tests', [App\Http\Controllers\OsceController::class, 'orderTests']);
+	Route::get('api/medical-tests/search', [App\Http\Controllers\MedicalTestController::class, 'search']);
+	Route::get('api/medical-tests/categories', [App\Http\Controllers\MedicalTestController::class, 'getCategories']);
 	
 	Route::get('mcq-demo', [App\Http\Controllers\MCQController::class, 'index'])->name('mcq-demo');
 
