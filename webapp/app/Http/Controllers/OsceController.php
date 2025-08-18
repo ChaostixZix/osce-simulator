@@ -495,4 +495,26 @@ class OsceController extends Controller
             'case' => $case
         ]);
     }
+
+    public function refreshTestResults(OsceSession $session)
+    {
+        $user = auth()->user();
+        
+        // Ensure the session belongs to the authenticated user
+        if ($session->user_id !== $user->id) {
+            abort(403, 'Unauthorized access to session');
+        }
+
+        // Run ProcessTestResultsJob to update any ready results
+        \App\Jobs\ProcessTestResultsJob::dispatch();
+
+        // Load fresh session data with all relationships
+        $session = $session->fresh(['osceCase', 'orderedTests', 'examinations']);
+
+        return response()->json([
+            'message' => 'Test results refreshed',
+            'session' => $session,
+            'ordered_tests' => $session->orderedTests
+        ]);
+    }
 }
