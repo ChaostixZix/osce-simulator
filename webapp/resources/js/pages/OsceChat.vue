@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/vue3';
-import { ref, onMounted, computed, nextTick } from 'vue';
+import { Head, router, usePage } from '@inertiajs/vue3';
+import { ref, onMounted, computed, nextTick, watch } from 'vue';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -58,6 +58,14 @@ interface ChatMessage {
 const props = defineProps<{
 	session: OsceSession;
 	user: any;
+	sessionData?: {
+		lab_results: any[];
+		procedure_results: any[];
+		examination_findings: any[];
+		available_labs: string[];
+		available_procedures: string[];
+		available_examinations: any;
+	};
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -80,13 +88,16 @@ const chatContainer = ref<HTMLElement>();
 const selectedLab = ref('');
 const selectedProcedure = ref('');
 const selectedExaminations = ref<Array<{category: string, type: string}>>([]);
-const sessionData = ref<any>({});
 const showLabModal = ref(false);
 const showProcedureModal = ref(false);
 const showExamModal = ref(false);
 
 const session = ref<OsceSession>(props.session);
 const osceCase = computed(() => session.value.osce_case);
+
+// Get page errors for Inertia error handling
+const page = usePage();
+const errors = computed(() => page.props.errors || {});
 
 const getDifficultyColor = (difficulty: string) => {
 	switch (difficulty) {
@@ -245,131 +256,79 @@ const examinationOptions = [
 	{ category: 'musculoskeletal', type: 'inspection', label: 'Musculoskeletal Inspection' }
 ];
 
-// Load session data including tests and examinations
-const loadSessionData = async () => {
-	try {
-		const response = await fetch(`/api/osce/session-data/${session.value.id}`);
-		if (response.ok) {
-			const data = await response.json();
-			sessionData.value = data;
-		}
-	} catch (error) {
-		console.error('Error loading session data:', error);
-	}
-};
-
-// Order lab test
-const orderLab = async () => {
+// Order lab test using Inertia
+const orderLab = () => {
 	if (!selectedLab.value) return;
 
-	try {
-		const response = await fetch('/api/osce/order-lab', {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-			},
-			body: JSON.stringify({
-				session_id: session.value.id,
-				test_name: selectedLab.value
-			})
-		});
-
-		if (response.ok) {
-			const data = await response.json();
+	router.post('/osce/order-lab', {
+		session_id: session.value.id,
+		test_name: selectedLab.value
+	}, {
+		preserveState: true,
+		preserveScroll: true,
+		onSuccess: (page) => {
 			toast.success('Lab Test Ordered', {
-				description: data.message
+				description: `Lab test '${selectedLab.value}' has been ordered.`
 			});
-			await loadSessionData();
 			showLabModal.value = false;
 			selectedLab.value = '';
-		} else {
-			const error = await response.json();
+		},
+		onError: (errors) => {
 			toast.error('Failed to order lab test', {
-				description: error.error
+				description: errors.error || 'An unexpected error occurred'
 			});
 		}
-	} catch (error) {
-		toast.error('Network error', {
-			description: 'Please check your connection and try again'
-		});
-	}
+	});
 };
 
-// Order procedure
-const orderProcedure = async () => {
+// Order procedure using Inertia
+const orderProcedure = () => {
 	if (!selectedProcedure.value) return;
 
-	try {
-		const response = await fetch('/api/osce/order-procedure', {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-			},
-			body: JSON.stringify({
-				session_id: session.value.id,
-				procedure_name: selectedProcedure.value
-			})
-		});
-
-		if (response.ok) {
-			const data = await response.json();
+	router.post('/osce/order-procedure', {
+		session_id: session.value.id,
+		procedure_name: selectedProcedure.value
+	}, {
+		preserveState: true,
+		preserveScroll: true,
+		onSuccess: (page) => {
 			toast.success('Procedure Ordered', {
-				description: data.message
+				description: `Procedure '${selectedProcedure.value}' has been ordered.`
 			});
-			await loadSessionData();
 			showProcedureModal.value = false;
 			selectedProcedure.value = '';
-		} else {
-			const error = await response.json();
+		},
+		onError: (errors) => {
 			toast.error('Failed to order procedure', {
-				description: error.error
+				description: errors.error || 'An unexpected error occurred'
 			});
 		}
-	} catch (error) {
-		toast.error('Network error', {
-			description: 'Please check your connection and try again'
-		});
-	}
+	});
 };
 
-// Perform physical examination
-const performExamination = async () => {
+// Perform physical examination using Inertia
+const performExamination = () => {
 	if (selectedExaminations.value.length === 0) return;
 
-	try {
-		const response = await fetch('/api/osce/perform-examination', {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-			},
-			body: JSON.stringify({
-				session_id: session.value.id,
-				examinations: selectedExaminations.value
-			})
-		});
-
-		if (response.ok) {
-			const data = await response.json();
+	router.post('/osce/perform-examination', {
+		session_id: session.value.id,
+		examinations: selectedExaminations.value
+	}, {
+		preserveState: true,
+		preserveScroll: true,
+		onSuccess: (page) => {
 			toast.success('Examination Completed', {
-				description: data.message
+				description: `${selectedExaminations.value.length} examination(s) completed.`
 			});
-			await loadSessionData();
 			showExamModal.value = false;
 			selectedExaminations.value = [];
-		} else {
-			const error = await response.json();
+		},
+		onError: (errors) => {
 			toast.error('Failed to perform examination', {
-				description: error.error
+				description: errors.error || 'An unexpected error occurred'
 			});
 		}
-	} catch (error) {
-		toast.error('Network error', {
-			description: 'Please check your connection and try again'
-		});
-	}
+	});
 };
 
 // Handle examination selection
@@ -391,9 +350,17 @@ const isExaminationSelected = (exam: {category: string, type: string}) => {
 	);
 };
 
+// Watch for Inertia errors and display toast
+watch(errors, (newErrors) => {
+	if (newErrors && newErrors.error) {
+		toast.error('Error', {
+			description: newErrors.error
+		});
+	}
+}, { deep: true });
+
 onMounted(async () => {
 	await loadChatHistory();
-	await loadSessionData();
 	if (messages.value.length === 0) {
 		await startChat();
 	}
@@ -463,7 +430,7 @@ onMounted(async () => {
 											</SelectTrigger>
 											<SelectContent>
 												<SelectItem 
-													v-for="lab in sessionData.available_labs || []" 
+													v-for="lab in props.sessionData?.available_labs || []" 
 													:key="lab" 
 													:value="lab"
 												>
@@ -504,7 +471,7 @@ onMounted(async () => {
 											</SelectTrigger>
 											<SelectContent>
 												<SelectItem 
-													v-for="procedure in sessionData.available_procedures || []" 
+													v-for="procedure in props.sessionData?.available_procedures || []" 
 													:key="procedure" 
 													:value="procedure"
 												>
@@ -619,7 +586,7 @@ onMounted(async () => {
 					</Card>
 
 					<!-- Lab Results -->
-					<Card v-if="sessionData.lab_results && sessionData.lab_results.length > 0">
+					<Card v-if="props.sessionData?.lab_results && props.sessionData.lab_results.length > 0">
 						<CardHeader>
 							<CardTitle class="text-lg flex items-center gap-2">
 								<FlaskConical class="h-5 w-5 text-blue-600" />
@@ -627,7 +594,7 @@ onMounted(async () => {
 							</CardTitle>
 						</CardHeader>
 						<CardContent class="space-y-3">
-							<div v-for="test in sessionData.lab_results" :key="test.id" class="border-l-4 border-blue-500 pl-3">
+							<div v-for="test in props.sessionData?.lab_results" :key="test.id" class="border-l-4 border-blue-500 pl-3">
 								<div class="font-medium text-sm">{{ test.test_name }}</div>
 								<div class="text-xs text-gray-500 mb-2">{{ new Date(test.ordered_at).toLocaleString() }}</div>
 								<div class="text-sm space-y-1">
@@ -641,7 +608,7 @@ onMounted(async () => {
 					</Card>
 
 					<!-- Procedure Results -->
-					<Card v-if="sessionData.procedure_results && sessionData.procedure_results.length > 0">
+					<Card v-if="props.sessionData?.procedure_results && props.sessionData.procedure_results.length > 0">
 						<CardHeader>
 							<CardTitle class="text-lg flex items-center gap-2">
 								<FileText class="h-5 w-5 text-green-600" />
@@ -649,7 +616,7 @@ onMounted(async () => {
 							</CardTitle>
 						</CardHeader>
 						<CardContent class="space-y-3">
-							<div v-for="procedure in sessionData.procedure_results" :key="procedure.id" class="border-l-4 border-green-500 pl-3">
+							<div v-for="procedure in props.sessionData?.procedure_results" :key="procedure.id" class="border-l-4 border-green-500 pl-3">
 								<div class="font-medium text-sm">{{ procedure.test_name }}</div>
 								<div class="text-xs text-gray-500 mb-2">{{ new Date(procedure.ordered_at).toLocaleString() }}</div>
 								<div class="text-sm text-gray-700 dark:text-gray-300">
@@ -660,7 +627,7 @@ onMounted(async () => {
 					</Card>
 
 					<!-- Physical Examination Findings -->
-					<Card v-if="sessionData.examination_findings && sessionData.examination_findings.length > 0">
+					<Card v-if="props.sessionData?.examination_findings && props.sessionData.examination_findings.length > 0">
 						<CardHeader>
 							<CardTitle class="text-lg flex items-center gap-2">
 								<Stethoscope class="h-5 w-5 text-purple-600" />
@@ -668,7 +635,7 @@ onMounted(async () => {
 							</CardTitle>
 						</CardHeader>
 						<CardContent class="space-y-3">
-							<div v-for="exam in sessionData.examination_findings" :key="exam.id" class="border-l-4 border-purple-500 pl-3">
+							<div v-for="exam in props.sessionData?.examination_findings" :key="exam.id" class="border-l-4 border-purple-500 pl-3">
 								<div class="font-medium text-sm capitalize">{{ exam.examination_category }} - {{ exam.examination_type.replace('_', ' ') }}</div>
 								<div class="text-xs text-gray-500 mb-2">{{ new Date(exam.performed_at).toLocaleString() }}</div>
 								<div class="text-sm text-gray-700 dark:text-gray-300">
