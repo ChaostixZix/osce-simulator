@@ -8,8 +8,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'vue-sonner';
-import { ArrowLeft, Send, User, Bot, Clock, AlertCircle, CheckCircle } from 'lucide-vue-next';
+import { ArrowLeft, Send, User, Bot, Clock, AlertCircle, CheckCircle, FlaskConical, Stethoscope, FileText } from 'lucide-vue-next';
 
 interface OsceCase {
 	id: number;
@@ -73,6 +75,15 @@ const message = ref('');
 const messages = ref<ChatMessage[]>([]);
 const isLoading = ref(false);
 const chatContainer = ref<HTMLElement>();
+
+// New refs for examination system
+const selectedLab = ref('');
+const selectedProcedure = ref('');
+const selectedExaminations = ref<Array<{category: string, type: string}>>([]);
+const sessionData = ref<any>({});
+const showLabModal = ref(false);
+const showProcedureModal = ref(false);
+const showExamModal = ref(false);
 
 const session = ref<OsceSession>(props.session);
 const osceCase = computed(() => session.value.osce_case);
@@ -212,8 +223,177 @@ const handleKeyPress = (event: KeyboardEvent) => {
 	}
 };
 
+// Available examination options
+const examinationOptions = [
+	{ category: 'cardiovascular', type: 'auscultation', label: 'Cardiovascular Auscultation' },
+	{ category: 'cardiovascular', type: 'palpation', label: 'Cardiovascular Palpation' },
+	{ category: 'cardiovascular', type: 'inspection', label: 'Cardiovascular Inspection' },
+	{ category: 'respiratory', type: 'auscultation', label: 'Respiratory Auscultation' },
+	{ category: 'respiratory', type: 'percussion', label: 'Respiratory Percussion' },
+	{ category: 'respiratory', type: 'palpation', label: 'Respiratory Palpation' },
+	{ category: 'respiratory', type: 'inspection', label: 'Respiratory Inspection' },
+	{ category: 'abdominal', type: 'inspection', label: 'Abdominal Inspection' },
+	{ category: 'abdominal', type: 'auscultation', label: 'Abdominal Auscultation' },
+	{ category: 'abdominal', type: 'palpation', label: 'Abdominal Palpation' },
+	{ category: 'abdominal', type: 'percussion', label: 'Abdominal Percussion' },
+	{ category: 'neurological', type: 'reflexes', label: 'Neurological Reflexes' },
+	{ category: 'neurological', type: 'sensation', label: 'Neurological Sensation' },
+	{ category: 'neurological', type: 'motor', label: 'Neurological Motor' },
+	{ category: 'neurological', type: 'cranial_nerves', label: 'Cranial Nerves' },
+	{ category: 'musculoskeletal', type: 'range_of_motion', label: 'Range of Motion' },
+	{ category: 'musculoskeletal', type: 'strength', label: 'Muscle Strength' },
+	{ category: 'musculoskeletal', type: 'inspection', label: 'Musculoskeletal Inspection' }
+];
+
+// Load session data including tests and examinations
+const loadSessionData = async () => {
+	try {
+		const response = await fetch(`/api/osce/session-data/${session.value.id}`);
+		if (response.ok) {
+			const data = await response.json();
+			sessionData.value = data;
+		}
+	} catch (error) {
+		console.error('Error loading session data:', error);
+	}
+};
+
+// Order lab test
+const orderLab = async () => {
+	if (!selectedLab.value) return;
+
+	try {
+		const response = await fetch('/api/osce/order-lab', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+			},
+			body: JSON.stringify({
+				session_id: session.value.id,
+				test_name: selectedLab.value
+			})
+		});
+
+		if (response.ok) {
+			const data = await response.json();
+			toast.success('Lab Test Ordered', {
+				description: data.message
+			});
+			await loadSessionData();
+			showLabModal.value = false;
+			selectedLab.value = '';
+		} else {
+			const error = await response.json();
+			toast.error('Failed to order lab test', {
+				description: error.error
+			});
+		}
+	} catch (error) {
+		toast.error('Network error', {
+			description: 'Please check your connection and try again'
+		});
+	}
+};
+
+// Order procedure
+const orderProcedure = async () => {
+	if (!selectedProcedure.value) return;
+
+	try {
+		const response = await fetch('/api/osce/order-procedure', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+			},
+			body: JSON.stringify({
+				session_id: session.value.id,
+				procedure_name: selectedProcedure.value
+			})
+		});
+
+		if (response.ok) {
+			const data = await response.json();
+			toast.success('Procedure Ordered', {
+				description: data.message
+			});
+			await loadSessionData();
+			showProcedureModal.value = false;
+			selectedProcedure.value = '';
+		} else {
+			const error = await response.json();
+			toast.error('Failed to order procedure', {
+				description: error.error
+			});
+		}
+	} catch (error) {
+		toast.error('Network error', {
+			description: 'Please check your connection and try again'
+		});
+	}
+};
+
+// Perform physical examination
+const performExamination = async () => {
+	if (selectedExaminations.value.length === 0) return;
+
+	try {
+		const response = await fetch('/api/osce/perform-examination', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+			},
+			body: JSON.stringify({
+				session_id: session.value.id,
+				examinations: selectedExaminations.value
+			})
+		});
+
+		if (response.ok) {
+			const data = await response.json();
+			toast.success('Examination Completed', {
+				description: data.message
+			});
+			await loadSessionData();
+			showExamModal.value = false;
+			selectedExaminations.value = [];
+		} else {
+			const error = await response.json();
+			toast.error('Failed to perform examination', {
+				description: error.error
+			});
+		}
+	} catch (error) {
+		toast.error('Network error', {
+			description: 'Please check your connection and try again'
+		});
+	}
+};
+
+// Handle examination selection
+const toggleExamination = (exam: {category: string, type: string}) => {
+	const index = selectedExaminations.value.findIndex(
+		e => e.category === exam.category && e.type === exam.type
+	);
+	
+	if (index > -1) {
+		selectedExaminations.value.splice(index, 1);
+	} else {
+		selectedExaminations.value.push(exam);
+	}
+};
+
+const isExaminationSelected = (exam: {category: string, type: string}) => {
+	return selectedExaminations.value.some(
+		e => e.category === exam.category && e.type === exam.type
+	);
+};
+
 onMounted(async () => {
 	await loadChatHistory();
+	await loadSessionData();
 	if (messages.value.length === 0) {
 		await startChat();
 	}
@@ -254,8 +434,143 @@ onMounted(async () => {
 			</div>
 
 			<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
-				<!-- Case Information -->
-				<div class="lg:col-span-1 space-y-4">
+				<!-- Enhanced Left Sidebar -->
+				<div class="lg:col-span-1 space-y-4 max-h-screen overflow-y-auto">
+					<!-- Action Buttons -->
+					<Card>
+						<CardHeader>
+							<CardTitle class="text-lg">Medical Actions</CardTitle>
+						</CardHeader>
+						<CardContent class="space-y-3">
+							<Dialog v-model:open="showLabModal">
+								<DialogTrigger asChild>
+									<Button variant="outline" class="w-full flex items-center gap-2">
+										<FlaskConical class="h-4 w-4" />
+										Order Labs
+									</Button>
+								</DialogTrigger>
+								<DialogContent>
+									<DialogHeader>
+										<DialogTitle>Order Laboratory Tests</DialogTitle>
+										<DialogDescription>
+											Select a laboratory test to order for this patient
+										</DialogDescription>
+									</DialogHeader>
+									<div class="space-y-4">
+										<Select v-model="selectedLab">
+											<SelectTrigger>
+												<SelectValue placeholder="Select a lab test..." />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem 
+													v-for="lab in sessionData.available_labs || []" 
+													:key="lab" 
+													:value="lab"
+												>
+													{{ lab }}
+												</SelectItem>
+											</SelectContent>
+										</Select>
+										<div class="flex gap-2">
+											<Button @click="orderLab" :disabled="!selectedLab" class="flex-1">
+												Order Test
+											</Button>
+											<Button variant="outline" @click="showLabModal = false" class="flex-1">
+												Cancel
+											</Button>
+										</div>
+									</div>
+								</DialogContent>
+							</Dialog>
+
+							<Dialog v-model:open="showProcedureModal">
+								<DialogTrigger asChild>
+									<Button variant="outline" class="w-full flex items-center gap-2">
+										<FileText class="h-4 w-4" />
+										Order Procedure
+									</Button>
+								</DialogTrigger>
+								<DialogContent>
+									<DialogHeader>
+										<DialogTitle>Order Medical Procedure</DialogTitle>
+										<DialogDescription>
+											Select a medical procedure to order for this patient
+										</DialogDescription>
+									</DialogHeader>
+									<div class="space-y-4">
+										<Select v-model="selectedProcedure">
+											<SelectTrigger>
+												<SelectValue placeholder="Select a procedure..." />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem 
+													v-for="procedure in sessionData.available_procedures || []" 
+													:key="procedure" 
+													:value="procedure"
+												>
+													{{ procedure }}
+												</SelectItem>
+											</SelectContent>
+										</Select>
+										<div class="flex gap-2">
+											<Button @click="orderProcedure" :disabled="!selectedProcedure" class="flex-1">
+												Order Procedure
+											</Button>
+											<Button variant="outline" @click="showProcedureModal = false" class="flex-1">
+												Cancel
+											</Button>
+										</div>
+									</div>
+								</DialogContent>
+							</Dialog>
+
+							<Dialog v-model:open="showExamModal">
+								<DialogTrigger asChild>
+									<Button variant="outline" class="w-full flex items-center gap-2">
+										<Stethoscope class="h-4 w-4" />
+										Physical Exam
+									</Button>
+								</DialogTrigger>
+								<DialogContent class="max-w-2xl max-h-96 overflow-y-auto">
+									<DialogHeader>
+										<DialogTitle>Physical Examination</DialogTitle>
+										<DialogDescription>
+											Select multiple examinations to perform on the patient
+										</DialogDescription>
+									</DialogHeader>
+									<div class="space-y-4">
+										<div class="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto">
+											<div 
+												v-for="exam in examinationOptions" 
+												:key="`${exam.category}-${exam.type}`"
+												class="flex items-center space-x-2 p-2 border rounded cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+												:class="isExaminationSelected(exam) ? 'bg-blue-50 dark:bg-blue-900 border-blue-200 dark:border-blue-700' : ''"
+												@click="toggleExamination(exam)"
+											>
+												<input 
+													type="checkbox" 
+													:checked="isExaminationSelected(exam)"
+													class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+													readonly
+												/>
+												<label class="text-sm cursor-pointer">{{ exam.label }}</label>
+											</div>
+										</div>
+										<div class="flex gap-2">
+											<Button @click="performExamination" :disabled="selectedExaminations.length === 0" class="flex-1">
+												Perform Examination(s)
+											</Button>
+											<Button variant="outline" @click="showExamModal = false" class="flex-1">
+												Cancel
+											</Button>
+										</div>
+									</div>
+								</DialogContent>
+							</Dialog>
+						</CardContent>
+					</Card>
+
+					<!-- Case Information -->
 					<Card>
 						<CardHeader>
 							<CardTitle class="text-lg">Case Information</CardTitle>
@@ -298,6 +613,66 @@ onMounted(async () => {
 										<span class="text-gray-600 dark:text-gray-400">{{ key }}:</span>
 										<span class="font-medium">{{ value }}</span>
 									</div>
+								</div>
+							</div>
+						</CardContent>
+					</Card>
+
+					<!-- Lab Results -->
+					<Card v-if="sessionData.lab_results && sessionData.lab_results.length > 0">
+						<CardHeader>
+							<CardTitle class="text-lg flex items-center gap-2">
+								<FlaskConical class="h-5 w-5 text-blue-600" />
+								Lab Results
+							</CardTitle>
+						</CardHeader>
+						<CardContent class="space-y-3">
+							<div v-for="test in sessionData.lab_results" :key="test.id" class="border-l-4 border-blue-500 pl-3">
+								<div class="font-medium text-sm">{{ test.test_name }}</div>
+								<div class="text-xs text-gray-500 mb-2">{{ new Date(test.ordered_at).toLocaleString() }}</div>
+								<div class="text-sm space-y-1">
+									<div v-for="(value, key) in test.results" :key="key" class="flex justify-between">
+										<span class="text-gray-600 dark:text-gray-400">{{ key }}:</span>
+										<span class="font-mono text-xs">{{ value }}</span>
+									</div>
+								</div>
+							</div>
+						</CardContent>
+					</Card>
+
+					<!-- Procedure Results -->
+					<Card v-if="sessionData.procedure_results && sessionData.procedure_results.length > 0">
+						<CardHeader>
+							<CardTitle class="text-lg flex items-center gap-2">
+								<FileText class="h-5 w-5 text-green-600" />
+								Procedure Results
+							</CardTitle>
+						</CardHeader>
+						<CardContent class="space-y-3">
+							<div v-for="procedure in sessionData.procedure_results" :key="procedure.id" class="border-l-4 border-green-500 pl-3">
+								<div class="font-medium text-sm">{{ procedure.test_name }}</div>
+								<div class="text-xs text-gray-500 mb-2">{{ new Date(procedure.ordered_at).toLocaleString() }}</div>
+								<div class="text-sm text-gray-700 dark:text-gray-300">
+									{{ procedure.results.description || JSON.stringify(procedure.results) }}
+								</div>
+							</div>
+						</CardContent>
+					</Card>
+
+					<!-- Physical Examination Findings -->
+					<Card v-if="sessionData.examination_findings && sessionData.examination_findings.length > 0">
+						<CardHeader>
+							<CardTitle class="text-lg flex items-center gap-2">
+								<Stethoscope class="h-5 w-5 text-purple-600" />
+								Examination Findings
+							</CardTitle>
+						</CardHeader>
+						<CardContent class="space-y-3">
+							<div v-for="exam in sessionData.examination_findings" :key="exam.id" class="border-l-4 border-purple-500 pl-3">
+								<div class="font-medium text-sm capitalize">{{ exam.examination_category }} - {{ exam.examination_type.replace('_', ' ') }}</div>
+								<div class="text-xs text-gray-500 mb-2">{{ new Date(exam.performed_at).toLocaleString() }}</div>
+								<div class="text-sm text-gray-700 dark:text-gray-300">
+									<div v-for="finding in exam.findings" :key="finding" class="mb-1">• {{ finding }}</div>
 								</div>
 							</div>
 						</CardContent>
