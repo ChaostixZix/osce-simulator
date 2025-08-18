@@ -16,17 +16,36 @@ class OsceCase extends Model
         'scenario',
         'objectives',
         'checklist',
-        'is_active'
+        'is_active',
+        'ai_patient_profile',
+        'ai_patient_vitals',
+        'ai_patient_symptoms',
+        'ai_patient_instructions',
+        'ai_patient_responses'
     ];
 
     protected $casts = [
         'stations' => 'array',
         'checklist' => 'array',
-        'is_active' => 'boolean'
+        'is_active' => 'boolean',
+        'ai_patient_vitals' => 'array',
+        'ai_patient_symptoms' => 'array',
+        'ai_patient_responses' => 'array'
     ];
 
     public function sessions(): HasMany
     {
         return $this->hasMany(OsceSession::class);
+    }
+
+    public function getAiPatientContext(): array
+    {
+        return [
+            'profile' => $this->ai_patient_profile,
+            'vitals' => $this->ai_patient_vitals,
+            'symptoms' => $this->ai_patient_symptoms,
+            'instructions' => $this->ai_patient_instructions,
+            'responses' => $this->ai_patient_responses
+        ];
     }
 }

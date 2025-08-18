@@ -33,6 +33,24 @@ class OsceController extends Controller
         ]);
     }
 
+    public function showChat(OsceSession $session): Response
+    {
+        $user = auth()->user();
+        
+        // Ensure the session belongs to the authenticated user
+        if ($session->user_id !== $user->id) {
+            abort(403, 'Unauthorized access to session');
+        }
+        
+        // Load the session with case information
+        $session->load('osceCase');
+        
+        return Inertia::render('OsceChat', [
+            'session' => $session,
+            'user' => $user
+        ]);
+    }
+
     public function getCases()
     {
         $cases = OsceCase::where('is_active', true)
