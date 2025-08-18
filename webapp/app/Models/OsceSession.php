@@ -16,6 +16,9 @@ class OsceSession extends Model
         'completed_at',
         'score',
         'max_score',
+        'clinical_reasoning_score',
+        'total_test_cost',
+        'evaluation_feedback',
         'responses',
         'feedback'
     ];
@@ -24,7 +27,8 @@ class OsceSession extends Model
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
         'responses' => 'array',
-        'feedback' => 'array'
+        'feedback' => 'array',
+        'evaluation_feedback' => 'array'
     ];
 
     public function user(): BelongsTo

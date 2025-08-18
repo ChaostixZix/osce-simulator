@@ -47,14 +47,11 @@ class OsceController extends Controller
         // Load the session with case information and related data
         $session->load(['osceCase', 'orderedTests', 'examinations']);
         
-        // Prepare session data
+        // Prepare session data (legacy arrays removed in new system)
         $sessionData = [
             'lab_results' => $session->getLabResults(),
             'procedure_results' => $session->getProcedureResults(),
             'examination_findings' => $session->getPhysicalExamFindings(),
-            'available_labs' => $session->osceCase->available_labs ?? [],
-            'available_procedures' => $session->osceCase->available_procedures ?? [],
-            'available_examinations' => $session->osceCase->available_examinations ?? []
         ];
         
         return Inertia::render('OsceChat', [
@@ -119,14 +116,15 @@ class OsceController extends Controller
         ]);
     }
 
-    /**
-     * Order a lab test for the session
-     */
-    public function orderLab(Request $request)
+    // New clinical reasoning-based ordering endpoint
+    public function orderTests(Request $request)
     {
         $request->validate([
             'session_id' => 'required|exists:osce_sessions,id',
-            'test_name' => 'required|string'
+            'orders' => 'required|array|min:1',
+            'orders.*.medical_test_id' => 'required|integer',
+            'orders.*.clinical_reasoning' => 'required|string|min:20|max:500',
+            'orders.*.priority' => 'required|in:immediate,urgent,routine'
         ]);
 
         try {
@@ -135,46 +133,153 @@ class OsceController extends Controller
                 ->where('user_id', auth()->id())
                 ->firstOrFail();
 
-            // Check if session is active
             if ($session->status !== 'in_progress') {
-                return back()->withErrors(['error' => 'Session is not active']);
+                return response()->json(['error' => 'Session is not active'], 400);
             }
 
-            // Get available labs from case
-            $availableLabs = $session->osceCase->available_labs ?? [];
-            if (!in_array($request->test_name, $availableLabs)) {
-                return back()->withErrors(['error' => 'Lab test not available for this case']);
+            $orderedTests = [];
+            $totalCost = 0;
+
+            foreach ($request->orders as $orderData) {
+                $test = \App\Models\MedicalTest::findOrFail($orderData['medical_test_id']);
+
+                $existingOrder = SessionOrderedTest::where('osce_session_id', $session->id)
+                    ->where('medical_test_id', $test->id)
+                    ->first();
+                if ($existingOrder) {
+                    continue;
+                }
+
+                $availableSettings = $test->available_settings ?? [];
+                if (!in_array('all', $availableSettings) && !in_array($session->osceCase->clinical_setting ?? 'emergency', $availableSettings)) {
+                    return response()->json([
+                        'error' => $test->name . ' is not available in ' . ($session->osceCase->clinical_setting ?? 'this') . ' setting'
+                    ], 400);
+                }
+
+                $order = SessionOrderedTest::create([
+                    'osce_session_id' => $session->id,
+                    'medical_test_id' => $test->id,
+                    'test_name' => $test->name,
+                    'test_type' => $test->type,
+                    'clinical_reasoning' => $orderData['clinical_reasoning'],
+                    'priority' => $orderData['priority'],
+                    'cost' => $test->cost,
+                    'ordered_at' => now(),
+                    'results_available_at' => now()->addMinutes($test->turnaround_minutes),
+                    'results' => null,
+                ]);
+
+                $orderedTests[] = $order;
+                $totalCost += (float) $test->cost;
             }
 
-            // Check if test already ordered
-            $existingTest = SessionOrderedTest::where('osce_session_id', $session->id)
-                ->where('test_type', 'lab')
-                ->where('test_name', $request->test_name)
-                ->first();
+            $evaluation = $this->evaluateClinicalReasoning($session, $orderedTests);
 
-            if ($existingTest) {
-                return back()->withErrors(['error' => 'Lab test already ordered']);
-            }
+            $session->clinical_reasoning_score = ($session->clinical_reasoning_score ?? 0) + $evaluation['score'];
+            $session->total_test_cost = ($session->total_test_cost ?? 0) + $totalCost;
+            $session->evaluation_feedback = array_values(array_merge((array) ($session->evaluation_feedback ?? []), $evaluation['feedback']));
+            $session->save();
 
-            // Get lab results template
-            $labTemplates = $session->osceCase->lab_results_templates ?? [];
-            $results = $labTemplates[$request->test_name] ?? ['error' => 'Results not available'];
-
-            // Create ordered test record
-            SessionOrderedTest::create([
-                'osce_session_id' => $session->id,
-                'test_type' => 'lab',
-                'test_name' => $request->test_name,
-                'results' => $results,
-                'ordered_at' => now()
+            return response()->json([
+                'message' => 'Tests ordered successfully',
+                'ordered_tests' => $orderedTests,
+                'total_cost' => $totalCost,
+                'evaluation' => $evaluation,
+                'session' => $session->fresh()
             ]);
 
-            // Redirect back to chat with updated data
-            return redirect()->route('osce.chat', $session);
-
         } catch (\Exception $e) {
-            return back()->withErrors(['error' => 'Failed to order lab test']);
+            return response()->json(['error' => 'Failed to order tests'], 500);
         }
+    }
+
+    private function evaluateClinicalReasoning(OsceSession $session, array $orderedTests): array
+    {
+        $case = $session->osceCase;
+        $score = 0;
+        $feedback = [];
+        $totalCost = 0;
+
+        $highlyAppropriate = $case->highly_appropriate_tests ?? [];
+        $appropriate = $case->appropriate_tests ?? [];
+        $acceptable = $case->acceptable_tests ?? [];
+        $inappropriate = $case->inappropriate_tests ?? [];
+        $contraindicated = $case->contraindicated_tests ?? [];
+        $required = $case->required_tests ?? [];
+
+        foreach ($orderedTests as $order) {
+            $testName = $order->test_name;
+            $reasoning = (string) $order->clinical_reasoning;
+            $cost = (float) $order->cost;
+            $totalCost += $cost;
+
+            if (in_array($testName, $highlyAppropriate, true)) {
+                $score += 3;
+                $feedback[] = 'Excellent: ' . $testName . ' is highly appropriate for this presentation.';
+                if ($this->validateReasoning($reasoning, $testName)) {
+                    $score += 1;
+                    $feedback[] = 'Strong clinical reasoning for ' . $testName . '.';
+                }
+            } elseif (in_array($testName, $appropriate, true)) {
+                $score += 1;
+                $feedback[] = 'Good choice: ' . $testName . ' is appropriate.';
+            } elseif (in_array($testName, $acceptable, true)) {
+                $feedback[] = 'Acceptable: ' . $testName . ' is reasonable but may not be essential.';
+            } elseif (in_array($testName, $inappropriate, true)) {
+                $score -= 2;
+                $feedback[] = 'Consider: ' . $testName . ' may not be necessary for this presentation.';
+            } elseif (in_array($testName, $contraindicated, true)) {
+                $score -= 5;
+                $feedback[] = 'Warning: ' . $testName . ' could be harmful or contraindicated in this situation!';
+            }
+
+            if ($cost > 500) {
+                $feedback[] = 'Cost consideration: ' . $testName . ' is expensive ($' . number_format($cost, 2) . '). Ensure it\' . "'" . 's justified.';
+            }
+
+            $testModel = \App\Models\MedicalTest::where('name', $testName)->first();
+            if ($testModel && (int) $testModel->risk_level > 3) {
+                $feedback[] = 'Risk: ' . $testName . ' is a high-risk procedure. Ensure benefits outweigh risks.';
+            }
+        }
+
+        $orderedTestNames = collect($orderedTests)->pluck('test_name')->toArray();
+        $missedRequired = array_values(array_diff($required, $orderedTestNames));
+        foreach ($missedRequired as $missedTest) {
+            $score -= 3;
+            $feedback[] = 'Critical miss: ' . $missedTest . ' is essential for this case.';
+        }
+
+        $budgetLimit = $case->case_budget ?? 1000;
+        if ($totalCost > (float) $budgetLimit) {
+            $score -= 2;
+            $feedback[] = 'Budget exceeded: Total cost $' . number_format($totalCost, 2) . ' exceeds recommended limit of $' . number_format((float) $budgetLimit, 2) . '.';
+        }
+
+        return [
+            'score' => max(0, $score),
+            'feedback' => $feedback,
+            'total_cost' => $totalCost,
+            'appropriateness_rating' => null,
+            'efficiency_score' => null,
+        ];
+    }
+
+    private function validateReasoning(string $reasoning, string $testName): bool
+    {
+        $qualityIndicators = [
+            'rule out', 'differential', 'diagnos', 'assess', 'monitor',
+            'because', 'suspect', 'evaluate', 'screen', 'confirm'
+        ];
+        $reasoningLower = strtolower($reasoning);
+        $score = 0;
+        foreach ($qualityIndicators as $indicator) {
+            if (strpos($reasoningLower, $indicator) !== false) {
+                $score++;
+            }
+        }
+        return $score >= 2 && strlen($reasoning) >= 25;
     }
 
     /**
@@ -198,11 +303,7 @@ class OsceController extends Controller
                 return back()->withErrors(['error' => 'Session is not active']);
             }
 
-            // Get available procedures from case
-            $availableProcedures = $session->osceCase->available_procedures ?? [];
-            if (!in_array($request->procedure_name, $availableProcedures)) {
-                return back()->withErrors(['error' => 'Procedure not available for this case']);
-            }
+            // In the new system, procedures should be ordered via orderTests API; keep legacy guard soft-disabled
 
             // Check if procedure already ordered
             $existingProcedure = SessionOrderedTest::where('osce_session_id', $session->id)
@@ -214,9 +315,8 @@ class OsceController extends Controller
                 return back()->withErrors(['error' => 'Procedure already ordered']);
             }
 
-            // Get procedure results template
-            $procedureTemplates = $session->osceCase->procedure_results_templates ?? [];
-            $results = $procedureTemplates[$request->procedure_name] ?? ['error' => 'Results not available'];
+            // Results are generated asynchronously in the new system; store placeholder
+            $results = ['status' => 'pending'];
 
             // Create ordered procedure record
             SessionOrderedTest::create([
