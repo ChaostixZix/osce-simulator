@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { ref, onMounted, computed, nextTick, watch } from 'vue';
+import { ref, onMounted, onBeforeUnmount, computed, nextTick, watch } from 'vue';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -163,7 +163,7 @@ const submitTestOrders = async () => {
 		testSearchQuery.value = ''; 
 		searchResults.value.length = 0; 
 		showLabModal.value = false;
-		router.reload({ only: ['sessionData'] });
+		router.reload({ only: ['sessionData', 'session'] });
 	} catch (error) { 
 		pushNotification({ title: 'Network error', description: 'Please try again', variant: 'error' }); 
 	}
@@ -172,6 +172,9 @@ const submitTestOrders = async () => {
 
 const session = ref<OsceSession>(props.session);
 const osceCase = computed(() => session.value.osce_case);
+
+// Keep local session in sync after partial reloads
+watch(() => props.session, (val) => { (session as any).value = val as any; }, { deep: true });
 
 const page = usePage();
 const errors = computed(() => page.props.errors || {});
@@ -311,11 +314,46 @@ watch(errors, (newErrors) => {
 	} 
 }, { deep: true });
 
+// Ordered tests + countdowns
+const nowTs = ref<number>(Date.now());
+let nowTicker: number | undefined;
+const orderedTests = computed<any[]>(() => (session.value as any)?.ordered_tests || []);
+const hasPendingTests = computed(() => orderedTests.value.some(t => getTestSecondsRemaining(t) > 0 && !isTestCompleted(t)));
+
+function getTestSecondsRemaining(t: any): number {
+	const availableAt = t?.results_available_at ? new Date(t.results_available_at).getTime() : 0;
+	const remainingMs = Math.max(0, availableAt - nowTs.value);
+	return Math.floor(remainingMs / 1000);
+}
+
+function isTestCompleted(t: any): boolean {
+	if (t?.completed_at) return true;
+	const hasReadyResults = t?.results && (t.results.status === 'ready' || t.results.status === 'no_data' || Object.keys(t.results || {}).length > 0);
+	const timeReady = getTestSecondsRemaining(t) === 0 && !!t?.results_available_at;
+	return Boolean(hasReadyResults || timeReady);
+}
+
+function formatSeconds(sec: number): string {
+	const s = Math.max(0, Math.floor(sec));
+	const mm = Math.floor(s / 60).toString().padStart(2, '0');
+	const ss = (s % 60).toString().padStart(2, '0');
+	return `${mm}:${ss}`;
+}
+
 onMounted(async () => { 
 	await loadChatHistory(); 
 	if (messages.value.length === 0) { 
 		await startChat(); 
 	} 
+	// Tick for test countdowns
+	nowTicker = window.setInterval(() => { nowTs.value = Date.now(); }, 1000);
+	// Light polling to refresh when pending tests exist
+	const pollId = window.setInterval(() => {
+		if (hasPendingTests.value) {
+			router.reload({ only: ['session', 'sessionData'] });
+		}
+	}, 15000);
+	(Object.assign(window as any, { __osce_tests_poll_id: pollId }));
 });
 
 function handleSessionExpired() { 
@@ -324,6 +362,89 @@ function handleSessionExpired() {
 
 function handleSessionCompleted() { 
 	toast.success('Session completed', { description: 'Session has been marked as completed.' }); 
+}
+
+onBeforeUnmount(() => {
+	if (nowTicker) window.clearInterval(nowTicker);
+	const pollId = (window as any).__osce_tests_poll_id;
+	if (pollId) window.clearInterval(pollId);
+});
+
+// Physical examination modal state
+type ExamSelection = { category: string; type: string };
+const showExamModal = ref(false);
+const availableExamMap = computed<Record<string, string[]>>(() => {
+	const m = (osceCase.value as any)?.physical_exam_findings || {};
+	const result: Record<string, string[]> = {};
+	Object.keys(m || {}).forEach((cat) => {
+		const types = Object.keys(m[cat] || {});
+		if (types.length) result[cat] = types as string[];
+	});
+	return result;
+});
+const selectedExams = ref<ExamSelection[]>([]);
+function toggleExam(sel: ExamSelection) {
+	const idx = selectedExams.value.findIndex(e => e.category === sel.category && e.type === sel.type);
+	if (idx >= 0) selectedExams.value.splice(idx, 1); else selectedExams.value.push(sel);
+}
+const isExamSelected = (sel: ExamSelection) => selectedExams.value.some(e => e.category === sel.category && e.type === sel.type);
+const isSubmittingExams = ref(false);
+async function submitExams() {
+	if (selectedExams.value.length === 0 || isSubmittingExams.value) return;
+	isSubmittingExams.value = true;
+	try {
+		await router.post('/osce/perform-examination', {
+			session_id: session.value.id,
+			examinations: selectedExams.value
+		}, { preserveScroll: true, onError: (e: any) => {
+			pushNotification({ title: 'Failed to perform examination', description: (e && (e.error || e.message)) || 'Please try again', variant: 'error' });
+		}, onSuccess: () => {
+			pushNotification({ title: 'Examination(s) performed', description: `${selectedExams.value.length} selection(s) recorded.`, variant: 'success' });
+			selectedExams.value = [];
+			showExamModal.value = false;
+			router.reload({ only: ['sessionData'] });
+		}});
+	} finally {
+		isSubmittingExams.value = false;
+	}
+}
+
+// Time configuration controls
+const showTimeConfig = ref(false);
+const newCaseDuration = ref<number>(osceCase.value?.duration_minutes || 0);
+const extendMinutes = ref<number>(5);
+const isTimeSaving = ref(false);
+async function updateCaseDuration() {
+	if (!osceCase.value?.id || newCaseDuration.value <= 0) return;
+	isTimeSaving.value = true;
+	try {
+		const res = await fetch(`/api/osce/cases/${osceCase.value.id}/duration`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '' },
+			body: JSON.stringify({ duration_minutes: newCaseDuration.value })
+		});
+		if (!res.ok) throw new Error('Failed');
+		pushNotification({ title: 'Case duration updated', variant: 'success' });
+		router.reload({ only: ['session'] });
+	} catch (e) {
+		pushNotification({ title: 'Failed to update case duration', variant: 'error' });
+	} finally { isTimeSaving.value = false; }
+}
+async function extendSessionTime() {
+	if (extendMinutes.value <= 0) return;
+	isTimeSaving.value = true;
+	try {
+		const res = await fetch(`/api/osce/sessions/${session.value.id}/extend`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '' },
+			body: JSON.stringify({ minutes: extendMinutes.value })
+		});
+		if (!res.ok) throw new Error('Failed');
+		pushNotification({ title: 'Session time extended', description: `+${extendMinutes.value} minute(s)`, variant: 'success' });
+		router.reload({ only: ['session'] });
+	} catch (e) {
+		pushNotification({ title: 'Failed to extend session', variant: 'error' });
+	} finally { isTimeSaving.value = false; }
 }
 </script>
 
@@ -386,6 +507,36 @@ function handleSessionCompleted() {
 			<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
 				<!-- Left Sidebar -->
 				<div class="lg:col-span-1 space-y-4 max-h-screen overflow-y-auto">
+					<!-- Case Overview -->
+					<Card>
+						<CardHeader>
+							<CardTitle class="text-lg">Case Overview</CardTitle>
+						</CardHeader>
+						<CardContent class="space-y-3 text-sm">
+							<div>
+								<div class="font-semibold">Scenario</div>
+								<div class="text-gray-600 dark:text-gray-300">{{ osceCase?.scenario || '—' }}</div>
+							</div>
+							<div>
+								<div class="font-semibold">Objectives</div>
+								<div class="text-gray-600 dark:text-gray-300 whitespace-pre-line">{{ osceCase?.objectives || '—' }}</div>
+							</div>
+							<div v-if="(osceCase as any)?.ai_patient_vitals">
+								<div class="font-semibold">Vital Signs</div>
+								<div class="grid grid-cols-2 gap-2">
+									<div v-for="(v, k) in (osceCase as any).ai_patient_vitals" :key="k" class="flex justify-between">
+										<span class="text-gray-500">{{ k }}</span>
+										<span class="font-medium">{{ v }}</span>
+									</div>
+								</div>
+							</div>
+							<div class="flex items-center justify-between text-xs text-gray-500">
+								<span>Difficulty: {{ osceCase?.difficulty || '—' }}</span>
+								<span>Duration: {{ osceCase?.duration_minutes }} min</span>
+							</div>
+						</CardContent>
+					</Card>
+
 					<!-- Actions -->
 					<Card>
 						<CardHeader>
@@ -454,8 +605,91 @@ function handleSessionCompleted() {
 									</div>
 								</DialogContent>
 							</Dialog>
+
+							<!-- Physical Examination -->
+							<Dialog v-model:open="showExamModal">
+								<DialogTrigger asChild>
+									<Button variant="outline" class="w-full">Perform Physical Examination</Button>
+								</DialogTrigger>
+								<DialogContent class="max-w-2xl">
+									<DialogHeader>
+										<DialogTitle>Select Examinations</DialogTitle>
+										<DialogDescription>Choose categories and types to perform.</DialogDescription>
+									</DialogHeader>
+									<div class="space-y-3 max-h-[60vh] overflow-y-auto">
+										<div v-if="Object.keys(availableExamMap).length === 0" class="text-sm text-gray-500">No examination options configured for this case.</div>
+										<div v-for="(types, category) in availableExamMap" :key="category" class="border rounded">
+											<div class="px-3 py-2 font-medium bg-gray-50 dark:bg-gray-800">{{ category }}</div>
+											<div class="p-3 grid grid-cols-2 gap-2">
+												<button type="button" v-for="t in types" :key="t" @click="toggleExam({ category: String(category), type: String(t) })" class="text-xs px-2 py-1 rounded border"
+													:class="isExamSelected({ category: String(category), type: String(t) }) ? 'bg-blue-600 text-white' : ''">
+													{{ t }}
+												</button>
+											</div>
+										</div>
+									</div>
+									<div class="flex justify-end gap-2 mt-2">
+										<Button variant="outline" @click="showExamModal = false">Cancel</Button>
+										<Button :disabled="selectedExams.length === 0 || isSubmittingExams" @click="submitExams">{{ isSubmittingExams ? 'Submitting...' : 'Perform' }}</Button>
+									</div>
+								</DialogContent>
+							</Dialog>
 						</CardContent>
 					</Card>
+
+					<!-- Ordered Tests & Results -->
+					<Card>
+						<CardHeader>
+							<CardTitle class="text-lg">Ordered Tests & Results</CardTitle>
+						</CardHeader>
+						<CardContent class="space-y-3 text-sm">
+							<div v-if="orderedTests.length === 0" class="text-gray-500">No tests ordered yet.</div>
+							<div v-for="t in orderedTests" :key="t.id" class="border rounded p-3 space-y-1">
+								<div class="flex items-center justify-between">
+									<div class="font-medium">{{ t.test_name }} <span class="text-xs text-gray-500">({{ t.test_type }})</span></div>
+									<Badge :class="isTestCompleted(t) ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'">
+										{{ isTestCompleted(t) ? 'Ready' : 'Pending' }}
+									</Badge>
+								</div>
+								<div v-if="!isTestCompleted(t)" class="flex items-center gap-2 text-xs text-gray-600">
+									<div class="w-3 h-3 rounded-full border-2 border-gray-300 border-t-blue-500 animate-spin"></div>
+									<span>Results in ~ {{ formatSeconds(getTestSecondsRemaining(t)) }}</span>
+								</div>
+								<div v-else class="text-xs text-gray-700 dark:text-gray-200 break-words">
+									<div v-if="t.results && Object.keys(t.results || {}).length">
+										<pre class="whitespace-pre-wrap text-xs">{{ JSON.stringify(t.results, null, 2) }}</pre>
+									</div>
+									<div v-else>Results available.</div>
+								</div>
+							</div>
+						</CardContent>
+					</Card>
+
+					<!-- Time Configuration -->
+					<Card>
+						<CardHeader>
+							<CardTitle class="text-lg flex items-center justify-between">Time Configuration
+								<Button size="sm" variant="outline" @click="showTimeConfig = !showTimeConfig">{{ showTimeConfig ? 'Hide' : 'Edit' }}</Button>
+							</CardTitle>
+						</CardHeader>
+						<CardContent v-if="showTimeConfig" class="space-y-3 text-sm">
+							<div class="space-y-2">
+								<div class="text-xs text-gray-500">Case duration (minutes)</div>
+								<Input type="number" v-model.number="newCaseDuration" min="1" />
+								<div class="flex justify-end">
+									<Button :disabled="isTimeSaving || newCaseDuration <= 0" @click="updateCaseDuration">Save</Button>
+								</div>
+							</div>
+							<div class="space-y-2">
+								<div class="text-xs text-gray-500">Extend current session (minutes)</div>
+								<Input type="number" v-model.number="extendMinutes" min="1" />
+								<div class="flex justify-end">
+									<Button :disabled="isTimeSaving || extendMinutes <= 0" @click="extendSessionTime">Extend</Button>
+								</div>
+							</div>
+						</CardContent>
+					</Card>
+
 				</div>
 
 				<!-- Chat Area -->
@@ -502,16 +736,15 @@ function handleSessionCompleted() {
 										</div>
 									</div>
 								</div>
-							</div>
-							<div class="border-t p-4">
-								<div class="flex gap-2">
-									<Textarea v-model="message" placeholder="Type your question or message to the AI patient..." class="flex-1 resize-none" :rows="2" @keydown="(e: KeyboardEvent) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }" :disabled="isLoading" />
-									<Button @click="sendMessage" :disabled="isLoading || !message.trim()" class="px-4">
-										<Send class="h-4 w-4" />
-									</Button>
+								<div class="border-t p-4">
+									<div class="flex gap-2">
+										<Textarea v-model="message" placeholder="Type your question or message to the AI patient..." class="flex-1 resize-none" :rows="2" @keydown="(e: KeyboardEvent) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }" :disabled="isLoading" />
+										<Button @click="sendMessage" :disabled="isLoading || !message.trim()" class="px-4">
+											<Send class="h-4 w-4" />
+										</Button>
+									</div>
+									<p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Press Enter to send, Shift+Enter for new line</p>
 								</div>
-								<p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Press Enter to send, Shift+Enter for new line</p>
-							</div>
 						</CardContent>
 					</Card>
 				</div>
