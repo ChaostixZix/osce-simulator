@@ -80,7 +80,7 @@ const pushNotification = (n: Omit<Notification, 'id'>) => {
 const removeNotification = (id: number) => { notifications.value = notifications.value.filter(n => n.id !== id); };
 
 // Clinical reasoning-based ordering UI state
-type MedicalTest = { id: number; name: string; category: string; type: 'lab' | 'imaging' | 'procedure' | 'physical_exam'; description?: string; indications?: string[]; contraindications?: string[]; cost: number; turnaround_minutes: number; requires_consent: boolean; risk_level: number; clinicalReasoning?: string; priority?: 'immediate' | 'urgent' | 'routine'; };
+type MedicalTest = { id: number; name: string; category: string; type: 'lab' | 'imaging' | 'procedure' | 'physical_exam'; description?: string; indications?: string[]; contraindications?: string[]; cost: number; turnaround_seconds: number; requires_consent: boolean; risk_level: number; clinicalReasoning?: string; priority?: 'immediate' | 'urgent' | 'routine'; };
 
 const session = ref<OsceSession>(props.session);
 const osceCase = computed(() => session.value.osce_case);
@@ -189,7 +189,7 @@ const isTestOrdered = (id: number) => selectedTests.value.some(t => t.id === id)
 const selectTest = (test: MedicalTest) => { if (!isTestOrdered(test.id)) selectedTests.value.push({ ...test, clinicalReasoning: '', priority: undefined }); };
 const removeTest = (id: number) => { selectedTests.value = selectedTests.value.filter(t => t.id !== id); };
 const totalCost = computed(() => selectedTests.value.reduce((sum, t) => sum + (t.cost || 0), 0));
-const maxTurnaroundTime = computed(() => selectedTests.value.reduce((max, t) => Math.max(max, t.turnaround_minutes || 0), 0));
+const maxTurnaroundTime = computed(() => selectedTests.value.reduce((max, t) => Math.max(max, t.turnaround_seconds || 0), 0));
 
 const searchMedicalTests = async () => {
 	if (testSearchQuery.value.length < 2) { searchResults.value = []; return; }
@@ -279,7 +279,7 @@ onMounted(async () => { await loadChatHistory(); if (messages.value.length === 0
 												<div v-for="test in searchResults" :key="test.id" class="p-2 border rounded hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer" :class="{ 'opacity-60 pointer-events-none': isTestOrdered(test.id) }" @click="selectTest(test)">
 													<div class="flex justify-between text-sm font-medium"><span>{{ test.name }}</span><Badge variant="outline">{{ test.category }}</Badge></div>
 													<div class="text-xs text-gray-500 mt-1 flex gap-2 items-center">
-														<Badge>${{ test.cost }}</Badge><Badge>{{ test.turnaround_minutes }}min</Badge>
+														<Badge>${{ test.cost }}</Badge><Badge>{{ test.turnaround_seconds }} sec</Badge>
 														<Badge v-if="test.requires_consent" variant="destructive">Consent</Badge>
 														<Badge v-if="test.risk_level > 3" variant="destructive">High Risk</Badge>
 													</div>
@@ -316,7 +316,7 @@ onMounted(async () => { await loadChatHistory(); if (messages.value.length === 0
 											<div class="flex gap-4">
 												<div>Tests: <span class="font-medium">{{ selectedTests.length }}</span></div>
 												<div>Total Cost: <span class="font-medium">${{ totalCost.toFixed(2) }}</span></div>
-												<div>Max ETA: <span class="font-medium">{{ maxTurnaroundTime }} min</span></div>
+												<div>Max ETA: <span class="font-medium">{{ maxTurnaroundTime }} sec</span></div>
 											</div>
 											<Button class="ml-auto" :disabled="!canSubmitOrders || isSubmittingOrders" @click="submitTestOrders">
 												<span v-if="!isSubmittingOrders">Submit Orders</span>

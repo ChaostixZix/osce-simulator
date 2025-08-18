@@ -14,7 +14,7 @@ class MedicalTest extends Model
         'indications',
         'contraindications',
         'cost',
-        'turnaround_minutes',
+        'turnaround_seconds',
         'available_settings',
         'requires_consent',
         'risk_level',

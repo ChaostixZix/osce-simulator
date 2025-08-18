@@ -180,7 +180,7 @@ class OsceController extends Controller
                     'priority' => $orderData['priority'],
                     'cost' => $test->cost,
                     'ordered_at' => now(),
-                    'results_available_at' => now()->addMinutes($test->turnaround_minutes),
+                    'results_available_at' => now()->addSeconds($test->turnaround_seconds),
                     'results' => [],
                 ]);
 
