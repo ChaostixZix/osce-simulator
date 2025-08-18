@@ -21,7 +21,13 @@ class OsceCase extends Model
         'ai_patient_vitals',
         'ai_patient_symptoms',
         'ai_patient_instructions',
-        'ai_patient_responses'
+        'ai_patient_responses',
+        'available_labs',
+        'available_procedures',
+        'available_examinations',
+        'lab_results_templates',
+        'procedure_results_templates',
+        'physical_exam_findings'
     ];
 
     protected $casts = [
@@ -30,7 +36,13 @@ class OsceCase extends Model
         'is_active' => 'boolean',
         'ai_patient_vitals' => 'array',
         'ai_patient_symptoms' => 'array',
-        'ai_patient_responses' => 'array'
+        'ai_patient_responses' => 'array',
+        'available_labs' => 'array',
+        'available_procedures' => 'array',
+        'available_examinations' => 'array',
+        'lab_results_templates' => 'array',
+        'procedure_results_templates' => 'array',
+        'physical_exam_findings' => 'array'
     ];
 
     public function sessions(): HasMany
