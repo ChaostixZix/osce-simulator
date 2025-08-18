@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'vue-sonner';
 import { ArrowLeft, Send, User, Bot, Clock, AlertCircle, CheckCircle, FlaskConical, Stethoscope, FileText } from 'lucide-vue-next';
+import SessionTimer from '@/components/SessionTimer.vue';
+import SessionTimer from '@/components/SessionTimer.vue';
 
 interface OsceCase {
 	id: number;
@@ -42,6 +44,9 @@ interface OsceSession {
 	created_at: string;
 	updated_at: string;
 	osce_case?: OsceCase;
+	remaining_seconds?: number;
+	duration_minutes?: number;
+	time_status?: 'active' | 'expired' | 'completed';
 }
 
 interface ChatMessage {
@@ -365,6 +370,14 @@ onMounted(async () => {
 		await startChat();
 	}
 });
+
+function handleSessionExpired() {
+	toast.error('Session expired', { description: 'Your OSCE session time has ended.' });
+}
+
+function handleSessionCompleted() {
+	toast.success('Session completed', { description: 'Session has been marked as completed.' });
+}
 </script>
 
 <template>
@@ -398,6 +411,18 @@ onMounted(async () => {
 						{{ osceCase?.difficulty || 'medium' }}
 					</Badge>
 				</div>
+			</div>
+
+			<!-- Timer -->
+			<div>
+				<SessionTimer
+					:session-id="session.id"
+					:initial-time-remaining="session.remaining_seconds || 0"
+					:duration-minutes="session.duration_minutes || (osceCase?.duration_minutes || 0)"
+					:status="(session as any).time_status || 'active'"
+					@session-expired="handleSessionExpired"
+					@session-completed="handleSessionCompleted"
+				/>
 			</div>
 
 			<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
@@ -705,31 +730,30 @@ onMounted(async () => {
 										</div>
 									</div>
 								</div>
-							</div>
-
-							<!-- Chat Input -->
-							<div class="border-t p-4">
-								<div class="flex gap-2">
-									<Textarea
-										v-model="message"
-										placeholder="Type your question or message to the AI patient..."
-										class="flex-1 resize-none"
-										:rows="2"
-										@keydown="handleKeyPress"
-										:disabled="isLoading"
-									/>
-									<Button 
-										@click="sendMessage" 
-										:disabled="isLoading || !message.trim()"
-										class="px-4"
-									>
-										<Send class="h-4 w-4" />
-									</Button>
+								
+								<!-- Chat Input -->
+								<div class="border-t p-4">
+									<div class="flex gap-2">
+										<Textarea
+											v-model="message"
+											placeholder="Type your question or message to the AI patient..."
+											class="flex-1 resize-none"
+											:rows="2"
+											@keydown="handleKeyPress"
+											:disabled="isLoading"
+										/>
+										<Button 
+											@click="sendMessage" 
+											:disabled="isLoading || !message.trim()"
+											class="px-4"
+										>
+											<Send class="h-4 w-4" />
+										</Button>
+									</div>
+									<p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+										Press Enter to send, Shift+Enter for new line
+									</p>
 								</div>
-								<p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-									Press Enter to send, Shift+Enter for new line
-								</p>
-							</div>
 						</CardContent>
 					</Card>
 				</div>
