@@ -5,8 +5,9 @@ use Inertia\Inertia;
 use Laravel\WorkOS\Http\Middleware\ValidateSessionWithWorkOS;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\CommentController;
+use App\Http\Controllers\LandingController;
 
-Route::get('/', fn () => Inertia::render('Welcome'));
+Route::get('/', [LandingController::class, 'index'])->name('home');
 
 Route::middleware([
 	'auth',
