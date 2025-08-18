@@ -12,7 +12,7 @@ class OsceSession extends Model
         'user_id',
         'osce_case_id',
         'status',
-        'started_at',
+        // 'started_at', // REMOVED: started_at should never be mass assignable to prevent timer resets
         'completed_at',
         'score',
         'max_score',
@@ -99,7 +99,12 @@ class OsceSession extends Model
         if (!$this->started_at) {
             return 0;
         }
-        return now()->diffInSeconds($this->started_at);
+        
+        // Ensure we're using the correct timezone and precision
+        $now = now()->utc();
+        $startedAt = $this->started_at->utc();
+        
+        return max(0, (int) $now->diffInSeconds($startedAt));
     }
 
     public function getRemainingSecondsAttribute(): int
@@ -107,8 +112,23 @@ class OsceSession extends Model
         if ($this->status === 'completed') {
             return 0;
         }
+        
         $durationSeconds = $this->duration_minutes * 60;
-        $remaining = max(0, $durationSeconds - $this->elapsed_seconds);
+        $elapsedSeconds = $this->elapsed_seconds;
+        
+        // Debug logging if time is going backwards (should never happen)
+        if ($elapsedSeconds < 0) {
+            \Log::error('OSCE Timer Bug: Negative elapsed time detected', [
+                'session_id' => $this->id,
+                'started_at' => $this->started_at?->toISOString(),
+                'current_time' => now()->toISOString(),
+                'elapsed_seconds' => $elapsedSeconds,
+                'duration_minutes' => $this->duration_minutes
+            ]);
+            $elapsedSeconds = 0;
+        }
+        
+        $remaining = max(0, $durationSeconds - $elapsedSeconds);
         return (int) $remaining;
     }
 
@@ -147,5 +167,44 @@ class OsceSession extends Model
     public function canContinue(): bool
     {
         return $this->isActive();
+    }
+
+    /**
+     * Override save method to prevent started_at from being modified after creation
+     * This prevents the timer reset bug where started_at gets accidentally updated
+     */
+    public function save(array $options = [])
+    {
+        // If this is an existing session and started_at is being changed, prevent it
+        if ($this->exists && $this->isDirty('started_at') && $this->getOriginal('started_at')) {
+            \Log::warning('Attempted to modify started_at on existing OSCE session', [
+                'session_id' => $this->id,
+                'original_started_at' => $this->getOriginal('started_at'),
+                'new_started_at' => $this->started_at,
+                'stack_trace' => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10)
+            ]);
+            
+            // Restore original started_at to prevent timer reset
+            $this->started_at = $this->getOriginal('started_at');
+        }
+        
+        return parent::save($options);
+    }
+
+    /**
+     * Safely set started_at only during session creation
+     */
+    public function setStartedAt($timestamp): void
+    {
+        if ($this->exists && $this->started_at) {
+            \Log::warning('Attempted to modify started_at on existing session', [
+                'session_id' => $this->id,
+                'current_started_at' => $this->started_at,
+                'attempted_started_at' => $timestamp
+            ]);
+            return; // Ignore the update
+        }
+        
+        $this->started_at = $timestamp;
     }
 }
