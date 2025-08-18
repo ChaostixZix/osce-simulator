@@ -22,6 +22,8 @@ Route::middleware([
 	Route::get('api/osce/cases', [App\Http\Controllers\OsceController::class, 'getCases']);
 	Route::get('api/osce/sessions', [App\Http\Controllers\OsceController::class, 'getUserSessions']);
 	Route::post('api/osce/sessions/start', [App\Http\Controllers\OsceController::class, 'startSession']);
+	Route::get('api/osce/sessions/{session}/timer', [App\Http\Controllers\OsceController::class, 'getSessionTimer']);
+	Route::post('api/osce/sessions/{session}/complete', [App\Http\Controllers\OsceController::class, 'completeSession']);
 	
 	// OSCE Chat routes
 	Route::post('api/osce/chat/start', [App\Http\Controllers\OsceChatController::class, 'startChat']);
