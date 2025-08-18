@@ -37,6 +37,7 @@ Route::middleware([
 
 	// Clinical reasoning ordering API
 	Route::post('api/osce/order-tests', [App\Http\Controllers\OsceController::class, 'orderTests']);
+	Route::post('api/osce/refresh-results/{session}', [App\Http\Controllers\OsceController::class, 'refreshTestResults']);
 	Route::get('api/medical-tests/search', [App\Http\Controllers\MedicalTestController::class, 'search']);
 	Route::get('api/medical-tests/categories', [App\Http\Controllers\MedicalTestController::class, 'getCategories']);
 	Route::post('api/osce/cases/{case}/duration', [App\Http\Controllers\OsceController::class, 'updateCaseDuration']);

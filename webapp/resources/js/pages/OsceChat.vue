@@ -110,6 +110,11 @@ const isSubmittingOrders = ref(false);
 const testSearchQuery = ref('');
 const searchResults = ref<MedicalTest[]>([]);
 const selectedTests = ref<MedicalTest[]>([]);
+
+// Results modal state
+const showResultsModal = ref(false);
+const selectedTestResult = ref<any>(null);
+const isRefreshing = ref(false);
 const isTestOrdered = (id: number) => selectedTests.value.some(t => t.id === id);
 const selectTest = (test: MedicalTest) => { 
 	if (!isTestOrdered(test.id)) selectedTests.value.push({ ...test, clinicalReasoning: '', priority: undefined }); 
@@ -131,6 +136,56 @@ const searchMedicalTests = async () => {
 };
 
 const canSubmitOrders = computed(() => selectedTests.value.length > 0 && selectedTests.value.every(t => (t.clinicalReasoning || '').length >= 20 && !!t.priority));
+
+// Results modal functions
+const openResultsModal = (test: any) => {
+	selectedTestResult.value = test;
+	showResultsModal.value = true;
+};
+
+const refreshTestResults = async (test: any) => {
+	if (isRefreshing.value) return;
+	isRefreshing.value = true;
+	try {
+		// Call the dedicated API endpoint to refresh test results
+		const response = await fetch(`/api/osce/refresh-results/${session.value.id}`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+			}
+		});
+
+		if (response.ok) {
+			const data = await response.json();
+			
+			// Update session with fresh data
+			session.value = data.session;
+			
+			// Show notification
+			pushNotification({ 
+				title: 'Results refreshed', 
+				description: 'Test results have been updated.', 
+				variant: 'success' 
+			});
+		} else {
+			const error = await response.json();
+			pushNotification({ 
+				title: 'Refresh failed', 
+				description: error.message || 'Could not refresh test results.', 
+				variant: 'error' 
+			});
+		}
+	} catch (error) {
+		pushNotification({ 
+			title: 'Network error', 
+			description: 'Please check your connection and try again.', 
+			variant: 'error' 
+		});
+	} finally {
+		setTimeout(() => { isRefreshing.value = false; }, 1000);
+	}
+};
 
 const submitTestOrders = async () => {
 	if (!canSubmitOrders.value || isSubmittingOrders.value) return;
@@ -317,7 +372,10 @@ watch(errors, (newErrors) => {
 // Ordered tests + countdowns
 const nowTs = ref<number>(Date.now());
 let nowTicker: number | undefined;
-const orderedTests = computed<any[]>(() => (session.value as any)?.ordered_tests || []);
+const orderedTests = computed<any[]>(() => {
+	// Handle both camelCase and snake_case from different data sources
+	return (session.value as any)?.ordered_tests || (session.value as any)?.orderedTests || [];
+});
 const hasPendingTests = computed(() => orderedTests.value.some(t => getTestSecondsRemaining(t) > 0 && !isTestCompleted(t)));
 
 function getTestSecondsRemaining(t: any): number {
@@ -634,6 +692,69 @@ async function extendSessionTime() {
 									</div>
 								</DialogContent>
 							</Dialog>
+
+							<!-- Results Display Modal -->
+							<Dialog v-model:open="showResultsModal">
+								<DialogContent class="max-w-2xl">
+									<DialogHeader>
+										<DialogTitle class="flex items-center gap-2">
+											<FlaskConical class="h-5 w-5 text-blue-600" />
+											Test Results: {{ selectedTestResult?.test_name }}
+										</DialogTitle>
+										<DialogDescription>
+											{{ selectedTestResult?.test_type === 'lab' ? 'Laboratory' : selectedTestResult?.test_type === 'procedure' ? 'Procedure' : 'Imaging' }} results for {{ selectedTestResult?.test_name }}
+										</DialogDescription>
+									</DialogHeader>
+									<div v-if="selectedTestResult?.results" class="space-y-4">
+										<!-- Formatted Results Display -->
+										<div v-if="selectedTestResult.results.values" class="space-y-3">
+											<h4 class="font-medium text-gray-900 dark:text-white">Test Values:</h4>
+											<div class="grid gap-2 text-sm">
+												<div v-for="(value, key) in selectedTestResult.results.values" :key="key" 
+													 class="flex justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded">
+													<span class="font-medium capitalize">{{ String(key).replace(/_/g, ' ') }}:</span>
+													<span>{{ value }}</span>
+												</div>
+											</div>
+										</div>
+										
+										<!-- Interpretation -->
+										<div v-if="selectedTestResult.results.interpretation" class="space-y-2">
+											<h4 class="font-medium text-gray-900 dark:text-white">Interpretation:</h4>
+											<div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded text-sm">
+												{{ selectedTestResult.results.interpretation }}
+											</div>
+										</div>
+										
+										<!-- Reference Range -->
+										<div v-if="selectedTestResult.results.reference_range" class="space-y-2">
+											<h4 class="font-medium text-gray-900 dark:text-white">Reference Range:</h4>
+											<div class="text-sm text-gray-600 dark:text-gray-400">
+												{{ selectedTestResult.results.reference_range }}
+											</div>
+										</div>
+										
+										<!-- Status and Timing -->
+										<div class="flex items-center justify-between pt-2 text-xs text-gray-500 border-t">
+											<span>Status: {{ selectedTestResult.results.status || 'completed' }}</span>
+											<span v-if="selectedTestResult.results.turnaround_time_minutes">
+												Turnaround: {{ selectedTestResult.results.turnaround_time_minutes }} min
+											</span>
+										</div>
+										
+										<!-- Raw JSON fallback for complex results -->
+										<details v-if="Object.keys(selectedTestResult.results || {}).length > 0" class="mt-4">
+											<summary class="text-xs text-gray-500 cursor-pointer">View Raw Data</summary>
+											<pre class="mt-2 text-xs bg-gray-100 dark:bg-gray-800 p-3 rounded overflow-auto max-w-full max-h-48 whitespace-pre-wrap break-words">{{ JSON.stringify(selectedTestResult.results, null, 2) }}</pre>
+										</details>
+									</div>
+									
+									<div v-else class="text-center py-8 text-gray-500">
+										<FlaskConical class="h-12 w-12 mx-auto mb-4 text-gray-300" />
+										<p>No detailed results available for this test.</p>
+									</div>
+								</DialogContent>
+							</Dialog>
 						</CardContent>
 					</Card>
 
@@ -655,11 +776,19 @@ async function extendSessionTime() {
 									<div class="w-3 h-3 rounded-full border-2 border-gray-300 border-t-blue-500 animate-spin"></div>
 									<span>Results in ~ {{ formatSeconds(getTestSecondsRemaining(t)) }}</span>
 								</div>
-								<div v-else class="text-xs text-gray-700 dark:text-gray-200 break-words">
+								<div v-else class="space-y-2">
 									<div v-if="t.results && Object.keys(t.results || {}).length">
-										<pre class="whitespace-pre-wrap text-xs">{{ JSON.stringify(t.results, null, 2) }}</pre>
+										<Button size="sm" variant="outline" class="w-full" @click="openResultsModal(t)">
+											<FlaskConical class="h-3 w-3 mr-1" />
+											View Results
+										</Button>
 									</div>
-									<div v-else>Results available.</div>
+									<div v-else>
+										<Button size="sm" variant="outline" class="w-full" @click="refreshTestResults(t)" :disabled="isRefreshing">
+											<FlaskConical class="h-3 w-3 mr-1" />
+											{{ isRefreshing ? 'Loading...' : 'Load Results' }}
+										</Button>
+									</div>
 								</div>
 							</div>
 						</CardContent>
@@ -735,8 +864,9 @@ async function extendSessionTime() {
 											</div>
 										</div>
 									</div>
-								</div>
-								<div class="border-t p-4">
+								                                                                </div>
+                                                        </div>
+                                                        <div class="border-t p-4">
 									<div class="flex gap-2">
 										<Textarea v-model="message" placeholder="Type your question or message to the AI patient..." class="flex-1 resize-none" :rows="2" @keydown="(e: KeyboardEvent) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }" :disabled="isLoading" />
 										<Button @click="sendMessage" :disabled="isLoading || !message.trim()" class="px-4">
