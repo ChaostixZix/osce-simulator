@@ -46,4 +46,29 @@ class OsceSession extends Model
     {
         return $this->chatMessages()->latest('sent_at')->first();
     }
+
+    public function orderedTests(): HasMany
+    {
+        return $this->hasMany(SessionOrderedTest::class, 'osce_session_id')->orderBy('ordered_at', 'desc');
+    }
+
+    public function examinations(): HasMany
+    {
+        return $this->hasMany(SessionExamination::class, 'osce_session_id')->orderBy('performed_at', 'desc');
+    }
+
+    public function getLabResults(): \Illuminate\Database\Eloquent\Collection
+    {
+        return $this->orderedTests()->where('test_type', 'lab')->get();
+    }
+
+    public function getProcedureResults(): \Illuminate\Database\Eloquent\Collection
+    {
+        return $this->orderedTests()->where('test_type', 'procedure')->get();
+    }
+
+    public function getPhysicalExamFindings(): \Illuminate\Database\Eloquent\Collection
+    {
+        return $this->examinations()->get();
+    }
 }
