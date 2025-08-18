@@ -557,8 +557,4 @@ describe('CaseValidator', () => {
             fs.readFileSync = originalReadFileSync;
         });
     });
-<<<<<<< HEAD
 });
-=======
-});
->>>>>>> 0e51e2394b4485b221d17d98152bb52822abafb3

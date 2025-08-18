@@ -16,6 +16,7 @@ class OsceSession extends Model
         'completed_at',
         'score',
         'max_score',
+        'time_extended',
         'clinical_reasoning_score',
         'total_test_cost',
         'evaluation_feedback',
@@ -23,9 +24,18 @@ class OsceSession extends Model
         'feedback'
     ];
 
+    protected $appends = [
+        'elapsed_seconds',
+        'remaining_seconds',
+        'duration_minutes',
+        'is_expired',
+        'time_status'
+    ];
+
     protected $casts = [
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
+        'time_extended' => 'integer',
         'responses' => 'array',
         'feedback' => 'array',
         'evaluation_feedback' => 'array'
@@ -74,5 +84,68 @@ class OsceSession extends Model
     public function getPhysicalExamFindings(): \Illuminate\Database\Eloquent\Collection
     {
         return $this->examinations()->get();
+    }
+
+    public function getDurationMinutesAttribute(): int
+    {
+        $case = $this->relationLoaded('osceCase') ? $this->osceCase : $this->osceCase()->first();
+        $base = (int) ($case->duration_minutes ?? 30);
+        $extension = (int) ($this->time_extended ?? 0);
+        return max(0, $base + $extension);
+    }
+
+    public function getElapsedSecondsAttribute(): int
+    {
+        if (!$this->started_at) {
+            return 0;
+        }
+        return now()->diffInSeconds($this->started_at);
+    }
+
+    public function getRemainingSecondsAttribute(): int
+    {
+        if ($this->status === 'completed') {
+            return 0;
+        }
+        $durationSeconds = $this->duration_minutes * 60;
+        $remaining = max(0, $durationSeconds - $this->elapsed_seconds);
+        return (int) $remaining;
+    }
+
+    public function getIsExpiredAttribute(): bool
+    {
+        return $this->status !== 'completed' && $this->remaining_seconds <= 0;
+    }
+
+    public function getTimeStatusAttribute(): string
+    {
+        if ($this->status === 'completed') {
+            return 'completed';
+        }
+        return $this->is_expired ? 'expired' : 'active';
+    }
+
+    public function markAsCompleted(?int $finalScore = null): void
+    {
+        if ($this->status !== 'completed') {
+            $this->status = 'completed';
+            if (!$this->completed_at) {
+                $this->completed_at = now();
+            }
+            if (!is_null($finalScore)) {
+                $this->score = $finalScore;
+            }
+            $this->save();
+        }
+    }
+
+    public function isActive(): bool
+    {
+        return $this->status === 'in_progress' && !$this->is_expired;
+    }
+
+    public function canContinue(): bool
+    {
+        return $this->isActive();
     }
 }

@@ -53,6 +53,9 @@ interface OsceSession {
     created_at: string;
     updated_at: string;
     osce_case?: OsceCase;
+    remaining_seconds?: number;
+    duration_minutes?: number;
+    time_status?: 'active' | 'expired' | 'completed';
 }
 
 const props = defineProps<{
@@ -255,6 +258,7 @@ const sendMessage = () => {
                                 <TableRow>
                                     <TableHead>Case</TableHead>
                                     <TableHead>Status</TableHead>
+                                    <TableHead>Time</TableHead>
                                     <TableHead>Started</TableHead>
                                     <TableHead>Score</TableHead>
                                     <TableHead>Actions</TableHead>
@@ -276,6 +280,13 @@ const sendMessage = () => {
                                             <component :is="getStatusIcon(session.status)" class="h-3 w-3" />
                                             {{ session.status.replace('_', ' ') }}
                                         </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        <span v-if="session.status === 'in_progress' && typeof session.remaining_seconds !== 'undefined'" class="font-mono text-xs">
+                                            {{ Math.floor((session.remaining_seconds || 0) / 60).toString().padStart(2,'0') }}:{{ ((session.remaining_seconds || 0) % 60).toString().padStart(2,'0') }}
+                                        </span>
+                                        <span v-else-if="session.status === 'completed'" class="text-green-600 text-xs">Completed</span>
+                                        <span v-else class="text-gray-500 text-xs">-</span>
                                     </TableCell>
                                     <TableCell>
                                         <span v-if="session.started_at" class="text-sm">

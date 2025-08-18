@@ -46,6 +46,11 @@ class OsceController extends Controller
         
         // Load the session with case information and related data
         $session->load(['osceCase', 'orderedTests', 'examinations']);
+
+        // Auto-complete if expired before rendering
+        if ($session->time_status === 'expired') {
+            $session->markAsCompleted();
+        }
         
         // Prepare session data (legacy arrays removed in new system)
         $sessionData = [
@@ -116,6 +121,48 @@ class OsceController extends Controller
         ]);
     }
 
+    public function getSessionTimer(OsceSession $session)
+    {
+        $user = auth()->user();
+        if ($session->user_id !== $user->id) {
+            abort(403, 'Unauthorized access to session');
+        }
+
+        // If expired, mark as completed
+        if ($session->time_status === 'expired') {
+            $session->markAsCompleted();
+        }
+
+        $response = [
+            'session_id' => $session->id,
+            'elapsed_seconds' => $session->elapsed_seconds,
+            'remaining_seconds' => $session->remaining_seconds,
+            'duration_minutes' => $session->duration_minutes,
+            'is_expired' => $session->is_expired,
+            'time_status' => $session->time_status,
+            'formatted_time_remaining' => gmdate('i:s', max(0, $session->remaining_seconds)),
+            'progress_percentage' => $session->duration_minutes > 0
+                ? round(((($session->duration_minutes * 60) - $session->remaining_seconds) / ($session->duration_minutes * 60)) * 100, 1)
+                : 0.0,
+        ];
+
+        return response()->json($response);
+    }
+
+    public function completeSession(OsceSession $session)
+    {
+        $user = auth()->user();
+        if ($session->user_id !== $user->id) {
+            abort(403, 'Unauthorized access to session');
+        }
+
+        $session->markAsCompleted();
+
+        return response()->json([
+            'message' => 'Session marked as completed',
+            'session' => $session->fresh()->load('osceCase')
+        ]);
+    }
     // New clinical reasoning-based ordering endpoint
     public function orderTests(Request $request)
     {
