@@ -4,6 +4,9 @@ import { ref } from 'vue'
 import AppLayout from '@/layouts/AppLayout.vue'
 import { type BreadcrumbItem } from '@/types'
 import { Head } from '@inertiajs/vue3'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { toast } from 'vue-sonner'
 
 // Sample MCQ data
 const sampleMCQs = [
@@ -67,6 +70,13 @@ const handleAnswerSelect = (selectedAnswer: string, isCorrect: boolean) => {
     }
 
     selectedAnswers.value[currentQuestionIndex.value] = selectedAnswer === '' ? null : selectedAnswer
+
+    if (selectedAnswer === '') return
+    if (isCorrect) {
+        toast.success('Correct answer')
+    } else {
+        toast.error('Incorrect answer')
+    }
 }
 
 const nextQuestion = () => {
@@ -111,20 +121,18 @@ const breadcrumbs: BreadcrumbItem[] = [
             </div>
             <!-- Navigation -->
             <div class="flex justify-between mb-6">
-                <button @click="previousQuestion" :disabled="currentQuestionIndex === 0"
-                    class="px-4 py-2 rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                <Button variant="secondary" @click="previousQuestion" :disabled="currentQuestionIndex === 0">
                     ← Previous
-                </button>
-                <button @click="nextQuestion" :disabled="currentQuestionIndex === sampleMCQs.length - 1"
-                    class="px-4 py-2 rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                </Button>
+                <Button variant="secondary" @click="nextQuestion" :disabled="currentQuestionIndex === sampleMCQs.length - 1">
                     Next →
-                </button>
+                </Button>
             </div>
 
             <!-- MCQ Component -->
             <div class="mb-8">
                 <MCQ :data="sampleMCQs[currentQuestionIndex]" :selected-answer="selectedAnswers[currentQuestionIndex]"
-                    variant="card" size="lg" :show-explanation="true" :show-correct-answer="true"
+                    :show-explanation="true" :show-correct-answer="true"
                     @answer-select="handleAnswerSelect" />
             </div>
         </div>
