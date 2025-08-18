@@ -53,3 +53,13 @@ alwaysApply: true
 - **For API operations:** Default to Inertia methods (`Inertia.fetch`, `Inertia.post`) over traditional REST APIs
 - **Documentation:** Always store successful implementation patterns in ByteRover knowledge base
 - **Laravel Integration:** Leverage Laravel Boost MCP tools for project analysis and debugging
+
+## **AI Prompt Creation Guidelines**
+
+- **When creating AI prompts for implementation tasks:**
+  - Always provide conversation context explaining WHY changes are needed
+  - Include relevant existing codebase functions/models/structure as context
+  - Reference specific files, methods, and database schemas that exist
+  - Keep code examples concise - show structure, not full implementations
+  - Explain the educational/technical problem being solved
+  - Ensure next AI understands the reasoning behind architectural decisions
