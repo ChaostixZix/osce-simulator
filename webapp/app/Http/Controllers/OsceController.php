@@ -135,6 +135,14 @@ class OsceController extends Controller
         // Refresh session from database to ensure we have latest data
         $session = $session->fresh();
 
+        // Defensive: ensure started_at is set for in-progress sessions (legacy rows)
+        if ($session->status === 'in_progress' && !$session->started_at) {
+            // Backfill from created_at to prevent full reset on refresh
+            $session->started_at = $session->created_at ?? now();
+            $session->save();
+            $session = $session->fresh();
+        }
+
         // Auto-complete expired sessions
         if ($session->time_status === 'expired') {
             $session->markAsCompleted();
@@ -158,6 +166,7 @@ class OsceController extends Controller
             'elapsed_seconds' => $session->elapsed_seconds,
             'remaining_seconds' => $session->remaining_seconds,
             'duration_minutes' => $session->duration_minutes,
+            'case_duration_minutes' => $session->osceCase?->duration_minutes,
             'is_expired' => $session->is_expired,
             'time_status' => $session->time_status,
             'formatted_time_remaining' => gmdate('i:s', max(0, $session->remaining_seconds)),
@@ -167,6 +176,7 @@ class OsceController extends Controller
             // Add server timestamp for frontend validation
             'server_timestamp' => now()->timestamp,
             'started_at_timestamp' => $session->started_at?->timestamp,
+            'started_at_iso' => $session->started_at?->toISOString(),
         ];
 
         return response()->json($response);

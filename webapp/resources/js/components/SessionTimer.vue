@@ -11,7 +11,8 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const timeRemaining = ref<number>(props.initialTimeRemaining || 0);
+// Initialize as unsynced to avoid visual reset to full duration
+const timeRemaining = ref<number>(-1);
 const status = ref<Props['status']>(props.status);
 const pollingIntervalMs = ref<number>(10000);
 let tickTimer: number | undefined;
@@ -54,6 +55,8 @@ function clearTimers() {
 function scheduleTicking() {
   if (tickTimer) window.clearInterval(tickTimer);
   tickTimer = window.setInterval(() => {
+    // Do not tick until first successful sync sets a non-negative value
+    if (timeRemaining.value < 0) return;
     if (status.value !== 'active') return;
     timeRemaining.value = Math.max(0, timeRemaining.value - 1);
     if (timeRemaining.value === 0) {
@@ -91,8 +94,8 @@ async function syncWithServer() {
     if (!res.ok) return;
     const data = await res.json();
     
-    // Update timer state from server
-    timeRemaining.value = data.remaining_seconds ?? 0;
+    // Update timer state from server (authoritative)
+    timeRemaining.value = typeof data.remaining_seconds === 'number' ? data.remaining_seconds : 0;
     status.value = data.time_status || status.value;
     
     // Increase poll frequency when under 2 minutes
