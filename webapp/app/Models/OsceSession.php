@@ -12,7 +12,7 @@ class OsceSession extends Model
         'user_id',
         'osce_case_id',
         'status',
-        'started_at',
+        // 'started_at', // REMOVED: started_at should never be mass assignable to prevent timer resets
         'completed_at',
         'score',
         'max_score',
@@ -104,7 +104,15 @@ class OsceSession extends Model
 
     public function getElapsedSecondsAttribute(): int
     {
-        return $this->getActualElapsedSeconds();
+        if (!$this->started_at) {
+            return 0;
+        }
+        
+        // Ensure we're using the correct timezone and precision
+        $now = now()->utc();
+        $startedAt = $this->started_at->utc();
+        
+        return max(0, (int) $now->diffInSeconds($startedAt));
     }
 
     public function getRemainingSecondsAttribute(): int
@@ -112,14 +120,22 @@ class OsceSession extends Model
         if ($this->status === 'completed') {
             return 0;
         }
-
-        // If currently paused, return stored remaining seconds
-        if ($this->isPaused()) {
-            return max(0, (int) ($this->current_remaining_seconds ?? 0));
-        }
-
+        
         $durationSeconds = $this->duration_minutes * 60;
-        $elapsedSeconds = $this->getActualElapsedSeconds();
+        $elapsedSeconds = $this->elapsed_seconds;
+        
+        // Debug logging if time is going backwards (should never happen)
+        if ($elapsedSeconds < 0) {
+            \Log::error('OSCE Timer Bug: Negative elapsed time detected', [
+                'session_id' => $this->id,
+                'started_at' => $this->started_at?->toISOString(),
+                'current_time' => now()->toISOString(),
+                'elapsed_seconds' => $elapsedSeconds,
+                'duration_minutes' => $this->duration_minutes
+            ]);
+            $elapsedSeconds = 0;
+        }
+        
         $remaining = max(0, $durationSeconds - $elapsedSeconds);
         return (int) $remaining;
     }
@@ -162,83 +178,41 @@ class OsceSession extends Model
     }
 
     /**
-     * Get actual elapsed seconds accounting for paused time
+     * Override save method to prevent started_at from being modified after creation
+     * This prevents the timer reset bug where started_at gets accidentally updated
      */
-    public function getActualElapsedSeconds(): int
+    public function save(array $options = [])
     {
-        if (!$this->started_at) {
-            return 0;
+        // If this is an existing session and started_at is being changed, prevent it
+        if ($this->exists && $this->isDirty('started_at') && $this->getOriginal('started_at')) {
+            \Log::warning('Attempted to modify started_at on existing OSCE session', [
+                'session_id' => $this->id,
+                'original_started_at' => $this->getOriginal('started_at'),
+                'new_started_at' => $this->started_at,
+                'stack_trace' => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10)
+            ]);
+            
+            // Restore original started_at to prevent timer reset
+            $this->started_at = $this->getOriginal('started_at');
         }
-
-        // Use timestamp difference to avoid timezone issues
-        $totalElapsed = now()->timestamp - $this->started_at->timestamp;
-        $totalPausedSeconds = (int) ($this->total_paused_seconds ?? 0);
-
-        // If currently paused, add the current pause duration
-        if ($this->isPaused()) {
-            $currentPauseDuration = now()->timestamp - $this->paused_at->timestamp;
-            $totalPausedSeconds += $currentPauseDuration;
-        }
-
-        return max(0, $totalElapsed - $totalPausedSeconds);
+        
+        return parent::save($options);
     }
 
     /**
-     * Check if the timer is currently paused
+     * Safely set started_at only during session creation
      */
-    public function isPaused(): bool
+    public function setStartedAt($timestamp): void
     {
-        if (!$this->paused_at) {
-            return false;
+        if ($this->exists && $this->started_at) {
+            \Log::warning('Attempted to modify started_at on existing session', [
+                'session_id' => $this->id,
+                'current_started_at' => $this->started_at,
+                'attempted_started_at' => $timestamp
+            ]);
+            return; // Ignore the update
         }
-
-        // If resumed_at is null or older than paused_at, then it's paused
-        return !$this->resumed_at || $this->paused_at > $this->resumed_at;
-    }
-
-    /**
-     * Pause the timer
-     */
-    public function pauseTimer(): void
-    {
-        if (!$this->isPaused() && $this->status === 'in_progress') {
-            $this->current_remaining_seconds = $this->remaining_seconds;
-            $this->paused_at = now();
-            $this->save();
-        }
-    }
-
-    /**
-     * Resume the timer
-     */
-    public function resumeTimer(): void
-    {
-        if ($this->isPaused() && $this->status === 'in_progress') {
-            $pauseDuration = now()->timestamp - $this->paused_at->timestamp;
-            $this->total_paused_seconds = ((int) ($this->total_paused_seconds ?? 0)) + $pauseDuration;
-            $this->resumed_at = now();
-            $this->current_remaining_seconds = null; // Clear stored remaining seconds
-            $this->save();
-        }
-    }
-
-    /**
-     * Auto-pause timer (called when user leaves/refreshes page)
-     */
-    public function autoPauseTimer(): void
-    {
-        if (!$this->isPaused() && $this->status === 'in_progress') {
-            $this->pauseTimer();
-        }
-    }
-
-    /**
-     * Auto-resume timer (called when user returns to page)
-     */
-    public function autoResumeTimer(): void
-    {
-        if ($this->isPaused() && $this->status === 'in_progress') {
-            $this->resumeTimer();
-        }
+        
+        $this->started_at = $timestamp;
     }
 }

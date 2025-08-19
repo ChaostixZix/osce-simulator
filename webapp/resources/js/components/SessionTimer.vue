@@ -97,20 +97,38 @@ async function syncWithServer() {
     if (!res.ok) return;
     const data = await res.json();
     
-    lastKnownServerRemaining = data.remaining_seconds ?? lastKnownServerRemaining;
-    timeRemaining.value = lastKnownServerRemaining;
-    status.value = data.time_status || status.value;
-    serverPaused.value = data.is_paused || false;
+    // Validate server response for timing consistency
+    const serverRemaining = data.remaining_seconds ?? 0;
+    const serverElapsed = data.elapsed_seconds ?? 0;
+    const serverDuration = (data.duration_minutes ?? 0) * 60;
     
-    // Sync local pause state with server
-    if (serverPaused.value && !isPaused.value) {
-      isPaused.value = true;
-    } else if (!serverPaused.value && isPaused.value && status.value === 'active') {
-      isPaused.value = false;
+    // Check for timer inconsistencies (debugging the count-up bug)
+    if (serverElapsed + serverRemaining !== serverDuration) {
+      console.error('OSCE Timer Inconsistency Detected:', {
+        elapsed: serverElapsed,
+        remaining: serverRemaining,
+        duration: serverDuration,
+        sum: serverElapsed + serverRemaining,
+        expected_sum: serverDuration
+      });
     }
     
+    // Detect if remaining time is unexpectedly increasing (the reported bug)
+    if (serverRemaining > lastKnownServerRemaining + 10) { // Allow 10s tolerance
+      console.error('OSCE Timer Bug: Remaining time increased unexpectedly', {
+        previous_remaining: lastKnownServerRemaining,
+        current_remaining: serverRemaining,
+        increase: serverRemaining - lastKnownServerRemaining,
+        server_data: data
+      });
+    }
+    
+    lastKnownServerRemaining = serverRemaining;
+    timeRemaining.value = serverRemaining;
+    status.value = data.time_status || status.value;
+    
     // Increase poll frequency when under 2 minutes
-    const nextInterval = (lastKnownServerRemaining <= 120) ? 1000 : 10000;
+    const nextInterval = (serverRemaining <= 120) ? 1000 : 10000;
     if (nextInterval !== pollingIntervalMs.value) {
       pollingIntervalMs.value = nextInterval;
       schedulePolling();
@@ -125,6 +143,7 @@ async function syncWithServer() {
     }
   } catch (e) {
     // Network issues: continue local countdown; UI can optionally show offline indicator
+    console.warn('Timer sync failed, continuing with local countdown:', e);
   }
 }
 
