@@ -118,8 +118,11 @@ class OsceController extends Controller
             'user_id' => $user->id,
             'osce_case_id' => $request->osce_case_id,
             'status' => 'in_progress',
-            'started_at' => now(),
         ]);
+        
+        // Set started_at explicitly since it's no longer fillable (prevents timer reset bugs)
+        $session->started_at = now();
+        $session->save();
 
         return response()->json([
             'message' => 'Session started successfully',
@@ -134,15 +137,24 @@ class OsceController extends Controller
             abort(403, 'Unauthorized access to session');
         }
 
-        // Auto-resume timer when accessing timer (user returns to page)
-        if ($session->isPaused() && $session->status === 'in_progress') {
-            $session->autoResumeTimer();
-        }
+        // Refresh session from database to ensure we have latest data
+        $session = $session->fresh();
 
         // If expired, mark as completed
         if ($session->time_status === 'expired') {
             $session->markAsCompleted();
+            $session = $session->fresh(); // Reload after completion
         }
+
+        // Add debug logging to track timer requests
+        \Log::info('OSCE Timer Request', [
+            'session_id' => $session->id,
+            'started_at' => $session->started_at?->toISOString(),
+            'current_time' => now()->toISOString(),
+            'elapsed_seconds' => $session->elapsed_seconds,
+            'remaining_seconds' => $session->remaining_seconds,
+            'duration_minutes' => $session->duration_minutes,
+        ]);
 
         $response = [
             'session_id' => $session->id,
@@ -156,6 +168,9 @@ class OsceController extends Controller
             'progress_percentage' => $session->duration_minutes > 0
                 ? round(((($session->duration_minutes * 60) - $session->remaining_seconds) / ($session->duration_minutes * 60)) * 100, 1)
                 : 0.0,
+            // Add server timestamp for frontend validation
+            'server_timestamp' => now()->timestamp,
+            'started_at_timestamp' => $session->started_at?->timestamp,
         ];
 
         return response()->json($response);
