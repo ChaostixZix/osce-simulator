@@ -215,4 +215,51 @@ class OsceSession extends Model
         
         $this->started_at = $timestamp;
     }
+
+    /**
+     * Check if the session is currently paused
+     */
+    public function isPaused(): bool
+    {
+        return !is_null($this->paused_at) && is_null($this->resumed_at);
+    }
+
+    /**
+     * Auto-resume the timer when user returns to the page
+     */
+    public function autoResumeTimer(): void
+    {
+        if ($this->isPaused() && $this->status === 'in_progress') {
+            $this->resumed_at = now();
+            
+            // Calculate total paused time and add to total_paused_seconds
+            if ($this->paused_at) {
+                $pausedDuration = now()->diffInSeconds($this->paused_at);
+                $this->total_paused_seconds = ($this->total_paused_seconds ?? 0) + $pausedDuration;
+            }
+            
+            $this->save();
+        }
+    }
+
+    /**
+     * Pause the session timer
+     */
+    public function pauseTimer(): void
+    {
+        if ($this->status === 'in_progress' && !$this->isPaused()) {
+            $this->paused_at = now();
+            $this->save();
+        }
+    }
+
+    /**
+     * Resume the session timer manually
+     */
+    public function resumeTimer(): void
+    {
+        if ($this->isPaused()) {
+            $this->autoResumeTimer();
+        }
+    }
 }
