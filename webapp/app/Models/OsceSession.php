@@ -21,7 +21,11 @@ class OsceSession extends Model
         'total_test_cost',
         'evaluation_feedback',
         'responses',
-        'feedback'
+        'feedback',
+        'paused_at',
+        'resumed_at',
+        'total_paused_seconds',
+        'current_remaining_seconds'
     ];
 
     protected $appends = [
@@ -35,7 +39,11 @@ class OsceSession extends Model
     protected $casts = [
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
+        'paused_at' => 'datetime',
+        'resumed_at' => 'datetime',
         'time_extended' => 'integer',
+        'total_paused_seconds' => 'integer',
+        'current_remaining_seconds' => 'integer',
         'responses' => 'array',
         'feedback' => 'array',
         'evaluation_feedback' => 'array'
@@ -96,10 +104,7 @@ class OsceSession extends Model
 
     public function getElapsedSecondsAttribute(): int
     {
-        if (!$this->started_at) {
-            return 0;
-        }
-        return now()->diffInSeconds($this->started_at);
+        return $this->getActualElapsedSeconds();
     }
 
     public function getRemainingSecondsAttribute(): int
@@ -107,8 +112,15 @@ class OsceSession extends Model
         if ($this->status === 'completed') {
             return 0;
         }
+
+        // If currently paused, return stored remaining seconds
+        if ($this->isPaused()) {
+            return max(0, (int) ($this->current_remaining_seconds ?? 0));
+        }
+
         $durationSeconds = $this->duration_minutes * 60;
-        $remaining = max(0, $durationSeconds - $this->elapsed_seconds);
+        $elapsedSeconds = $this->getActualElapsedSeconds();
+        $remaining = max(0, $durationSeconds - $elapsedSeconds);
         return (int) $remaining;
     }
 
@@ -147,5 +159,85 @@ class OsceSession extends Model
     public function canContinue(): bool
     {
         return $this->isActive();
+    }
+
+    /**
+     * Get actual elapsed seconds accounting for paused time
+     */
+    public function getActualElapsedSeconds(): int
+    {
+        if (!$this->started_at) {
+            return 0;
+        }
+
+        $totalElapsed = now()->diffInSeconds($this->started_at);
+        $totalPausedSeconds = (int) ($this->total_paused_seconds ?? 0);
+
+        // If currently paused, add the current pause duration
+        if ($this->isPaused()) {
+            $currentPauseDuration = now()->diffInSeconds($this->paused_at);
+            $totalPausedSeconds += $currentPauseDuration;
+        }
+
+        return max(0, $totalElapsed - $totalPausedSeconds);
+    }
+
+    /**
+     * Check if the timer is currently paused
+     */
+    public function isPaused(): bool
+    {
+        if (!$this->paused_at) {
+            return false;
+        }
+
+        // If resumed_at is null or older than paused_at, then it's paused
+        return !$this->resumed_at || $this->paused_at > $this->resumed_at;
+    }
+
+    /**
+     * Pause the timer
+     */
+    public function pauseTimer(): void
+    {
+        if (!$this->isPaused() && $this->status === 'in_progress') {
+            $this->current_remaining_seconds = $this->remaining_seconds;
+            $this->paused_at = now();
+            $this->save();
+        }
+    }
+
+    /**
+     * Resume the timer
+     */
+    public function resumeTimer(): void
+    {
+        if ($this->isPaused() && $this->status === 'in_progress') {
+            $pauseDuration = now()->diffInSeconds($this->paused_at);
+            $this->total_paused_seconds = ((int) ($this->total_paused_seconds ?? 0)) + $pauseDuration;
+            $this->resumed_at = now();
+            $this->current_remaining_seconds = null; // Clear stored remaining seconds
+            $this->save();
+        }
+    }
+
+    /**
+     * Auto-pause timer (called when user leaves/refreshes page)
+     */
+    public function autoPauseTimer(): void
+    {
+        if (!$this->isPaused() && $this->status === 'in_progress') {
+            $this->pauseTimer();
+        }
+    }
+
+    /**
+     * Auto-resume timer (called when user returns to page)
+     */
+    public function autoResumeTimer(): void
+    {
+        if ($this->isPaused() && $this->status === 'in_progress') {
+            $this->resumeTimer();
+        }
     }
 }

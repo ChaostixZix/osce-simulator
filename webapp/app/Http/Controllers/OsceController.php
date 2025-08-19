@@ -128,6 +128,11 @@ class OsceController extends Controller
             abort(403, 'Unauthorized access to session');
         }
 
+        // Auto-resume timer when accessing timer (user returns to page)
+        if ($session->isPaused() && $session->status === 'in_progress') {
+            $session->autoResumeTimer();
+        }
+
         // If expired, mark as completed
         if ($session->time_status === 'expired') {
             $session->markAsCompleted();
@@ -140,6 +145,7 @@ class OsceController extends Controller
             'duration_minutes' => $session->duration_minutes,
             'is_expired' => $session->is_expired,
             'time_status' => $session->time_status,
+            'is_paused' => $session->isPaused(),
             'formatted_time_remaining' => gmdate('i:s', max(0, $session->remaining_seconds)),
             'progress_percentage' => $session->duration_minutes > 0
                 ? round(((($session->duration_minutes * 60) - $session->remaining_seconds) / ($session->duration_minutes * 60)) * 100, 1)
@@ -161,6 +167,54 @@ class OsceController extends Controller
         return response()->json([
             'message' => 'Session marked as completed',
             'session' => $session->fresh()->load('osceCase')
+        ]);
+    }
+
+    public function pauseSession(OsceSession $session)
+    {
+        $user = auth()->user();
+        if ($session->user_id !== $user->id) {
+            abort(403, 'Unauthorized access to session');
+        }
+
+        $session->pauseTimer();
+
+        return response()->json([
+            'message' => 'Session paused',
+            'session' => $session->fresh(),
+            'is_paused' => $session->isPaused()
+        ]);
+    }
+
+    public function resumeSession(OsceSession $session)
+    {
+        $user = auth()->user();
+        if ($session->user_id !== $user->id) {
+            abort(403, 'Unauthorized access to session');
+        }
+
+        $session->resumeTimer();
+
+        return response()->json([
+            'message' => 'Session resumed',
+            'session' => $session->fresh(),
+            'is_paused' => $session->isPaused()
+        ]);
+    }
+
+    public function autoPauseSession(OsceSession $session)
+    {
+        $user = auth()->user();
+        if ($session->user_id !== $user->id) {
+            abort(403, 'Unauthorized access to session');
+        }
+
+        $session->autoPauseTimer();
+
+        return response()->json([
+            'message' => 'Session auto-paused',
+            'session' => $session->fresh(),
+            'is_paused' => $session->isPaused()
         ]);
     }
     // New clinical reasoning-based ordering endpoint
