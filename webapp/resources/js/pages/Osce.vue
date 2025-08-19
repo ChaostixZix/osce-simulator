@@ -19,7 +19,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { Clock, Play, BookOpen, CheckCircle, XCircle, AlertCircle } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
@@ -66,6 +66,7 @@ const props = defineProps<{
 
 // Create reactive refs for data that can change
 const userSessions = ref<OsceSession[]>(props.userSessions);
+let timerRefreshInterval: number | undefined;
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -81,6 +82,62 @@ const messages = ref<{
     sender: 'user' | 'ai';
     timestamp: string;
 }[]>([]);
+
+// Function to refresh timer data for active sessions
+async function refreshActiveSessionTimers() {
+    const activeSessions = userSessions.value.filter(s => s.status === 'in_progress');
+    
+    for (const session of activeSessions) {
+        try {
+            const response = await fetch(`/api/osce/sessions/${session.id}/timer`, {
+                headers: { 'Accept': 'application/json' }
+            });
+            
+            if (response.ok) {
+                const timerData = await response.json();
+                
+                // Update session with latest timer data
+                const sessionIndex = userSessions.value.findIndex(s => s.id === session.id);
+                if (sessionIndex !== -1) {
+                    userSessions.value[sessionIndex] = {
+                        ...userSessions.value[sessionIndex],
+                        remaining_seconds: timerData.remaining_seconds,
+                        time_status: timerData.time_status
+                    };
+                    
+                    // Auto-complete expired sessions
+                    if (timerData.time_status === 'expired') {
+                        userSessions.value[sessionIndex].status = 'completed';
+                        toast.info(`OSCE session "${session.osce_case?.title}" has expired and been completed.`);
+                    }
+                }
+            }
+        } catch (error) {
+            console.warn(`Failed to refresh timer for session ${session.id}:`, error);
+        }
+    }
+}
+
+// Start timer refresh interval
+function startTimerRefresh() {
+    if (timerRefreshInterval) {
+        clearInterval(timerRefreshInterval);
+    }
+    
+    // Refresh timers every 10 seconds for active sessions
+    timerRefreshInterval = setInterval(refreshActiveSessionTimers, 10000);
+    
+    // Initial refresh
+    refreshActiveSessionTimers();
+}
+
+// Stop timer refresh interval
+function stopTimerRefresh() {
+    if (timerRefreshInterval) {
+        clearInterval(timerRefreshInterval);
+        timerRefreshInterval = undefined;
+    }
+}
 
 const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
@@ -173,6 +230,14 @@ const sendMessage = () => {
         });
     }, 1000);
 };
+
+onMounted(() => {
+    startTimerRefresh();
+});
+
+onBeforeUnmount(() => {
+    stopTimerRefresh();
+});
 
 </script>
 
