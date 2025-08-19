@@ -88,7 +88,8 @@ class OsceSession extends Model
     public function getDurationMinutesAttribute(): int
     {
         $case = $this->relationLoaded('osceCase') ? $this->osceCase : $this->osceCase()->first();
-        $base = (int) ($case->duration_minutes ?? 30);
+        // Use the case's configured duration, do not hardcode defaults
+        $base = (int) ($case?->duration_minutes ?? 0);
         $extension = (int) ($this->time_extended ?? 0);
         return max(0, $base + $extension);
     }
@@ -99,16 +100,18 @@ class OsceSession extends Model
      */
     public function getElapsedSecondsAttribute(): int
     {
-        if (!$this->started_at) {
+        // Fallback to created_at if started_at is not set (defensive for legacy rows)
+        $startedBase = $this->started_at ?? $this->created_at;
+        if (!$startedBase) {
             return 0;
         }
-        
-        // Calculate elapsed time from started_at timestamp
-        // This ensures timer continues from where it left off after page refresh
-        $elapsed = now()->diffInSeconds($this->started_at);
-        
-        // Ensure we never return negative values
-        return max(0, $elapsed);
+
+        // Use UTC to avoid timezone drift between DB/app servers
+        $now = now()->utc();
+        $startedAt = $startedBase->utc();
+
+        // Absolute difference in seconds, never negative
+        return max(0, (int) $now->diffInSeconds($startedAt));
     }
 
     /**
