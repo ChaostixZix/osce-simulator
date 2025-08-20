@@ -67,6 +67,10 @@ const props = defineProps<{
 // Create reactive refs for data that can change
 const userSessions = ref<OsceSession[]>(props.userSessions);
 let timerRefreshInterval: number | undefined;
+
+// Store per-session `setInterval` handles so each row can tick down locally
+// between server polls. The key is the session id, the value the interval id.
+
 const sessionCountdowns: Record<number, number> = {};
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -84,7 +88,9 @@ const messages = ref<{
     timestamp: string;
 }[]>([]);
 
-// Function to refresh timer data for active sessions
+// Poll the server for authoritative time remaining on each active session.
+// This keeps the dashboard in sync even if a user refreshed elsewhere or the
+// browser was paused.
 async function refreshActiveSessionTimers() {
     const activeSessions = userSessions.value.filter(s => s.status === 'in_progress');
     
@@ -122,7 +128,7 @@ async function refreshActiveSessionTimers() {
     }
 }
 
-// Start timer refresh interval
+// Begin polling for timer updates and kick off the initial fetch.
 function startTimerRefresh() {
     if (timerRefreshInterval) {
         clearInterval(timerRefreshInterval);
@@ -135,7 +141,7 @@ function startTimerRefresh() {
     refreshActiveSessionTimers();
 }
 
-// Stop timer refresh interval
+// Stop polling and clear all local countdowns.
 function stopTimerRefresh() {
     if (timerRefreshInterval) {
         clearInterval(timerRefreshInterval);
@@ -143,6 +149,8 @@ function stopTimerRefresh() {
     }
     Object.values(sessionCountdowns).forEach(clearInterval);
 }
+// Maintain a lightweight one‑second countdown for a session row so the user
+// sees time tick down in real time between refreshes.
 
 function startSessionCountdown(sessionId: number, seconds: number) {
     if (sessionCountdowns[sessionId]) {

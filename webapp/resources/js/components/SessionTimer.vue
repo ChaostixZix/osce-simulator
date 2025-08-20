@@ -2,6 +2,14 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 
+/**
+ * Vue component responsible for showing the session countdown.
+ *
+ * It pulls the remaining time from the server when mounted so that a refresh
+ * or navigation never resets the timer. After the initial sync it maintains a
+ * local per‑second countdown and periodically polls the server to stay in sync
+ * (polling faster as time runs low).
+ */
 interface Props {
   sessionId: number;
   initialTimeRemaining: number;
