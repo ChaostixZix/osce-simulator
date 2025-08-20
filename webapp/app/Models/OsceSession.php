@@ -6,13 +6,21 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * Model for a single OSCE session.
+ *
+ * Timing is driven entirely by the `started_at` timestamp – we never store a
+ * "remaining" field in the database. On every request the model calculates the
+ * elapsed and remaining seconds from that timestamp. Because the value is
+ * immutable after the session is created (see overridden `save()` below), a
+ * user refreshing or navigating away from the page cannot reset the countdown.
+ */
 class OsceSession extends Model
 {
     protected $fillable = [
         'user_id',
         'osce_case_id',
         'status',
-        // 'started_at', // REMOVED: started_at should never be mass assignable to prevent timer resets
         'completed_at',
         'score',
         'max_score',
@@ -21,11 +29,7 @@ class OsceSession extends Model
         'total_test_cost',
         'evaluation_feedback',
         'responses',
-        'feedback',
-        'paused_at',
-        'resumed_at',
-        'total_paused_seconds',
-        'current_remaining_seconds'
+        'feedback'
     ];
 
     protected $appends = [
@@ -39,11 +43,7 @@ class OsceSession extends Model
     protected $casts = [
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
-        'paused_at' => 'datetime',
-        'resumed_at' => 'datetime',
         'time_extended' => 'integer',
-        'total_paused_seconds' => 'integer',
-        'current_remaining_seconds' => 'integer',
         'responses' => 'array',
         'feedback' => 'array',
         'evaluation_feedback' => 'array'
@@ -97,24 +97,36 @@ class OsceSession extends Model
     public function getDurationMinutesAttribute(): int
     {
         $case = $this->relationLoaded('osceCase') ? $this->osceCase : $this->osceCase()->first();
-        $base = (int) ($case->duration_minutes ?? 30);
+        // Use the case's configured duration, do not hardcode defaults
+        $base = (int) ($case?->duration_minutes ?? 0);
         $extension = (int) ($this->time_extended ?? 0);
         return max(0, $base + $extension);
     }
 
+    /**
+     * Calculate elapsed time in seconds since session started
+     * This is the core method that ensures timer persistence
+     */
     public function getElapsedSecondsAttribute(): int
     {
-        if (!$this->started_at) {
+        // Fallback to created_at if started_at is not set (defensive for legacy rows)
+        $startedBase = $this->started_at ?? $this->created_at;
+        if (!$startedBase) {
             return 0;
         }
-        
-        // Ensure we're using the correct timezone and precision
+
+        // Use UTC to avoid timezone drift between DB/app servers
         $now = now()->utc();
-        $startedAt = $this->started_at->utc();
-        
-        return max(0, (int) $now->diffInSeconds($startedAt));
+        $startedAt = $startedBase->utc();
+
+        // Signed diff to guard against future-dated started_at, clamped to 0
+        return max(0, (int) $startedAt->diffInSeconds($now, false));
     }
 
+    /**
+     * Calculate remaining time in seconds
+     * This is calculated server-side and cannot be manipulated by client
+     */
     public function getRemainingSecondsAttribute(): int
     {
         if ($this->status === 'completed') {
@@ -124,27 +136,33 @@ class OsceSession extends Model
         $durationSeconds = $this->duration_minutes * 60;
         $elapsedSeconds = $this->elapsed_seconds;
         
-        // Debug logging if time is going backwards (should never happen)
-        if ($elapsedSeconds < 0) {
-            \Log::error('OSCE Timer Bug: Negative elapsed time detected', [
+        // Calculate remaining time
+        $remaining = max(0, $durationSeconds - $elapsedSeconds);
+        
+        // Log if timer expires
+        if ($remaining === 0 && $this->status === 'in_progress') {
+            \Log::info('OSCE Session expired', [
                 'session_id' => $this->id,
                 'started_at' => $this->started_at?->toISOString(),
-                'current_time' => now()->toISOString(),
-                'elapsed_seconds' => $elapsedSeconds,
-                'duration_minutes' => $this->duration_minutes
+                'duration_minutes' => $this->duration_minutes,
+                'elapsed_seconds' => $elapsedSeconds
             ]);
-            $elapsedSeconds = 0;
         }
         
-        $remaining = max(0, $durationSeconds - $elapsedSeconds);
         return (int) $remaining;
     }
 
+    /**
+     * Check if session has expired
+     */
     public function getIsExpiredAttribute(): bool
     {
         return $this->status !== 'completed' && $this->remaining_seconds <= 0;
     }
 
+    /**
+     * Get current time status
+     */
     public function getTimeStatusAttribute(): string
     {
         if ($this->status === 'completed') {
@@ -153,6 +171,9 @@ class OsceSession extends Model
         return $this->is_expired ? 'expired' : 'active';
     }
 
+    /**
+     * Mark session as completed
+     */
     public function markAsCompleted(?int $finalScore = null): void
     {
         if ($this->status !== 'completed') {
@@ -164,14 +185,26 @@ class OsceSession extends Model
                 $this->score = $finalScore;
             }
             $this->save();
+            
+            \Log::info('OSCE Session completed', [
+                'session_id' => $this->id,
+                'final_score' => $finalScore,
+                'completed_at' => $this->completed_at?->toISOString()
+            ]);
         }
     }
 
+    /**
+     * Check if session is currently active
+     */
     public function isActive(): bool
     {
         return $this->status === 'in_progress' && !$this->is_expired;
     }
 
+    /**
+     * Check if session can be continued
+     */
     public function canContinue(): bool
     {
         return $this->isActive();
@@ -217,49 +250,12 @@ class OsceSession extends Model
     }
 
     /**
-     * Check if the session is currently paused
+     * Auto-complete expired sessions
      */
-    public function isPaused(): bool
+    public function autoCompleteIfExpired(): void
     {
-        return !is_null($this->paused_at) && is_null($this->resumed_at);
-    }
-
-    /**
-     * Auto-resume the timer when user returns to the page
-     */
-    public function autoResumeTimer(): void
-    {
-        if ($this->isPaused() && $this->status === 'in_progress') {
-            $this->resumed_at = now();
-            
-            // Calculate total paused time and add to total_paused_seconds
-            if ($this->paused_at) {
-                $pausedDuration = now()->diffInSeconds($this->paused_at);
-                $this->total_paused_seconds = ($this->total_paused_seconds ?? 0) + $pausedDuration;
-            }
-            
-            $this->save();
-        }
-    }
-
-    /**
-     * Pause the session timer
-     */
-    public function pauseTimer(): void
-    {
-        if ($this->status === 'in_progress' && !$this->isPaused()) {
-            $this->paused_at = now();
-            $this->save();
-        }
-    }
-
-    /**
-     * Resume the session timer manually
-     */
-    public function resumeTimer(): void
-    {
-        if ($this->isPaused()) {
-            $this->autoResumeTimer();
+        if ($this->is_expired && $this->status === 'in_progress') {
+            $this->markAsCompleted();
         }
     }
 }

@@ -47,15 +47,10 @@ class OsceController extends Controller
         // Load the session with case information and related data
         $session->load(['osceCase', 'orderedTests', 'examinations']);
 
-        // Auto-resume timer when accessing chat page (user returns to page)
-        if ($session->isPaused() && $session->status === 'in_progress') {
-            $session->autoResumeTimer();
-            $session = $session->fresh(); // Reload to get updated timer values
-        }
-
         // Auto-complete if expired before rendering
         if ($session->time_status === 'expired') {
             $session->markAsCompleted();
+            $session = $session->fresh(); // Reload to get updated status
         }
         
         // Prepare session data (legacy arrays removed in new system)
@@ -130,6 +125,13 @@ class OsceController extends Controller
         ]);
     }
 
+    /**
+     * Return the authoritative timer state for a session.
+     *
+     * The remaining time is recalculated from `started_at` on every request so
+     * the client can simply hit this endpoint after a refresh or page change
+     * and resume the countdown without risk of resetting it.
+     */
     public function getSessionTimer(OsceSession $session)
     {
         $user = auth()->user();
@@ -140,7 +142,15 @@ class OsceController extends Controller
         // Refresh session from database to ensure we have latest data
         $session = $session->fresh();
 
-        // If expired, mark as completed
+        // Defensive: ensure started_at is set for in-progress sessions (legacy rows)
+        if ($session->status === 'in_progress' && !$session->started_at) {
+            // Backfill from created_at to prevent full reset on refresh
+            $session->started_at = $session->created_at ?? now();
+            $session->save();
+            $session = $session->fresh();
+        }
+
+        // Auto-complete expired sessions
         if ($session->time_status === 'expired') {
             $session->markAsCompleted();
             $session = $session->fresh(); // Reload after completion
@@ -154,6 +164,8 @@ class OsceController extends Controller
             'elapsed_seconds' => $session->elapsed_seconds,
             'remaining_seconds' => $session->remaining_seconds,
             'duration_minutes' => $session->duration_minutes,
+            'status' => $session->status,
+            'time_status' => $session->time_status
         ]);
 
         $response = [
@@ -161,9 +173,9 @@ class OsceController extends Controller
             'elapsed_seconds' => $session->elapsed_seconds,
             'remaining_seconds' => $session->remaining_seconds,
             'duration_minutes' => $session->duration_minutes,
+            'case_duration_minutes' => $session->osceCase?->duration_minutes,
             'is_expired' => $session->is_expired,
             'time_status' => $session->time_status,
-            'is_paused' => $session->isPaused(),
             'formatted_time_remaining' => gmdate('i:s', max(0, $session->remaining_seconds)),
             'progress_percentage' => $session->duration_minutes > 0
                 ? round(((($session->duration_minutes * 60) - $session->remaining_seconds) / ($session->duration_minutes * 60)) * 100, 1)
@@ -171,6 +183,7 @@ class OsceController extends Controller
             // Add server timestamp for frontend validation
             'server_timestamp' => now()->timestamp,
             'started_at_timestamp' => $session->started_at?->timestamp,
+            'started_at_iso' => $session->started_at?->toISOString(),
         ];
 
         return response()->json($response);
@@ -191,53 +204,6 @@ class OsceController extends Controller
         ]);
     }
 
-    public function pauseSession(OsceSession $session)
-    {
-        $user = auth()->user();
-        if ($session->user_id !== $user->id) {
-            abort(403, 'Unauthorized access to session');
-        }
-
-        $session->pauseTimer();
-
-        return response()->json([
-            'message' => 'Session paused',
-            'session' => $session->fresh(),
-            'is_paused' => $session->isPaused()
-        ]);
-    }
-
-    public function resumeSession(OsceSession $session)
-    {
-        $user = auth()->user();
-        if ($session->user_id !== $user->id) {
-            abort(403, 'Unauthorized access to session');
-        }
-
-        $session->resumeTimer();
-
-        return response()->json([
-            'message' => 'Session resumed',
-            'session' => $session->fresh(),
-            'is_paused' => $session->isPaused()
-        ]);
-    }
-
-    public function autoPauseSession(OsceSession $session)
-    {
-        $user = auth()->user();
-        if ($session->user_id !== $user->id) {
-            abort(403, 'Unauthorized access to session');
-        }
-
-        $session->autoPauseTimer();
-
-        return response()->json([
-            'message' => 'Session auto-paused',
-            'session' => $session->fresh(),
-            'is_paused' => $session->isPaused()
-        ]);
-    }
     // New clinical reasoning-based ordering endpoint
     public function orderTests(Request $request)
     {

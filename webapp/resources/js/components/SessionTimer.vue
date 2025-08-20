@@ -2,6 +2,14 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 
+/**
+ * Vue component responsible for showing the session countdown.
+ *
+ * It pulls the remaining time from the server when mounted so that a refresh
+ * or navigation never resets the timer. After the initial sync it maintains a
+ * local per‑second countdown and periodically polls the server to stay in sync
+ * (polling faster as time runs low).
+ */
 interface Props {
   sessionId: number;
   initialTimeRemaining: number;
@@ -11,16 +19,13 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const timeRemaining = ref<number>(props.initialTimeRemaining || 0);
+// Initialize as unsynced to avoid visual reset to full duration
+const timeRemaining = ref<number>(-1);
 const status = ref<Props['status']>(props.status);
-const isPaused = ref<boolean>(false);
-const serverPaused = ref<boolean>(false);
 const pollingIntervalMs = ref<number>(10000);
 let tickTimer: number | undefined;
 let pollTimer: number | undefined;
 let lastSyncAt = 0;
-let lastKnownServerRemaining = props.initialTimeRemaining || 0;
-let pageUnloadListenerAdded = false;
 
 const progressPercentage = computed(() => {
   const total = props.durationMinutes * 60;
@@ -41,7 +46,7 @@ const stateColor = computed(() => {
   if (status.value === 'expired') return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
   const minutesLeft = timeRemaining.value / 60;
   if (minutesLeft <= 5) return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-  if (minutesLeft <= 10) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+  if (minutesLeft <= 10) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-green-200';
   return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
 });
 
@@ -58,7 +63,8 @@ function clearTimers() {
 function scheduleTicking() {
   if (tickTimer) window.clearInterval(tickTimer);
   tickTimer = window.setInterval(() => {
-    if (isPaused.value) return;
+    // Do not tick until first successful sync sets a non-negative value
+    if (timeRemaining.value < 0) return;
     if (status.value !== 'active') return;
     timeRemaining.value = Math.max(0, timeRemaining.value - 1);
     if (timeRemaining.value === 0) {
@@ -80,7 +86,6 @@ function scheduleTicking() {
 function schedulePolling() {
   if (pollTimer) window.clearInterval(pollTimer);
   pollTimer = window.setInterval(() => {
-    if (isPaused.value) return;
     if (status.value === 'completed') return;
     syncWithServer();
   }, pollingIntervalMs.value);
@@ -97,38 +102,12 @@ async function syncWithServer() {
     if (!res.ok) return;
     const data = await res.json();
     
-    // Validate server response for timing consistency
-    const serverRemaining = data.remaining_seconds ?? 0;
-    const serverElapsed = data.elapsed_seconds ?? 0;
-    const serverDuration = (data.duration_minutes ?? 0) * 60;
-    
-    // Check for timer inconsistencies (debugging the count-up bug)
-    if (serverElapsed + serverRemaining !== serverDuration) {
-      console.error('OSCE Timer Inconsistency Detected:', {
-        elapsed: serverElapsed,
-        remaining: serverRemaining,
-        duration: serverDuration,
-        sum: serverElapsed + serverRemaining,
-        expected_sum: serverDuration
-      });
-    }
-    
-    // Detect if remaining time is unexpectedly increasing (the reported bug)
-    if (serverRemaining > lastKnownServerRemaining + 10) { // Allow 10s tolerance
-      console.error('OSCE Timer Bug: Remaining time increased unexpectedly', {
-        previous_remaining: lastKnownServerRemaining,
-        current_remaining: serverRemaining,
-        increase: serverRemaining - lastKnownServerRemaining,
-        server_data: data
-      });
-    }
-    
-    lastKnownServerRemaining = serverRemaining;
-    timeRemaining.value = serverRemaining;
+    // Update timer state from server (authoritative)
+    timeRemaining.value = typeof data.remaining_seconds === 'number' ? data.remaining_seconds : 0;
     status.value = data.time_status || status.value;
     
     // Increase poll frequency when under 2 minutes
-    const nextInterval = (serverRemaining <= 120) ? 1000 : 10000;
+    const nextInterval = (timeRemaining.value <= 120) ? 1000 : 10000;
     if (nextInterval !== pollingIntervalMs.value) {
       pollingIntervalMs.value = nextInterval;
       schedulePolling();
@@ -147,60 +126,15 @@ async function syncWithServer() {
   }
 }
 
-function togglePause() {
-  isPaused.value = !isPaused.value;
-}
-
-async function autoPauseOnLeave() {
-  if (status.value === 'active' && !serverPaused.value) {
-    try {
-      await fetch(`/api/osce/sessions/${props.sessionId}/auto-pause`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || ''
-        }
-      });
-    } catch (e) {
-      // Ignore errors on page unload
-    }
-  }
-}
-
-function setupPageUnloadListener() {
-  if (!pageUnloadListenerAdded) {
-    // Handle page unload/refresh
-    window.addEventListener('beforeunload', autoPauseOnLeave);
-    
-    // Handle page visibility changes (tab switching, minimize)
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden && status.value === 'active' && !serverPaused.value) {
-        autoPauseOnLeave();
-      }
-    });
-    
-    pageUnloadListenerAdded = true;
-  }
-}
-
-function removePageUnloadListener() {
-  if (pageUnloadListenerAdded) {
-    window.removeEventListener('beforeunload', autoPauseOnLeave);
-    pageUnloadListenerAdded = false;
-  }
-}
-
 onMounted(async () => {
-  // Initial sync to get correct persisted timer state - this is critical!
+  // Initial sync to get correct persisted timer state from server
   await syncWithServer();
   scheduleTicking();
   schedulePolling();
-  setupPageUnloadListener();
 });
 
 onBeforeUnmount(() => {
   clearTimers();
-  removePageUnloadListener();
 });
 
 watch(() => props.status, (newVal) => {
@@ -221,17 +155,11 @@ watch(() => props.status, (newVal) => {
       <div class="h-2 bg-blue-500 transition-all" :style="{ width: `${progressPercentage}%` }"></div>
     </div>
     <div class="mt-2 flex items-center justify-between">
-      <div class="text-xs text-gray-500" v-if="status === 'active' && !serverPaused">
+      <div class="text-xs text-gray-500" v-if="status === 'active'">
         Session is active. {{ timeRemaining <= 300 ? 'Wrap up soon.' : '' }}
-      </div>
-      <div class="text-xs text-orange-600" v-else-if="status === 'active' && serverPaused">
-        Timer paused - will resume automatically when you return
       </div>
       <div class="text-xs text-red-600" v-else-if="status === 'expired'">Session expired</div>
       <div class="text-xs text-green-600" v-else-if="status === 'completed'">Session completed</div>
-      <button class="text-xs underline" @click="togglePause" type="button" v-if="status === 'active'">
-        {{ isPaused ? 'Resume' : 'Pause' }}
-      </button>
     </div>
   </div>
 </template>
