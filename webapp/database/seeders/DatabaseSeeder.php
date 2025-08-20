@@ -26,6 +26,7 @@ class DatabaseSeeder extends Seeder
 			ForumSeeder::class,
 			MedicalTestSeeder::class,
 			OsceCaseSeeder::class,
+			ComprehensiveMedicalTestSeeder::class,
 		]);
 	}
 }
