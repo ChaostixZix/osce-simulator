@@ -119,8 +119,8 @@ class OsceSession extends Model
         $now = now()->utc();
         $startedAt = $startedBase->utc();
 
-        // Absolute difference in seconds, never negative
-        return max(0, (int) $now->diffInSeconds($startedAt));
+        $elapsed = $startedAt->diffInSeconds($now, false);
+        return max(0, (int) $elapsed);
     }
 
     /**
