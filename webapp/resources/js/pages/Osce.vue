@@ -67,6 +67,9 @@ const props = defineProps<{
 // Create reactive refs for data that can change
 const userSessions = ref<OsceSession[]>(props.userSessions);
 let timerRefreshInterval: number | undefined;
+// Store per-session `setInterval` handles so each row can tick down locally
+// between server polls. The key is the session id, the value the interval id.
+const sessionCountdowns: Record<number, number> = {};
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -83,7 +86,9 @@ const messages = ref<{
     timestamp: string;
 }[]>([]);
 
-// Function to refresh timer data for active sessions
+// Poll the server for authoritative time remaining on each active session.
+// This keeps the dashboard in sync even if a user refreshed elsewhere or the
+// browser was paused.
 async function refreshActiveSessionTimers() {
     const activeSessions = userSessions.value.filter(s => s.status === 'in_progress');
     
@@ -104,11 +109,14 @@ async function refreshActiveSessionTimers() {
                         remaining_seconds: timerData.remaining_seconds,
                         time_status: timerData.time_status
                     };
-                    
-                    // Auto-complete expired sessions
+
                     if (timerData.time_status === 'expired') {
                         userSessions.value[sessionIndex].status = 'completed';
+                        clearInterval(sessionCountdowns[session.id]);
+                        delete sessionCountdowns[session.id];
                         toast.info(`OSCE session "${session.osce_case?.title}" has expired and been completed.`);
+                    } else {
+                        startSessionCountdown(session.id, timerData.remaining_seconds);
                     }
                 }
             }
@@ -118,7 +126,7 @@ async function refreshActiveSessionTimers() {
     }
 }
 
-// Start timer refresh interval
+// Begin polling for timer updates and kick off the initial fetch.
 function startTimerRefresh() {
     if (timerRefreshInterval) {
         clearInterval(timerRefreshInterval);
@@ -131,12 +139,36 @@ function startTimerRefresh() {
     refreshActiveSessionTimers();
 }
 
-// Stop timer refresh interval
+// Stop polling and clear all local countdowns.
 function stopTimerRefresh() {
     if (timerRefreshInterval) {
         clearInterval(timerRefreshInterval);
         timerRefreshInterval = undefined;
     }
+    Object.values(sessionCountdowns).forEach(clearInterval);
+}
+
+// Maintain a lightweight one‑second countdown for a session row so the user
+// sees time tick down in real time between refreshes.
+function startSessionCountdown(sessionId: number, seconds: number) {
+    if (sessionCountdowns[sessionId]) {
+        clearInterval(sessionCountdowns[sessionId]);
+    }
+    const idx = userSessions.value.findIndex(s => s.id === sessionId);
+    if (idx === -1) return;
+    userSessions.value[idx].remaining_seconds = seconds;
+    if (seconds <= 0) return;
+    sessionCountdowns[sessionId] = setInterval(() => {
+        const i = userSessions.value.findIndex(s => s.id === sessionId);
+        if (i === -1) return;
+        const current = userSessions.value[i].remaining_seconds || 0;
+        if (current > 0) {
+            userSessions.value[i].remaining_seconds = current - 1;
+        } else {
+            clearInterval(sessionCountdowns[sessionId]);
+            delete sessionCountdowns[sessionId];
+        }
+    }, 1000);
 }
 
 const getDifficultyColor = (difficulty: string) => {

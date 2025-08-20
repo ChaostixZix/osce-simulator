@@ -125,6 +125,13 @@ class OsceController extends Controller
         ]);
     }
 
+    /**
+     * Return the authoritative timer state for a session.
+     *
+     * The remaining time is recalculated from `started_at` on every request so
+     * the client can simply hit this endpoint after a refresh or page change
+     * and resume the countdown without risk of resetting it.
+     */
     public function getSessionTimer(OsceSession $session)
     {
         $user = auth()->user();
