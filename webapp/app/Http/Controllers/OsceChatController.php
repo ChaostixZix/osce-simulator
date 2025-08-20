@@ -29,12 +29,16 @@ class OsceChatController extends Controller
 				->where('user_id', Auth::id())
 				->firstOrFail();
 
-			// Check if session is active
-			if ($session->status !== 'in_progress') {
-				return response()->json([
-					'error' => 'Session is not active'
-				], 400);
-			}
+            // Check if session is active (not expired and in progress)
+            if (!$session->isActive()) {
+                if ($session->is_expired) {
+                    $session->markAsCompleted();
+                }
+                return response()->json([
+                    'error' => 'Session is not active',
+                    'time_status' => $session->time_status,
+                ], 400);
+            }
 
 			// Save user message (persist immediately for durability)
 			$userMessage = OsceChatMessage::create([
@@ -134,12 +138,16 @@ class OsceChatController extends Controller
 				->where('user_id', Auth::id())
 				->firstOrFail();
 
-			// Check if session is active
-			if ($session->status !== 'in_progress') {
-				return response()->json([
-					'error' => 'Session is not active'
-				], 400);
-			}
+            // Check if session is active (not expired and in progress)
+            if (!$session->isActive()) {
+                if ($session->is_expired) {
+                    $session->markAsCompleted();
+                }
+                return response()->json([
+                    'error' => 'Session is not active',
+                    'time_status' => $session->time_status,
+                ], 400);
+            }
 
 			// Check if AI service is configured
 			if (!$this->aiPatientService->isConfigured()) {

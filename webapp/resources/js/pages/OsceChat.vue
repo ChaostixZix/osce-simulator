@@ -233,6 +233,14 @@ const osceCase = computed(() => session.value.osce_case);
 // Keep local session in sync after partial reloads
 watch(() => props.session, (val) => { (session as any).value = val as any; }, { deep: true });
 
+// Session interactivity guard
+const isSessionActive = computed(() => {
+    const s = session.value;
+    const remaining = (s.remaining_seconds ?? 0) > 0;
+    const notExpired = (s as any).time_status !== 'expired';
+    return s.status === 'in_progress' && remaining && notExpired;
+});
+
 const page = usePage();
 const errors = computed(() => page.props.errors || {});
 
@@ -284,7 +292,11 @@ const loadChatHistory = async () => {
 };
 
 const startChat = async () => {
-	try {
+    if (!isSessionActive.value) {
+        pushNotification({ title: 'Session ended', description: 'This session is completed or expired.', variant: 'error' });
+        return;
+    }
+    try {
 		isLoading.value = true;
 		const response = await fetch('/api/osce/chat/start', { 
 			method: 'POST', 
@@ -321,7 +333,7 @@ const startChat = async () => {
 };
 
 const sendMessage = async () => {
-	if (message.value.trim() === '' || isLoading.value) return;
+    if (message.value.trim() === '' || isLoading.value || !isSessionActive.value) return;
 	const userMessage = message.value; 
 	message.value = ''; 
 	isLoading.value = true;
@@ -417,11 +429,14 @@ onMounted(async () => {
 });
 
 function handleSessionExpired() { 
-	toast.error('Session expired', { description: 'Your OSCE session time has ended.' }); 
+    (session as any).value.status = 'completed';
+    (session as any).value.time_status = 'expired';
+    toast.error('Session expired', { description: 'Your OSCE session time has ended.' }); 
 }
 
 function handleSessionCompleted() { 
-	toast.success('Session completed', { description: 'Session has been marked as completed.' }); 
+    (session as any).value.status = 'completed';
+    toast.success('Session completed', { description: 'Session has been marked as completed.' }); 
 }
 
 onBeforeUnmount(() => {
@@ -611,7 +626,7 @@ async function extendSessionTime() {
 						<CardContent class="space-y-3">
 							<Dialog v-model:open="showLabModal">
 								<DialogTrigger asChild>
-									<Button variant="outline" class="w-full flex items-center gap-2">
+									<Button variant="outline" class="w-full flex items-center gap-2" :disabled="!isSessionActive">
 										<FlaskConical class="h-4 w-4" />Order Tests
 									</Button>
 								</DialogTrigger>
@@ -622,14 +637,14 @@ async function extendSessionTime() {
 									</DialogHeader>
 									<div class="space-y-4">
 										<div>
-											<Input v-model="testSearchQuery" placeholder="Search tests... (e.g. 'troponin', 'ecg', 'chest x-ray')" @input="searchMedicalTests" />
+											<Input v-model="testSearchQuery" placeholder="Search tests... (e.g. 'troponin', 'ecg', 'chest x-ray')" @input="searchMedicalTests" :disabled="!isSessionActive" />
 											<div v-if="searchResults.length > 0" class="mt-2 space-y-1">
 												<div v-for="t in searchResults" :key="t.id" class="p-2 border rounded flex items-center justify-between">
 													<div>
 														<div class="font-medium">{{ t.name }}</div>
 														<div class="text-xs text-gray-500">{{ t.category }} • {{ t.type }}</div>
 													</div>
-													<Button size="sm" variant="outline" :disabled="isTestOrdered(t.id)" @click="selectTest(t)">
+													<Button size="sm" variant="outline" :disabled="isTestOrdered(t.id) || !isSessionActive" @click="selectTest(t)">
 														{{ isTestOrdered(t.id) ? 'Selected' : 'Select' }}
 													</Button>
 												</div>
@@ -643,7 +658,7 @@ async function extendSessionTime() {
 													<Button size="sm" variant="outline" @click="removeTest(t.id)">Remove</Button>
 												</div>
 												<div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-													<Textarea v-model="t.clinicalReasoning" placeholder="Provide clinical reasoning (min 20 chars)" :rows="3" />
+													<Textarea v-model="t.clinicalReasoning" placeholder="Provide clinical reasoning (min 20 chars)" :rows="3" :disabled="!isSessionActive" />
 													<Select v-model="(t as any).priority">
 														<SelectTrigger><SelectValue placeholder="Priority" /></SelectTrigger>
 														<SelectContent>
@@ -663,7 +678,7 @@ async function extendSessionTime() {
 
 											<div class="flex justify-end gap-2">
 												<Button variant="outline" @click="clearSelection">Cancel</Button>
-												<Button :disabled="!canSubmitOrders || isSubmittingOrders" @click="submitTestOrders">
+												<Button :disabled="!canSubmitOrders || isSubmittingOrders || !isSessionActive" @click="submitTestOrders">
 													{{ isSubmittingOrders ? 'Submitting...' : 'Submit Orders' }}
 												</Button>
 											</div>
@@ -675,7 +690,7 @@ async function extendSessionTime() {
 							<!-- Physical Examination -->
 							<Dialog v-model:open="showExamModal">
 								<DialogTrigger asChild>
-									<Button variant="outline" class="w-full">Perform Physical Examination</Button>
+									<Button variant="outline" class="w-full" :disabled="!isSessionActive">Perform Physical Examination</Button>
 								</DialogTrigger>
 								<DialogContent class="max-w-2xl">
 									<DialogHeader>
@@ -687,8 +702,8 @@ async function extendSessionTime() {
 										<div v-for="(types, category) in availableExamMap" :key="category" class="border rounded">
 											<div class="px-3 py-2 font-medium bg-gray-50 dark:bg-gray-800">{{ category }}</div>
 											<div class="p-3 grid grid-cols-2 gap-2">
-												<button type="button" v-for="t in types" :key="t" @click="toggleExam({ category: String(category), type: String(t) })" class="text-xs px-2 py-1 rounded border"
-													:class="isExamSelected({ category: String(category), type: String(t) }) ? 'bg-blue-600 text-white' : ''">
+											<button type="button" v-for="t in types" :key="t" @click="toggleExam({ category: String(category), type: String(t) })" class="text-xs px-2 py-1 rounded border" :disabled="!isSessionActive"
+												:class="isExamSelected({ category: String(category), type: String(t) }) ? 'bg-blue-600 text-white' : ''">
 													{{ t }}
 												</button>
 											</div>
@@ -696,7 +711,7 @@ async function extendSessionTime() {
 									</div>
 									<div class="flex justify-end gap-2 mt-2">
 										<Button variant="outline" @click="showExamModal = false">Cancel</Button>
-										<Button :disabled="selectedExams.length === 0 || isSubmittingExams" @click="submitExams">{{ isSubmittingExams ? 'Submitting...' : 'Perform' }}</Button>
+										<Button :disabled="selectedExams.length === 0 || isSubmittingExams || !isSessionActive" @click="submitExams">{{ isSubmittingExams ? 'Submitting...' : 'Perform' }}</Button>
 									</div>
 								</DialogContent>
 							</Dialog>
@@ -874,15 +889,15 @@ async function extendSessionTime() {
 									</div>
 								                                                                </div>
                                                         </div>
-                                                        <div class="border-t p-4">
-									<div class="flex gap-2">
-										<Textarea v-model="message" placeholder="Type your question or message to the AI patient..." class="flex-1 resize-none" :rows="2" @keydown="(e: KeyboardEvent) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }" :disabled="isLoading" />
-										<Button @click="sendMessage" :disabled="isLoading || !message.trim()" class="px-4">
-											<Send class="h-4 w-4" />
-										</Button>
-									</div>
-									<p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Press Enter to send, Shift+Enter for new line</p>
-								</div>
+                    <div class="border-t p-4">
+                        <div class="flex gap-2">
+                            <Textarea v-model="message" placeholder="Type your question or message to the AI patient..." class="flex-1 resize-none" :rows="2" @keydown="(e: KeyboardEvent) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }" :disabled="isLoading || !isSessionActive" />
+                            <Button @click="sendMessage" :disabled="isLoading || !message.trim() || !isSessionActive" class="px-4">
+                                <Send class="h-4 w-4" />
+                            </Button>
+                        </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Press Enter to send, Shift+Enter for new line</p>
+                    </div>
 						</CardContent>
 					</Card>
 				</div>
