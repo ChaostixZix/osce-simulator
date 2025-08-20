@@ -6,6 +6,15 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * Model for a single OSCE session.
+ *
+ * Timing is driven entirely by the `started_at` timestamp – we never store a
+ * "remaining" field in the database. On every request the model calculates the
+ * elapsed and remaining seconds from that timestamp. Because the value is
+ * immutable after the session is created (see overridden `save()` below), a
+ * user refreshing or navigating away from the page cannot reset the countdown.
+ */
 class OsceSession extends Model
 {
     protected $fillable = [
