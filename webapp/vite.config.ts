@@ -4,11 +4,18 @@ import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+    server: {
+        watch: {
+            // Reduce watcher load to avoid ENOSPC on Linux
+            ignored: ['**/vendor/**', '**/node_modules/**', '**/storage/**', '**/bootstrap/cache/**', '**/.git/**'],
+        },
+    },
     plugins: [
         laravel({
             input: ['resources/js/app.ts'],
             ssr: 'resources/js/ssr.ts',
-            refresh: true,
+            // Limit refresh paths to app sources to avoid vendor
+            refresh: ['resources/views/**', 'resources/js/**', 'routes/**', 'app/**', 'config/**'],
         }),
         tailwindcss(),
         vue({
