@@ -5,6 +5,10 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
     server: {
+        host: '0.0.0.0',
+        hmr: {
+            host: process.env.VITE_HMR_HOST || 'localhost',
+        },
         watch: {
             // Reduce watcher load to avoid ENOSPC on Linux
             ignored: ['**/vendor/**', '**/node_modules/**', '**/storage/**', '**/bootstrap/cache/**', '**/.git/**'],
