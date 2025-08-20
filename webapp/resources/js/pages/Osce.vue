@@ -67,8 +67,10 @@ const props = defineProps<{
 // Create reactive refs for data that can change
 const userSessions = ref<OsceSession[]>(props.userSessions);
 let timerRefreshInterval: number | undefined;
+
 // Store per-session `setInterval` handles so each row can tick down locally
 // between server polls. The key is the session id, the value the interval id.
+
 const sessionCountdowns: Record<number, number> = {};
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -147,9 +149,9 @@ function stopTimerRefresh() {
     }
     Object.values(sessionCountdowns).forEach(clearInterval);
 }
-
 // Maintain a lightweight one‑second countdown for a session row so the user
 // sees time tick down in real time between refreshes.
+
 function startSessionCountdown(sessionId: number, seconds: number) {
     if (sessionCountdowns[sessionId]) {
         clearInterval(sessionCountdowns[sessionId]);
