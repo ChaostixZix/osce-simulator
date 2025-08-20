@@ -47,10 +47,14 @@ class OsceController extends Controller
         // Load the session with case information and related data
         $session->load(['osceCase', 'orderedTests', 'examinations']);
 
-        // Auto-complete if expired before rendering
+        // Auto-complete if expired before rendering and prevent reopening
         if ($session->time_status === 'expired') {
             $session->markAsCompleted();
-            $session = $session->fresh(); // Reload to get updated status
+            // Redirect back to OSCE list; do not allow returning to an ended session
+            return redirect()->route('osce');
+        }
+        if (!$session->isActive() && $session->status === 'completed') {
+            return redirect()->route('osce');
         }
         
         // Prepare session data (legacy arrays removed in new system)
@@ -221,8 +225,11 @@ class OsceController extends Controller
                 ->where('user_id', auth()->id())
                 ->firstOrFail();
 
-            if ($session->status !== 'in_progress') {
-                return response()->json(['error' => 'Session is not active'], 400);
+            if (!$session->isActive()) {
+                if ($session->is_expired) {
+                    $session->markAsCompleted();
+                }
+                return response()->json(['error' => 'Session is not active', 'time_status' => $session->time_status], 400);
             }
 
             $orderedTests = [];
@@ -402,7 +409,10 @@ class OsceController extends Controller
                 ->firstOrFail();
 
             // Check if session is active
-            if ($session->status !== 'in_progress') {
+            if (!$session->isActive()) {
+                if ($session->is_expired) {
+                    $session->markAsCompleted();
+                }
                 return back()->withErrors(['error' => 'Session is not active']);
             }
 
@@ -457,7 +467,10 @@ class OsceController extends Controller
                 ->firstOrFail();
 
             // Check if session is active
-            if ($session->status !== 'in_progress') {
+            if (!$session->isActive()) {
+                if ($session->is_expired) {
+                    $session->markAsCompleted();
+                }
                 return back()->withErrors(['error' => 'Session is not active']);
             }
 

@@ -202,6 +202,13 @@ const getStatusIcon = (status: string) => {
     }
 };
 
+// Guard: can this session be continued from the dashboard?
+const canContinue = (s: OsceSession) => {
+    const seconds = s.remaining_seconds ?? 0;
+    const timeOk = seconds > 0 && s.time_status !== 'expired';
+    return s.status === 'in_progress' && timeOk;
+};
+
 const isStartingSession = ref<number | null>(null);
 
 const startCase = async (caseId: number) => {
@@ -400,8 +407,21 @@ onBeforeUnmount(() => {
                                         <span v-else class="text-gray-500">-</span>
                                     </TableCell>
                                     <TableCell>
-                                        <Button v-if="session.status === 'in_progress'" variant="outline" size="sm" @click="router.visit(`/osce/chat/${session.id}`)">
+                                        <Button
+                                            v-if="canContinue(session)"
+                                            variant="outline"
+                                            size="sm"
+                                            @click="router.visit(`/osce/chat/${session.id}`)"
+                                        >
                                             Continue
+                                        </Button>
+                                        <Button
+                                            v-else-if="session.status === 'in_progress' && (session.remaining_seconds ?? 0) <= 0"
+                                            variant="outline"
+                                            size="sm"
+                                            disabled
+                                        >
+                                            Time Up
                                         </Button>
                                         <Button v-else-if="session.status === 'completed'" variant="ghost" size="sm">
                                             View Results
