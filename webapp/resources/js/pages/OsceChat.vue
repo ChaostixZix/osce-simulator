@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'vue-sonner';
 import { ArrowLeft, Send, User, Bot, Clock, AlertCircle, CheckCircle, FlaskConical } from 'lucide-vue-next';
+// SessionTimer displays and synchronises the remaining time for this session
+// with the backend so leaving or refreshing the page doesn't reset the clock.
 import SessionTimer from '@/components/SessionTimer.vue';
 
 interface OsceCase {
@@ -550,17 +552,23 @@ async function extendSessionTime() {
 				</div>
 			</div>
 
-			<!-- Timer -->
-			<div>
-				<SessionTimer
-					:session-id="session.id"
-					:initial-time-remaining="session.remaining_seconds || 0"
-					:duration-minutes="session.duration_minutes || (osceCase?.duration_minutes || 0)"
-					:status="(session as any).time_status || 'active'"
-					@session-expired="handleSessionExpired"
-					@session-completed="handleSessionCompleted"
-				/>
-			</div>
+                        <!-- Timer -->
+                        <div>
+                                <!--
+                                  SessionTimer fetches the latest remaining time from the
+                                  server when this page loads and then maintains a local
+                                  countdown. This way the timer continues correctly even
+                                  if the user navigates away and returns later.
+                                -->
+                                <SessionTimer
+                                        :session-id="session.id"
+                                        :initial-time-remaining="session.remaining_seconds || 0"
+                                        :duration-minutes="session.duration_minutes || (osceCase?.duration_minutes || 0)"
+                                        :status="(session as any).time_status || 'active'"
+                                        @session-expired="handleSessionExpired"
+                                        @session-completed="handleSessionCompleted"
+                                />
+                        </div>
 
 			<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
 				<!-- Left Sidebar -->
