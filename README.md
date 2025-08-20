@@ -65,12 +65,14 @@ Run the test suite from the `webapp` directory:
 composer test
 ```
 
-## 📦 Legacy CLI
+## 📦 Legacy CLI (Archived)
 
-A legacy Node.js CLI version remains in the repository root for reference. The
-web application above is now the primary project.
+The original Node.js CLI prototype and an earlier PHP experiment have been
+archived under `legacy/cli-prototype/`. They are no longer maintained. The
+Laravel + Vue app in `webapp/` is the active project.
+
+If you need to explore the prototype, see `legacy/cli-prototype/README.md`.
 
 ## 📄 License
 
 Released under the MIT License.
-
