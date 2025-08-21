@@ -21,9 +21,17 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('session_ordered_tests', function (Blueprint $table) {
-            $table->dropColumn(['medical_test_id', 'clinical_reasoning', 'priority', 'cost', 'results_available_at', 'completed_at']);
+            $columns = ['medical_test_id', 'clinical_reasoning', 'priority', 'cost', 'results_available_at', 'completed_at'];
+            $toDrop = [];
+            foreach ($columns as $col) {
+                if (Schema::hasColumn('session_ordered_tests', $col)) {
+                    $toDrop[] = $col;
+                }
+            }
+            if (!empty($toDrop)) {
+                $table->dropColumn($toDrop);
+            }
         });
     }
 };
-
 
