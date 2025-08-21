@@ -30,6 +30,11 @@ const mainNavItems: NavItem[] = [
         icon: Hospital,
     },
     {
+        title: 'SOAP',
+        href: '/soap',
+        icon: MessageCircle,
+    },
+    {
         title: 'mcq.',
         href: '/mcq-demo',
         icon: HelpCircle,
