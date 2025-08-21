@@ -23,6 +23,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { Clock, Play, BookOpen, CheckCircle, XCircle, AlertCircle } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
+import SoapModal from '@/components/osce/SoapModal.vue';
 
 interface OsceCase {
     id: number;
@@ -37,6 +38,8 @@ interface OsceCase {
     is_active: boolean;
     created_at: string;
     updated_at: string;
+    soap_notes_count?: number;
+    latest_soap_note_timestamp?: string;
 }
 
 interface OsceSession {
@@ -323,6 +326,14 @@ onBeforeUnmount(() => {
                                     <Clock class="h-4 w-4" />
                                     <span>{{ case_.duration_minutes }} minutes</span>
                                 </div>
+                                <div v-if="case_.soap_notes_count" class="flex items-center gap-2">
+                                    <BookOpen class="h-4 w-4" />
+                                    <span>{{ case_.soap_notes_count }} SOAP Notes</span>
+                                </div>
+                                <div v-if="case_.latest_soap_note_timestamp" class="flex items-center gap-2">
+                                    <Clock class="h-4 w-4" />
+                                    <span>Last updated: {{ new Date(case_.latest_soap_note_timestamp).toLocaleString() }}</span>
+                                </div>
                                 <div>
                                     <p class="font-medium">Stations ({{ case_.stations.length }}):</p>
                                     <div class="flex flex-wrap gap-1 mt-1">
@@ -348,6 +359,7 @@ onBeforeUnmount(() => {
                                     Start Case
                                 </template>
                             </Button>
+                            <SoapModal :osceCase="case_" />
                         </CardFooter>
                     </Card>
                 </div>

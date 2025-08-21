@@ -18,6 +18,12 @@ class OsceController extends Controller
         
         // Get all active OSCE cases
         $cases = OsceCase::where('is_active', true)
+            ->withCount('soapNotes')
+            ->addSelect(['latest_soap_note_timestamp' => \App\Models\SoapNote::select('updated_at')
+                ->whereColumn('osce_case_id', 'osce_cases.id')
+                ->latest()
+                ->limit(1)
+            ])
             ->orderBy('created_at', 'desc')
             ->get();
         
