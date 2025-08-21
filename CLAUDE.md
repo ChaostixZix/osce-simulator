@@ -156,6 +156,7 @@ When creating a task in Vibe Kanban, always provide a detailed description with 
 ### Vibe Kanban Role and Agent Responsibilities
 
 - Vibe Kanban is the todo app and agent system. It owns task creation, assignment, and execution tracking.
+- Only invoke creating task using Vibe-Kanban MCP when "cTask" string is invoked by the user.
 - When the user says “create task(s)” in Vibe Kanban, do not implement code or make repo changes. Only create the requested tasks via the Vibe Kanban MCP.
 - The agents (Diagnosis, Implementation, Testing) will perform the actual work. Claude’s role is to set up and manage the tasks correctly.
 - Always follow these when creating tasks:
