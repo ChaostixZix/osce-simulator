@@ -126,14 +126,16 @@ class OsceController extends Controller
             ], 400);
         }
 
+        // Create session with pending status first to avoid constraint violation
         $session = OsceSession::create([
             'user_id' => $user->id,
             'osce_case_id' => $request->osce_case_id,
-            'status' => 'in_progress',
+            'status' => 'pending',
         ]);
         
-        // Set started_at explicitly since it's no longer fillable (prevents timer reset bugs)
+        // Now set started_at and update to in_progress atomically
         $session->started_at = now();
+        $session->status = 'in_progress';
         $session->save();
 
         return response()->json([
