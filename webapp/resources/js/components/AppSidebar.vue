@@ -35,8 +35,8 @@ const mainNavItems: NavItem[] = [
         icon: MessageCircle,
     },
     {
-        title: 'mcq.',
-        href: '/mcq-demo',
+        title: 'MCQ',
+        href: '/mcq',
         icon: HelpCircle,
     },
 ];
