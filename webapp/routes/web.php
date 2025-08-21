@@ -48,7 +48,9 @@ Route::middleware([
 	Route::get('api/medical-tests/categories', [App\Http\Controllers\MedicalTestController::class, 'getCategories']);
 	Route::post('api/osce/cases/{case}/duration', [App\Http\Controllers\OsceController::class, 'updateCaseDuration']);
 	
-	Route::get('mcq-demo', [App\Http\Controllers\MCQController::class, 'index'])->name('mcq-demo');
+	// MCQ routes
+	Route::get('mcq', [App\Http\Controllers\MCQController::class, 'index'])->name('mcq.index');
+	Route::get('mcq/{test}', [App\Http\Controllers\MCQController::class, 'show'])->name('mcq.show');
 
 	// Forum routes
 	Route::get('forum', [PostController::class, 'index'])->name('forum.index');
