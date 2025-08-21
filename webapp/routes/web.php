@@ -6,6 +6,7 @@ use Laravel\WorkOS\Http\Middleware\ValidateSessionWithWorkOS;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\LandingController;
+use App\Http\Controllers\SoapController;
 
 Route::get('/', [LandingController::class, 'index'])->name('home');
 
@@ -55,6 +56,11 @@ Route::middleware([
 	Route::post('forum/{post}/comments', [CommentController::class, 'store'])->name('comments.store');
 	Route::put('comments/{comment}', [CommentController::class, 'update'])->name('comments.update');
 	Route::delete('comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy');
+
+    // SOAP routes
+    Route::get('osce-cases/{osceCase}/soap-notes', [SoapController::class, 'index'])->name('soap.index');
+    Route::post('osce-cases/{osceCase}/soap-notes', [SoapController::class, 'store'])->name('soap.store');
+    Route::put('soap-notes/{soapNote}', [SoapController::class, 'finalize'])->name('soap.finalize');
 });
 
 require __DIR__.'/settings.php';

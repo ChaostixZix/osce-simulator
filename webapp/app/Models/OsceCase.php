@@ -57,6 +57,11 @@ class OsceCase extends Model
         return $this->hasMany(OsceSession::class);
     }
 
+    public function soapNotes(): HasMany
+    {
+        return $this->hasMany(SoapNote::class);
+    }
+
     public function getAiPatientContext(): array
     {
         return [
