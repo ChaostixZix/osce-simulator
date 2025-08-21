@@ -6,6 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a Laravel project with a Vue.js frontend using Inertia.js. The main application code is located in the `webapp` directory. It uses TypeScript, Tailwind CSS, and shadcn-vue for UI components.
 
+## Technology Stack
+
+- **Backend**: Laravel
+- **Frontend**: Vue.js with Inertia.js
+- **Styling**: Tailwind CSS
+- **UI Components**: shadcn-vue
+- **Language**: TypeScript (frontend), PHP (backend)
+
 ## Common Commands
 
 All commands should be run from the `webapp` directory.
@@ -95,7 +103,7 @@ alwaysApply: true
 
 ## **Component & Page Management**
 
-- **ShadCN Vue is already installed** - Don't reinstall it. If asked to install, install the specific component only
+- **ShadCN Vue is already installed** - Don't reinstall it. Always use existing shadcn components whenever possible. If asked to install a new component, install only that specific component.
 
 - **New Page Creation Process:**
   1. Create Vue page in Resources/js/Pages/
@@ -121,6 +129,7 @@ alwaysApply: true
 - **For API operations:** Default to Inertia methods (`Inertia.fetch`, `Inertia.post`) over traditional REST APIs
 - **Documentation:** Always store successful implementation patterns in ByteRover knowledge base
 - **Laravel Integration:** Leverage Laravel Boost MCP tools for project analysis and debugging
+- **If unsure, research first:** If you are not sure what to do, use search or fetch the documentation before proceeding with an implementation.
 
 ## **AI Prompt Creation Guidelines**
 
@@ -131,6 +140,82 @@ alwaysApply: true
   - Keep code examples concise - show structure, not full implementations
   - Explain the educational/technical problem being solved
   - Ensure next AI understands the reasoning behind architectural decisions
+
+## Vibe Kanban Guidelines
+
+When creating a task in Vibe Kanban, always provide a detailed description with the following context:
+- **Project folder context**: e.g., `Project folder: /home/bintangputra/osc`.
+- **Reasoning**: Explain why the task needs to be done.
+- **Relevant Code**: Point to relevant controllers, models, or components (e.g., `The relevant controller is OsceController.php`).
+
+### Vibe Kanban Tooling Source of Truth
+
+- Interpretation: When the user says “create function using vibe-kanban”, use the Vibe Kanban MCP (agent/tool API), not the `npx vibe-kanban` CLI.
+- Do not invoke external CLIs for Vibe Kanban unless the user explicitly requests the CLI. Prefer MCP calls for creating, updating, or deleting tasks.
+
+### Vibe Kanban Role and Agent Responsibilities
+
+- Vibe Kanban is the todo app and agent system. It owns task creation, assignment, and execution tracking.
+- When the user says “create task(s)” in Vibe Kanban, do not implement code or make repo changes. Only create the requested tasks via the Vibe Kanban MCP.
+- The agents (Diagnosis, Implementation, Testing) will perform the actual work. Claude’s role is to set up and manage the tasks correctly.
+- Always follow these when creating tasks:
+  - Use MCP (not CLI) and include `project_id` and `task_id` for task-scoped operations.
+  - Use `TodoWrite` first (with a non-empty `todos` array) to capture intent/context, then perform the MCP task action.
+  - Link artifacts (e.g., `.claude/kanban/<feature-slug>.*.md`) in task descriptions for traceability.
+  - Do not proceed to implementation unless the user explicitly asks to execute outside the Kanban workflow.
+
+## Vibe Kanban Workflow for New Functions
+
+When creating a new function, the following three-task process should be used in Vibe Kanban to ensure a structured development process. This approach utilizes a three-agent system for diagnosis, implementation, and testing.
+
+### Task 1: Diagnosis & Context Agent
+-   **Objective**: Analyze the codebase to define the new function's requirements and context.
+-   **Actions**:
+    1.  Explain the detailed functionality required, based on the existing codebase.
+    2.  Provide the reasoning and context for why the new function is necessary.
+    3.  Save the output as a detailed prompt in a markdown file (e.g., `feature_prompt.md`).
+-   **Vibe Kanban Task Title**: "Diagnosis: [Function Name]"
+
+### Task 2: Coding Agent
+-   **Objective**: Implement the function based on the diagnosis prompt.
+-   **Actions**:
+    1.  Write the code for the new function, strictly following the specifications in the `feature_prompt.md` file.
+    2.  Create a markdown report in a table format detailing the work done (e.g., `implementation_report.md`).
+-   **Vibe Kanban Task Title**: "Implementation: [Function Name]"
+
+### Task 3: Testing Agent
+-   **Objective**: Test, debug, and validate the new function.
+-   **Actions**:
+    1.  Thoroughly test the implemented function for bugs and edge cases.
+    2.  Debug any issues found.
+    3.  Provide a summary of the test results in a markdown file (e.g., `test_summary.md`).
+-   **Vibe Kanban Task Title**: "Testing: [Function Name]"
+
+The markdown filenames (`feature_prompt.md`, `implementation_report.md`, `test_summary.md`) should be predefined and consistently used across all three tasks for a given feature.
+
+### Filename Convention and Task Enforcement
+
+- Always create exactly three Vibe Kanban tasks whenever a new function is requested: Diagnosis, Implementation, and Testing.
+- Predefine a single shared base slug for the feature in Task 1 (kebab-case), and reuse it across all agents and files.
+- Use these filenames, derived from the same base slug, to keep artifacts linked:
+  - `<feature-slug>.prompt.md` — produced by the Diagnosis agent (requirements and context).
+  - `<feature-slug>.implementation.md` — produced by the Implementation agent (what changed, in table form).
+  - `<feature-slug>.tests.md` — produced by the Testing agent (test plan, results, and debugging notes).
+- The Implementation agent must implement strictly against the prompt at `<feature-slug>.prompt.md` and must include a table-form report of completed work in `<feature-slug>.implementation.md`.
+- The Testing agent must execute tests, debug failures, and summarize outcomes in `<feature-slug>.tests.md`.
+- Recommended location for these files: `.claude/kanban/` (e.g., `.claude/kanban/<feature-slug>.prompt.md`).
+
+### Vibe Kanban MCP Parameter Requirements
+
+- Always include `project_id` and `task_id` when invoking any task-scoped Vibe Kanban MCP operation (e.g., delete, update, move, comment).
+- Do not issue Vibe Kanban MCP calls that act on tasks without both identifiers present.
+- Example parameters (pseudocode): `{ project_id: "<proj-id>", task_id: "<task-id>", action: "delete" }`.
+- Error recovery:
+  - If you see `InputValidationError` or MCP `-32602 missing field project_id/task_id`, stop and reissue the request including both fields.
+  - Log the attempted action and the IDs used in `<feature-slug>.implementation.md` or `<feature-slug>.tests.md` when applicable.
+
+- Additionally, before any task-scoped Vibe Kanban action, create/update a Todo via `TodoWrite` that describes the intended operation and references the `project_id`/`task_id` for traceability.
+  - Example (pseudocode): `TodoWrite({ todos: ["VK delete task <task-id> in <project-id>"], context: "cleanup redundant tasks" })`.
 
 ---
 alwaysApply: true
@@ -272,4 +357,14 @@ To ensure smooth and error-free operation, follow these directives when using to
 
 - **Graceful Degradation**: If a complex tool fails for reasons beyond a simple input error, switch to a simpler, more reliable method. For example, if `MultiEdit` fails unexpectedly, break the task into smaller pieces and handle each with a separate `Edit` call. This ensures progress is not blocked by a single complex failure.
 
+### TodoWrite Requirement (All Tasks)
 
+- For any activity (including Vibe Kanban operations), always create a Todo first using `TodoWrite` before performing any action.
+- Always provide the required `todos` parameter to `TodoWrite`. Do not proceed if `todos` is missing or empty.
+- After creating the Todo, proceed with the work and keep the Todo updated as progress is made.
+- Examples (pseudocode):
+  - General: `TodoWrite({ todos: ["Migrate DB", "Update docs"], context: "why and where" })`
+  - Vibe Kanban: `TodoWrite({ todos: ["VK create task: Diagnosis for blog-feature"], context: "project=<proj-id>; link to .claude/kanban/blog-feature.prompt.md" })`
+- Error recovery:
+  - If `TodoWrite` fails with `The required parameter 'todos' is missing`, reissue it with a non-empty `todos` array.
+  - Record created Todo IDs and link them in artifacts (implementation/test notes) for traceability.
