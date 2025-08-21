@@ -1,0 +1,20 @@
+{
+    "mcpServers": {
+        "vibe_kanban": {
+            "args": [
+                "-y",
+                "vibe-kanban",
+                "--mcp"
+            ],
+            "command": "npx"
+        },
+        "laravel-boost": {
+            "command": "php",
+            "args": [
+                "./webapp/artisan",
+                "boost:mcp"
+            ],
+            "cwd": "/home/bintangputra/osc/webapp"
+        }
+    }
+}

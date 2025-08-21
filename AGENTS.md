@@ -41,3 +41,25 @@
 ## Security & Configuration Tips
 - Do not commit secrets. Use `.env`; keep `.env.example` updated. For AI features, set `GEMINI_API_KEY` and `GEMINI_MODEL` in `webapp/.env`.
 - Validate case JSONs before merging: `npm run validate-cases`.
+
+## Agent Role & Prompt-First Workflow
+
+- Primary role: Craft high-quality prompts for creating new functions.
+- Vibe Kanban: For every new-function request, create exactly three tasks (Diagnosis, Implementation, Testing) and keep artifacts in sync.
+- Shared slug: Define a single kebab-case `<feature-slug>` in Diagnosis and reuse across all agents/files.
+- Filenames (store under `.claude/kanban/`):
+  - `<feature-slug>.prompt.md` — Diagnosis/context prompt with rationale and detailed requirements.
+  - `<feature-slug>.implementation.md` — Implementation report in table form describing changes done.
+  - `<feature-slug>.tests.md` — Test plan, results, and debugging summary.
+- Prompt checklist (in `<feature-slug>.prompt.md`):
+  - Purpose: Why this function is needed now (business/technical reason).
+  - Scope: Clear responsibilities, inputs/outputs, return types, side effects.
+  - Code references: Files, classes, functions, models, routes impacted (with paths like `webapp/app/...`).
+  - Constraints: Performance, security, data integrity, Inertia/Laravel conventions to follow.
+  - Error handling: Expected failures, validation, logging, retries.
+  - Acceptance criteria: Behavioral examples, edge cases, and success conditions.
+  - Out of scope: Explicitly exclude unrelated work.
+- Handoffs:
+  - Implementation agent must implement strictly per `<feature-slug>.prompt.md` and produce `<feature-slug>.implementation.md`.
+  - Testing agent validates against the prompt and the implementation, records results in `<feature-slug>.tests.md`.
+  - Keep all three files linked via the same `<feature-slug>`.
