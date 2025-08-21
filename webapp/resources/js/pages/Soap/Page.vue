@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import AppLayout from '@/layouts/AppLayout.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -161,7 +161,7 @@ function rel(t: string): string {
 <template>
   <Head :title="`SOAP - ${patient.name}`" />
 
-  <AuthenticatedLayout>
+  <AppLayout>
     <template #header>
       <h2 class="font-semibold text-xl text-gray-800 leading-tight">SOAP - {{ patient.name }} ({{ patient.bangsal }} / {{ patient.nomor_kamar }})</h2>
     </template>
@@ -259,5 +259,5 @@ function rel(t: string): string {
         </div>
       </div>
     </div>
-  </AuthenticatedLayout>
+  </AppLayout>
 </template>

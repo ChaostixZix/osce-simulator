@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import AppLayout from '@/layouts/AppLayout.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -58,7 +58,7 @@ function rel(t: string): string {
 <template>
   <Head title="SOAP Patient Board" />
 
-  <AuthenticatedLayout>
+  <AppLayout>
     <template #header>
       <h2 class="font-semibold text-xl text-gray-800 leading-tight">SOAP Patient Board</h2>
     </template>
@@ -137,5 +137,5 @@ function rel(t: string): string {
         </div>
       </div>
     </div>
-  </AuthenticatedLayout>
+  </AppLayout>
 </template>
