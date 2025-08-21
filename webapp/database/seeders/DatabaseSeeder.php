@@ -18,6 +18,8 @@ class DatabaseSeeder extends Seeder
 			['email' => 'test@example.com'],
 			[
 				'name' => 'Test User',
+				'workos_id' => 'seed-workos-id-0001',
+				'avatar' => 'https://ui-avatars.com/api/?name=Test+User&background=0d1117&color=fff',
 			]
 		);
 
