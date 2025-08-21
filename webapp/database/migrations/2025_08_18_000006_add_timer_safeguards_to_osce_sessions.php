@@ -13,11 +13,32 @@ return new class extends Migration
     public function up(): void
     {
         // Add database constraints to prevent timing bugs
-        DB::statement('
-            ALTER TABLE osce_sessions 
-            ADD CONSTRAINT check_started_at_not_null 
-            CHECK (status != \'in_progress\' OR started_at IS NOT NULL)
-        ');
+        $driver = DB::getDriverName();
+
+        if ($driver === 'sqlite') {
+            // SQLite doesn't support ALTER TABLE ... ADD CONSTRAINT for CHECKs; use triggers.
+            DB::unprepared(<<<SQL
+                CREATE TRIGGER IF NOT EXISTS osce_sessions_started_at_check_insert
+                BEFORE INSERT ON osce_sessions
+                FOR EACH ROW
+                WHEN NEW.status = 'in_progress' AND NEW.started_at IS NULL
+                BEGIN
+                    SELECT RAISE(ABORT, 'started_at required when in_progress');
+                END;
+            SQL);
+
+            DB::unprepared(<<<SQL
+                CREATE TRIGGER IF NOT EXISTS osce_sessions_started_at_check_update
+                BEFORE UPDATE ON osce_sessions
+                FOR EACH ROW
+                WHEN NEW.status = 'in_progress' AND NEW.started_at IS NULL
+                BEGIN
+                    SELECT RAISE(ABORT, 'started_at required when in_progress');
+                END;
+            SQL);
+        } else {
+            DB::statement("\n                ALTER TABLE osce_sessions\n                ADD CONSTRAINT check_started_at_not_null\n                CHECK (status != 'in_progress' OR started_at IS NOT NULL)\n            ");
+        }
         
         // Add index for better performance on timer queries
         Schema::table('osce_sessions', function (Blueprint $table) {
@@ -36,10 +57,24 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement('ALTER TABLE osce_sessions DROP CONSTRAINT check_started_at_not_null');
+        $driver = DB::getDriverName();
+
+        if ($driver === 'sqlite') {
+            DB::unprepared('DROP TRIGGER IF EXISTS osce_sessions_started_at_check_insert');
+            DB::unprepared('DROP TRIGGER IF EXISTS osce_sessions_started_at_check_update');
+        } elseif ($driver === 'pgsql') {
+            DB::statement('ALTER TABLE osce_sessions DROP CONSTRAINT IF EXISTS check_started_at_not_null');
+        } elseif ($driver === 'mysql') {
+            try {
+                DB::statement('ALTER TABLE osce_sessions DROP CHECK check_started_at_not_null');
+            } catch (\Throwable $e) {
+                // Ignore if CHECK did not exist (older MySQL/MariaDB)
+            }
+        }
         
         Schema::table('osce_sessions', function (Blueprint $table) {
             $table->dropIndex('idx_user_status_timer');
         });
     }
 };
+
