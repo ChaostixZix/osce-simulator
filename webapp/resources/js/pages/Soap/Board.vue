@@ -97,6 +97,12 @@ function rel(t: string): string {
           </CardContent>
         </Card>
 
+        <div class="mt-6 flex justify-end">
+          <Link :href="route('patients.create')">
+            <Button>Add Patient</Button>
+          </Link>
+        </div>
+
         <div class="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <Card v-for="patient in patients.data" :key="patient.id">
             <CardHeader>

@@ -11,6 +11,7 @@ use App\Http\Controllers\SoapBoardController;
 use App\Http\Controllers\SoapCommentController;
 use App\Http\Controllers\SoapNoteController;
 use App\Http\Controllers\SoapPageController;
+use App\Http\Controllers\PatientController;
 
 Route::get('/', [LandingController::class, 'index'])->name('home');
 
@@ -80,6 +81,10 @@ Route::middleware([
 	// COMMENTS (lazy JSON)
 	Route::get('soap/notes/{note}/comments', [SoapCommentController::class, 'index'])->name('soap.comments.index');
 	Route::post('soap/notes/{note}/comments', [SoapCommentController::class, 'store'])->name('soap.comments.store');
+
+	// PATIENTS
+	Route::get('patients/create', [PatientController::class, 'create'])->name('patients.create');
+	Route::post('patients', [PatientController::class, 'store'])->name('patients.store');
 });
 
 require __DIR__.'/settings.php';
