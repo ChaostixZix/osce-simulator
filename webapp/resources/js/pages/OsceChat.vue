@@ -68,7 +68,8 @@ const props = defineProps<{
 		lab_results: any[]; 
 		procedure_results: any[]; 
 		examination_findings: any[]; 
-	}; 
+	};
+	examCatalog?: Record<string, string[]>;
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -145,7 +146,7 @@ const openResultsModal = (test: any) => {
 	showResultsModal.value = true;
 };
 
-const refreshTestResults = async (test: any) => {
+const refreshTestResults = async () => {
 	if (isRefreshing.value) return;
 	isRefreshing.value = true;
 	try {
@@ -171,14 +172,14 @@ const refreshTestResults = async (test: any) => {
 				variant: 'success' 
 			});
 		} else {
-			const error = await response.json();
+			const errorData = await response.json();
 			pushNotification({ 
 				title: 'Refresh failed', 
-				description: error.message || 'Could not refresh test results.', 
+				description: errorData.message || 'Could not refresh test results.', 
 				variant: 'error' 
 			});
 		}
-	} catch (error) {
+	} catch {
 		pushNotification({ 
 			title: 'Network error', 
 			description: 'Please check your connection and try again.', 
@@ -214,14 +215,14 @@ const submitTestOrders = async () => {
 			pushNotification({ title: 'Order failed', description: err?.error || 'Please try again', variant: 'error' }); 
 			return; 
 		}
-		const data = await resp.json();
+		await resp.json();
 		pushNotification({ title: 'Tests ordered', description: `${selectedTests.value.length} test(s) have been ordered.`, variant: 'success' });
 		selectedTests.value.length = 0; 
 		testSearchQuery.value = ''; 
 		searchResults.value.length = 0; 
 		showLabModal.value = false;
 		router.reload({ only: ['sessionData', 'session'] });
-	} catch (error) { 
+	} catch { 
 		pushNotification({ title: 'Network error', description: 'Please try again', variant: 'error' }); 
 	}
 	finally { isSubmittingOrders.value = false; }
@@ -449,16 +450,23 @@ onBeforeUnmount(() => {
 type ExamSelection = { category: string; type: string };
 const showExamModal = ref(false);
 const availableExamMap = computed<Record<string, string[]>>(() => {
-	const m = (osceCase.value as any)?.physical_exam_findings || {};
-	const result: Record<string, string[]> = {};
-	Object.keys(m || {}).forEach((cat) => {
-		const types = Object.keys(m[cat] || {});
-		if (types.length) result[cat] = types as string[];
-	});
-	return result;
+	// Use the full catalog from server instead of case-specific findings
+	return props.examCatalog || {};
 });
 const selectedExams = ref<ExamSelection[]>([]);
+
+// Check if an examination has already been performed
+const isExamPerformed = (sel: ExamSelection) => {
+	const findings = props.sessionData?.examination_findings || [];
+	return findings.some((exam: any) => 
+		exam.examination_category === sel.category && exam.examination_type === sel.type
+	);
+};
+
 function toggleExam(sel: ExamSelection) {
+	// Don't allow selecting already performed exams
+	if (isExamPerformed(sel)) return;
+	
 	const idx = selectedExams.value.findIndex(e => e.category === sel.category && e.type === sel.type);
 	if (idx >= 0) selectedExams.value.splice(idx, 1); else selectedExams.value.push(sel);
 }
@@ -501,7 +509,7 @@ async function updateCaseDuration() {
 		if (!res.ok) throw new Error('Failed');
 		pushNotification({ title: 'Case duration updated', variant: 'success' });
 		router.reload({ only: ['session'] });
-	} catch (e) {
+	} catch {
 		pushNotification({ title: 'Failed to update case duration', variant: 'error' });
 	} finally { isTimeSaving.value = false; }
 }
@@ -517,7 +525,7 @@ async function extendSessionTime() {
 		if (!res.ok) throw new Error('Failed');
 		pushNotification({ title: 'Session time extended', description: `+${extendMinutes.value} minute(s)`, variant: 'success' });
 		router.reload({ only: ['session'] });
-	} catch (e) {
+	} catch {
 		pushNotification({ title: 'Failed to extend session', variant: 'error' });
 	} finally { isTimeSaving.value = false; }
 }
@@ -618,6 +626,27 @@ async function extendSessionTime() {
 						</CardContent>
 					</Card>
 
+					<!-- Physical Exam Results -->
+					<Card>
+						<CardHeader>
+							<CardTitle class="text-lg">Physical Exam Results</CardTitle>
+						</CardHeader>
+						<CardContent class="space-y-3 text-sm">
+							<div v-if="(props.sessionData?.examination_findings || []).length === 0" class="text-gray-500">No physical examinations performed yet.</div>
+							<div v-for="exam in (props.sessionData?.examination_findings || [])" :key="`${exam.examination_category}-${exam.examination_type}`" class="border rounded p-3 space-y-1">
+								<div class="font-medium">
+									{{ exam.examination_category }} • {{ exam.examination_type }}
+								</div>
+								<div class="text-gray-600 dark:text-gray-300 text-xs">
+									{{ Array.isArray(exam.findings) ? exam.findings.join(', ') : exam.findings }}
+								</div>
+								<div class="text-xs text-gray-500">
+									{{ new Date(exam.performed_at).toLocaleString() }}
+								</div>
+							</div>
+						</CardContent>
+					</Card>
+
 					<!-- Actions -->
 					<Card>
 						<CardHeader>
@@ -698,13 +727,18 @@ async function extendSessionTime() {
 										<DialogDescription>Choose categories and types to perform.</DialogDescription>
 									</DialogHeader>
 									<div class="space-y-3 max-h-[60vh] overflow-y-auto">
-										<div v-if="Object.keys(availableExamMap).length === 0" class="text-sm text-gray-500">No examination options configured for this case.</div>
+										<div v-if="Object.keys(availableExamMap).length === 0" class="text-sm text-gray-500">No examination options available.</div>
 										<div v-for="(types, category) in availableExamMap" :key="category" class="border rounded">
 											<div class="px-3 py-2 font-medium bg-gray-50 dark:bg-gray-800">{{ category }}</div>
 											<div class="p-3 grid grid-cols-2 gap-2">
-											<button type="button" v-for="t in types" :key="t" @click="toggleExam({ category: String(category), type: String(t) })" class="text-xs px-2 py-1 rounded border" :disabled="!isSessionActive"
-												:class="isExamSelected({ category: String(category), type: String(t) }) ? 'bg-blue-600 text-white' : ''">
-													{{ t }}
+											<button type="button" v-for="t in types" :key="t" @click="toggleExam({ category: String(category), type: String(t) })" class="text-xs px-2 py-1 rounded border" 
+												:disabled="!isSessionActive || isExamPerformed({ category: String(category), type: String(t) })"
+												:class="{
+													'bg-blue-600 text-white': isExamSelected({ category: String(category), type: String(t) }),
+													'bg-green-100 text-green-800 border-green-300': isExamPerformed({ category: String(category), type: String(t) }),
+													'opacity-50 cursor-not-allowed': isExamPerformed({ category: String(category), type: String(t) })
+												}">
+													{{ isExamPerformed({ category: String(category), type: String(t) }) ? `${t} (Performed)` : t }}
 												</button>
 											</div>
 										</div>
@@ -807,7 +841,7 @@ async function extendSessionTime() {
 										</Button>
 									</div>
 									<div v-else>
-										<Button size="sm" variant="outline" class="w-full" @click="refreshTestResults(t)" :disabled="isRefreshing">
+										<Button size="sm" variant="outline" class="w-full" @click="refreshTestResults()" :disabled="isRefreshing">
 											<FlaskConical class="h-3 w-3 mr-1" />
 											{{ isRefreshing ? 'Loading...' : 'Load Results' }}
 										</Button>
