@@ -6,6 +6,7 @@ use Laravel\WorkOS\Http\Middleware\ValidateSessionWithWorkOS;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\LandingController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\SoapAttachmentController;
 use App\Http\Controllers\SoapBoardController;
 use App\Http\Controllers\SoapCommentController;
@@ -19,9 +20,7 @@ Route::middleware([
 	'auth',
 	ValidateSessionWithWorkOS::class,
 ])->group(function () {
-	Route::get('dashboard', function () {
-		return Inertia::render('Dashboard');
-	})->name('dashboard');
+	Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 	
 	Route::get('osce', [App\Http\Controllers\OsceController::class, 'index'])->name('osce');
 	Route::get('osce/chat/{session}', [App\Http\Controllers\OsceController::class, 'showChat'])->name('osce.chat');
