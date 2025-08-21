@@ -377,3 +377,457 @@ To ensure smooth and error-free operation, follow these directives when using to
 - Error recovery:
   - If `TodoWrite` fails with `The required parameter 'todos' is missing`, reissue it with a non-empty `todos` array.
   - Record created Todo IDs and link them in artifacts (implementation/test notes) for traceability.
+
+## AI Prompt Template — Standalone Feature Module (Laravel + Vue 3 + Inertia 2.0)
+
+Use this when asking for a laser-detailed, do-this-exactly prompt to scaffold a brand-new, isolated module. Replace all placeholders like `{{placeholder}}` before pasting into your AI/dev tool.
+
+---
+
+# PROMPT: Build a Standalone {{Module Name}} Module (Laravel + Vue 3 + Inertia 2.0)
+
+## Objectives (do exactly this)
+
+* Create a new top-level module under the path `/{{module-path}}` with these pages:
+  1. {{Board Page Name}}: `GET /{{module-path}}` — a dedicated board listing {{primary-entity-plural}} (not shared with other modules).
+  2. {{Record Page Name}}: `GET /{{module-path}}/{{primary-entity-route-segment}}/{id}` — a full page with a primary form on top and a timeline below.
+* Keep it isolated: no interaction with other modules/features unless explicitly specified.
+* Autosave for the form (hybrid: on blur + every {{autosave-interval-seconds}}s) with a visible “Saving… / Saved” indicator.
+* Timeline shows newest first, short preview expandable, relative timestamps, status badge (e.g., Draft/Finalized), author name, infinite scroll with loading spinner, {{draft-visibility}} drafts visible to authors, soft-deleted hidden (admins can restore).
+* Finalize action locks the record for non-admins; admins can override to edit finalized items.
+* Attachments: upload any file type, unlimited count, ≤{{max-attachment-mb}} MB each, download links only, cannot remove once uploaded.
+* Comments: text-only, collapsed by default, lazy-load on expand.
+* Search on `/{{module-path}}` via SQL LIKE across name/title + note/content fields, with filters, sorting, and pagination.
+* Timezone/formatting: `{{app-timezone}}`, 24h, `DD/MM/YYYY`; relative times like “2 hours ago”.
+
+---
+
+## Constraints / Non-Goals
+
+* Do not use external search engines (e.g., Meilisearch/Typesense); use SQL LIKE.
+* Do not add notifications/export/print/audit trail/view tracking unless explicitly requested.
+* Do not reuse UI from other modules (no cross-module Kanban or modals); this lives under `/{{module-path}}`.
+
+---
+
+## Step 0 — Prereqs & Conventions
+
+* Stack: Laravel, Vue 3, Inertia.js 2.0, dev DB SQLite, storage local.
+* Assume `users` table exists and `users.is_admin` boolean is available.
+* App timezone: set `config/app.php` → `'timezone' => '{{app-timezone}}'`.
+* Use Inertia form posts for create/update/finalize/attach. Use Inertia partial reload for infinite scroll.
+
+---
+
+## Step 1 — Migrations (create exactly these)
+
+### Commands
+
+```bash
+php artisan make:migration create_{{primary-entity-table}}_table
+php artisan make:migration create_{{record-table}}_table
+php artisan make:migration create_{{attachment-table}}_table
+php artisan make:migration create_{{comment-table}}_table
+```
+
+### Tables (fields)
+
+**{{primary-entity-table}}**
+
+* id, {{primary-name-field}} (string), {{primary-extra-fields}} (optional), status enum [{{primary-statuses}}] (default {{primary-default-status}}), timestamps, softDeletes.
+
+**{{record-table}}**
+
+* id, {{primary-entity-singular}}_id FK, author_id FK (users), form fields: {{form-fields-list}} as text/string as appropriate,
+* state enum [draft, finalized] default draft, finalized_at nullable timestamp, timestamps, softDeletes.
+* Indexes on `({{primary-entity-singular}}_id, created_at)` and `state`.
+
+**{{attachment-table}}**
+
+* id, {{record-singular}}_id FK, disk string (default `local`), path string, original_name string, size bigint, mime string nullable, timestamps.
+
+**{{comment-table}}**
+
+* id, {{record-singular}}_id FK, author_id FK (users), body text, timestamps, softDeletes.
+
+Run:
+
+```bash
+php artisan migrate
+```
+
+---
+
+## Step 2 — Eloquent Models (minimal)
+
+Create: `app/Models/{{PrimaryEntity}}.php`, `{{Record}}.php`, `{{Attachment}}.php`, `{{Comment}}.php`.
+
+Relationships/Scopes
+
+* `{{PrimaryEntity}}::{{recordsRelation}}()` hasMany.
+* `{{Record}}::{{primaryEntityRelation}}()`, `{{Record}}::author()` belongsTo.
+* `{{Record}}::attachments()` hasMany; `{{Record}}::comments()` hasMany.
+* `{{Record}}::scopeLikeSearch($q, $term)` → where configured form fields LIKE `%term%`.
+
+---
+
+## Step 3 — Policies (permissions)
+
+```bash
+php artisan make:policy {{Record}}Policy --model={{Record}}
+```
+
+Rules:
+
+* view: any authenticated user (team scope as applicable).
+* create: authenticated.
+* update: user is admin OR (author AND state=draft).
+* delete (soft): user is admin OR (author AND state=draft).
+* finalize: user is admin OR (author AND state=draft).
+* restore: admin only.
+
+Register policy in `AuthServiceProvider`.
+
+---
+
+## Step 4 — Routes (web)
+
+Add to `routes/web.php`:
+
+```php
+Route::middleware('auth')->group(function () {
+  // NEW PAGES
+  Route::get('/{{module-path}}', [{{BoardController}}::class, 'index'])->name('{{route-prefix}}.board');
+  Route::get('/{{module-path}}/{{primary-entity-route-segment}}/{id}', [{{PageController}}::class, 'show'])->name('{{route-prefix}}.page');
+
+  // RECORDS
+  Route::post('/{{module-path}}/{{primary-entity-route-segment}}/{id}/records', [{{RecordController}}::class, 'store'])->name('{{route-prefix}}.store');
+  Route::put('/{{module-path}}/records/{record}', [{{RecordController}}::class, 'update'])->name('{{route-prefix}}.update');
+  Route::post('/{{module-path}}/records/{record}/finalize', [{{RecordController}}::class, 'finalize'])->name('{{route-prefix}}.finalize');
+  Route::delete('/{{module-path}}/records/{record}', [{{RecordController}}::class, 'destroy'])->name('{{route-prefix}}.destroy');
+  Route::post('/{{module-path}}/records/{record}/restore', [{{RecordController}}::class, 'restore'])
+       ->middleware('can:restore,record')->name('{{route-prefix}}.restore'); // admin only
+
+  // ATTACHMENTS
+  Route::post('/{{module-path}}/records/{record}/attachments', [{{AttachmentController}}::class, 'store'])->name('{{route-prefix}}.attach');
+
+  // COMMENTS (lazy JSON)
+  Route::get('/{{module-path}}/records/{record}/comments', [{{CommentController}}::class, 'index'])->name('{{route-prefix}}.comments.index');
+  Route::post('/{{module-path}}/records/{record}/comments', [{{CommentController}}::class, 'store'])->name('{{route-prefix}}.comments.store');
+});
+```
+
+---
+
+## Step 5 — Controllers (behavior)
+
+Create:
+
+```bash
+php artisan make:controller {{BoardController}}
+php artisan make:controller {{PageController}}
+php artisan make:controller {{RecordController}}
+php artisan make:controller {{AttachmentController}}
+php artisan make:controller {{CommentController}}
+```
+
+{{BoardController}}@index (GET `/{{module-path}}`)
+
+* Accept query: `status` (domain-specific), `search` (name/title), `sort` (e.g., name|created|latest), `page`.
+* Query `{{PrimaryEntity}}` with status filter, `name LIKE %q%` search, `withCount('{{recordsRelation}}')`, eager-load latest 1 record for preview.
+* Sorting: by name, created_at desc, or latest related record via subquery `max({{record-table}}.created_at)`.
+* Return Inertia page `{{Module}}/Board` with paginated data, filters, and keep query string.
+
+{{PageController}}@show (GET `/{{module-path}}/{{primary-entity-route-segment}}/{id}`)
+
+* Load `{{PrimaryEntity}}`.
+* Load first page of `{{recordsRelation}}` (10 per page), ordered `created_at desc`, exclude soft-deleted for non-admins.
+* Return Inertia page `{{Module}}/Page` with props: entity, records, `can.admin`, `tz: '{{app-timezone}}'`.
+
+{{RecordController}}@store (create draft or new)
+
+* Validate required form fields: {{form-fields-list}}.
+* Create record with `state='draft'`, `author_id=auth()->id()`, `{{primary-entity-singular}}_id`.
+* Redirect back (Inertia) with flash; share the new record id in page props for frontend binding.
+* Optional: if avoiding multiple drafts per author/entity, upsert into existing draft.
+
+{{RecordController}}@update (edit draft / admin override)
+
+* Authorize `update`.
+* Validate all fields; update and return back (preserve scroll/state).
+
+{{RecordController}}@finalize
+
+* Authorize `finalize`.
+* Ensure required fields are non-empty; set `state='finalized'`, `finalized_at=now()`; redirect back.
+
+{{RecordController}}@destroy
+
+* Authorize `delete`; soft-delete; redirect back (hidden for non-admins).
+
+{{RecordController}}@restore (admin)
+
+* `onlyTrashed()->findOrFail()` then `restore()`.
+
+{{AttachmentController}}@store
+
+* Authorize `update` (draft or admin override).
+* Validate: `files.* => 'file|max:{{max-attachment-kb}}'`.
+* Store each file to `{{module-path}}/{record_id}` on `local`; create metadata rows; redirect back.
+
+{{CommentController}}@index
+
+* Return JSON: latest comments (desc), `paginate(10)`.
+
+{{CommentController}}@store
+
+* Validate: `body required|string`; create comment with `author_id`; return `204 No Content`.
+
+---
+
+## Step 6 — Frontend Pages (Vue + Inertia)
+
+File: `resources/js/Pages/{{Module}}/Board.vue`
+
+Behavior
+
+* Top filter bar: status dropdown, search input, sort dropdown, and Search button (Inertia GET with query).
+* Grid/list of cards; each shows key fields (e.g., name, tags), badge for total {{recordsRelation}} count, badge with last record relative time, and link → `route('{{route-prefix}}.page', id)`.
+* Pagination via Inertia GET preserving query string.
+
+File: `resources/js/Pages/{{Module}}/Page.vue`
+
+Layout
+
+* Header with primary entity context.
+* Top section = form with fields: {{form-fields-list}}.
+  * Fields as textareas/inputs with `@blur=\"save\"`.
+  * Autosave interval: every `{{autosave-interval-seconds}}` seconds; pending flag; skip when unchanged.
+  * Show `Saving…` while in-flight, else `Saved`.
+  * On first save, if no `recordId`, POST to `{{route-prefix}}.store`; then bind `recordId` and switch to PUT for subsequent saves.
+  * Buttons: “Save Draft” and “Finalize”. Autofocus first field on mount.
+* Attachments: simple `<input type=\"file\" multiple>` rendered when `recordId` exists; POST to `.../attachments`; render as download links only.
+* Timeline: cards with author, state badge, relative time; preview via `<details>`; comments lazy-loaded on expand; infinite scroll with partial reload (`only: ['records']`, `preserveScroll: true`).
+* Admin override UI: if `can.admin` and finalized, show “Edit (Admin)” to enable editing via PUT.
+
+Relative time helper (no extra libs): implement a small util converting timestamps to seconds/minutes/hours/days ago.
+
+---
+
+## Step 7 — Autosave Logic (exact)
+
+Local state: `form`, `recordId=null`, `dirty=false`, `saving=false`.
+
+On input: set `dirty=true`.
+
+On blur: call `save()` if `dirty && !saving`.
+
+Interval: `setInterval(save, {{autosave-interval-ms}})`; in `save()` skip if `!dirty || saving`.
+
+Behavior:
+
+* If `recordId == null`: `form.post(route('{{route-prefix}}.store', entity.id), { onSuccess: (page)=>{ recordId = page.props.newRecordId; dirty=false; saving=false; } })`
+* Else: `form.put(route('{{route-prefix}}.update', recordId), { onFinish:()=>{ dirty=false; saving=false; } })`
+
+---
+
+## Step 8 — Search/Sort on Board
+
+* Submit to `/{{module-path}}` with `?search=...&status=...&sort=...`.
+* Backend filters: `status` where provided; `search` via `name LIKE %search%` and optionally `EXISTS` subquery matching form fields.
+* Sort: by name (default), created_at desc, or latest related record using subquery `(select {{primary-entity-singular}}_id, max(created_at) as last from {{record-table}} group by {{primary-entity-singular}}_id)` ordered by `last desc`.
+* Paginate 20 per page.
+
+---
+
+## Step 9 — Soft Delete & Restore
+
+* destroy: soft-delete; hide for non-admins.
+* Do not show restore UI for normal users; optional tiny admin-only restore action.
+
+---
+
+## Step 10 — Validation Rules (exact)
+
+* Create/update: all form fields required with appropriate types (string/text). List: {{form-fields-list}}.
+* Attachments: `files.* => 'file|max:{{max-attachment-kb}}'` ({{max-attachment-mb}} MB each), allow any mime by default.
+* Comments: `body => 'required|string'`.
+
+---
+
+## Step 11 — Visual Details (must-have UX)
+
+* Board cards: key attributes, badge: total records, badge: last record relative time, open link.
+* Record page: autofocus first field, accurate autosave indicator, spinner during infinite scroll, comments collapsed by default and lazy-loaded, attachments as links only, timestamps in `id-ID` locale with 24h when absolute; relative for badges.
+
+---
+
+## Step 12 — Minimal Code Stubs (examples)
+
+Migration example (`{{record-table}}`)
+
+```php
+Schema::create('{{record-table}}', function (Blueprint $t) {
+  $t->id();
+  $t->foreignId('{{primary-entity-singular}}_id')->constrained('{{primary-entity-table}}')->cascadeOnDelete();
+  $t->foreignId('author_id')->constrained('users')->cascadeOnDelete();
+  // form fields
+  // e.g. $t->text('summary'); $t->text('details');
+  $t->enum('state',[ 'draft','finalized' ])->default('draft');
+  $t->timestamp('finalized_at')->nullable();
+  $t->timestamps();
+  $t->softDeletes();
+  $t->index(['{{primary-entity-singular}}_id','created_at']);
+});
+```
+
+Policy rule (update)
+
+```php
+public function update(User $u, {{Record}} $r){
+  return $u->is_admin || ($r->author_id === $u->id && $r->state === 'draft');
+}
+```
+
+Inertia infinite scroll (partial reload)
+
+```js
+router.get(route('{{route-prefix}}.page', entity.id), { page: next }, {
+  only: ['records'], preserveState: true, preserveScroll: true, replace: true
+})
+```
+
+Relative time helper (simple)
+
+```js
+function rel(t){
+  const d = (Date.now() - new Date(t).getTime())/1000
+  if (d < 60) return `${Math.floor(d)}s ago`
+  if (d < 3600) return `${Math.floor(d/60)}m ago`
+  if (d < 86400) return `${Math.floor(d/3600)}h ago`
+  return `${Math.floor(d/86400)}d ago`
+}
+```
+
+---
+
+## Step 13 — Acceptance Criteria (verify all)
+
+1. Visiting `/{{module-path}}` shows a new board with filters, search, sort, pagination.
+2. Cards display total records and last record relative time.
+3. Clicking a card opens `/{{module-path}}/{{primary-entity-route-segment}}/{id}` with form on top and timeline below.
+4. Form autofocus works; autosave fires on blur + interval, with a visible indicator.
+5. First save creates a draft and binds `recordId`; subsequent saves update the same record.
+6. Finalize locks editing for non-admins; admin can edit finalized (override).
+7. Timeline shows newest first, short preview → expand, status badge, author, relative time.
+8. Infinite scroll loads next pages with a spinner and keeps scroll position.
+9. Attachments upload (≤{{max-attachment-mb}} MB each), show as links, cannot be removed.
+10. Comments fetch lazily on expand; newest-first; text-only posting works.
+11. Soft delete hides the record for non-admins; admin can restore.
+12. All times respect `{{app-timezone}}` with proper display.
+
+---
+
+## Step 14 — Quick Commands Recap
+
+```bash
+# migrations/models/policies/controllers
+php artisan make:migration create_{{primary-entity-table}}_table
+php artisan make:migration create_{{record-table}}_table
+php artisan make:migration create_{{attachment-table}}_table
+php artisan make:migration create_{{comment-table}}_table
+php artisan migrate
+
+php artisan make:model {{PrimaryEntity}}
+php artisan make:model {{Record}}
+php artisan make:model {{Attachment}}
+php artisan make:model {{Comment}}
+
+php artisan make:policy {{Record}}Policy --model={{Record}}
+
+php artisan make:controller {{BoardController}}
+php artisan make:controller {{PageController}}
+php artisan make:controller {{RecordController}}
+php artisan make:controller {{AttachmentController}}
+php artisan make:controller {{CommentController}}
+```
+
+---
+
+How to use this template
+
+- Replace placeholders like `{{Module Name}}`, `{{module-path}}`, `{{PrimaryEntity}}`, `{{Record}}`, and `{{form-fields-list}}` with your domain terms.
+- Pick sensible defaults: `{{autosave-interval-seconds}}` (e.g., 10), `{{max-attachment-mb}}` (e.g., 5), and compute `{{max-attachment-kb}} = {{max-attachment-mb}} * 1024`.
+- Keep the module isolated unless integration is explicitly required.
+
+---
+
+## AI Prompt Template — Fix or Modify an Existing Feature
+
+Use this when asking for a detailed prompt to fix or modify an existing feature.
+
+# PROMPT: Fix or Modify an Existing Feature: {{Feature Name}}
+
+## 1. Context & Location
+
+*   **Feature being modified:** A brief, one-sentence description of the feature and its purpose.
+*   **Key Files & Code Location:** Pinpoint the exact files and functions to be changed.
+    *   Controller/Method: `webapp/app/Http/Controllers/{{ControllerName}}.php` at `function {{methodName}}()`
+    *   Model: `webapp/app/Models/{{ModelName}}.php`
+    *   Vue Component: `webapp/resources/js/Pages/{{ComponentName}}.vue`
+    *   Route: `webapp/routes/{{routeName}}.php`
+
+---
+
+## 2. Problem Description / Modification Goal
+
+*   **Current Behavior:** Describe what the system currently does. If it's a bug, explain the incorrect behavior with steps to reproduce.
+*   **Expected Behavior:** Describe what the system *should* do after the change. Be specific and clear.
+*   **Reason for Change:** Explain why this modification is necessary (e.g., "Bug fix for incorrect calculation," "Enhancement to support new user roles").
+
+---
+
+## 3. Implementation Details
+
+*   **Current Implementation:** Paste the relevant code snippet of the function/component that needs to be modified.
+
+    ```php
+    // Paste the existing function code here, for example:
+    public function store(Request $request)
+    {
+        // ... current logic ...
+    }
+    ```
+
+*   **Specified Approach & Required Changes:** Describe the technical strategy and list the exact changes needed.
+    *   **Approach:** *Example: "Refactor the validation logic into a dedicated Form Request class to keep the controller clean. Add a new service to handle the file upload."*
+    *   **Changes:**
+        1.  *Example: "Create a new `StorePostRequest` Form Request."*
+        2.  *Example: "In `PostController@store`, replace the inline validation with `StorePostRequest`."*
+        3.  *Example: "Add a `try-catch` block to handle potential `FileUploadException`."*
+
+---
+
+## 4. Constraints / Non-Goals
+
+*   **What NOT to change:** Clearly state any parts of the application that must remain untouched.
+    *   *Example:* "Do not alter the `posts` table schema." or "The frontend UI must not be changed."
+
+---
+
+## 5. Acceptance Criteria (verify all)
+
+*   Provide a checklist of testable outcomes to confirm the fix or modification is successful.
+    *   *Example 1:* "1. Submitting the form with a missing `title` field returns a validation error."
+    *   *Example 2:* "2. A successful form submission creates a new record in the `posts` table."
+    *   *Example 3:* "3. Uploading a file larger than 5MB results in a specific error message."
+
+---
+
+## How to use this template
+
+-   Replace all placeholders like `{{Feature Name}}` with specific details about the task.
+-   Provide the *actual code* for the "Current Implementation" to give the AI full context.
+-   Be as explicit as possible in the "Specified Approach & Required Changes" section.
+
+
