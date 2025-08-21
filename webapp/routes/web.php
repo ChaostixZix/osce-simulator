@@ -6,8 +6,14 @@ use Laravel\WorkOS\Http\Middleware\ValidateSessionWithWorkOS;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\LandingController;
+use App\Http\Controllers\BlogController;
+use App\Http\Controllers\Admin\BlogPostController as AdminBlogPostController;
 
 Route::get('/', [LandingController::class, 'index'])->name('home');
+
+// Blog routes
+Route::get('blog', [BlogController::class, 'index'])->name('blog.index');
+Route::get('blog/{slug}', [BlogController::class, 'show'])->name('blog.show');
 
 Route::middleware([
 	'auth',
@@ -55,6 +61,19 @@ Route::middleware([
 	Route::post('forum/{post}/comments', [CommentController::class, 'store'])->name('comments.store');
 	Route::put('comments/{comment}', [CommentController::class, 'update'])->name('comments.update');
 	Route::delete('comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy');
+
+	// Admin Blog Routes
+	Route::prefix('admin/blog')
+		->name('admin.blog.')
+		->controller(AdminBlogPostController::class)
+		->group(function () {
+			Route::get('/', 'index')->name('index');
+			Route::get('/create', 'create')->name('create');
+			Route::post('/', 'store')->name('store');
+			Route::get('/{post}/edit', 'edit')->name('edit');
+			Route::put('/{post}', 'update')->name('update');
+			Route::delete('/{post}', 'destroy')->name('destroy');
+		});
 });
 
 require __DIR__.'/settings.php';
