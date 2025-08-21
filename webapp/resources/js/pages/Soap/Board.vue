@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Pagination, PaginationEllipsis, PaginationFirst, PaginationLast, PaginationList, PaginationListItem, PaginationNext, PaginationPrev } from '@/components/ui/pagination'
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationFirst, PaginationLast, PaginationItem, PaginationNext, PaginationPrevious } from '@/components/ui/pagination'
 
 const props = defineProps<{
   patients: {
@@ -117,22 +117,22 @@ function rel(t: string): string {
 
         <div class="mt-6">
             <Pagination v-slot="{ page }" :total="patients.last_page * 10" :sibling-count="1" show-edges :default-page="patients.current_page">
-                <PaginationList v-slot="{ items }" class="flex items-center justify-center gap-1">
+                <PaginationContent v-slot="{ items }" class="flex items-center justify-center gap-1">
                     <PaginationFirst :href="patients.links[0].url" />
-                    <PaginationPrev :href="patients.prev_page_url" />
+                    <PaginationPrevious :href="patients.prev_page_url" />
 
                     <template v-for="(item, index) in items">
-                        <PaginationListItem v-if="item.type === 'page'" :key="index" :value="item.value" as-child>
+                        <PaginationItem v-if="item.type === 'page'" :key="index" :value="item.value" as-child>
                              <Button class="w-10 h-10 p-0" :variant="item.value === page ? 'default' : 'outline'" :href="item.value === page ? null : `/soap?page=${item.value}`">
                                 {{ item.value }}
                             </Button>
-                        </PaginationListItem>
+                        </PaginationItem>
                         <PaginationEllipsis v-else :key="item.type" :index="index" />
                     </template>
 
                     <PaginationNext :href="patients.next_page_url" />
                     <PaginationLast :href="patients.links[patients.links.length-1].url" />
-                </PaginationList>
+                </PaginationContent>
             </Pagination>
         </div>
       </div>
