@@ -63,23 +63,23 @@ Route::middleware([
 
 	// SOAP routes
 	// NEW PAGES
-	Route::get('/soap', [SoapBoardController::class, 'index'])->name('soap.board');
-	Route::get('/soap/patients/{patient}', [SoapPageController::class, 'show'])->name('soap.page');
+	Route::get('soap', [SoapBoardController::class, 'index'])->name('soap.board');
+	Route::get('soap/patients/{patient}', [SoapPageController::class, 'show'])->name('soap.page');
 
 	// NOTES
-	Route::post('/soap/patients/{patient}/notes', [SoapNoteController::class, 'store'])->name('soap.store');
-	Route::put('/soap/notes/{note}', [SoapNoteController::class, 'update'])->name('soap.update');
-	Route::post('/soap/notes/{note}/finalize', [SoapNoteController::class, 'finalize'])->name('soap.finalize');
-	Route::delete('/soap/notes/{note}', [SoapNoteController::class, 'destroy'])->name('soap.destroy');
-	Route::post('/soap/notes/{note}/restore', [SoapNoteController::class, 'restore'])
+	Route::post('soap/patients/{patient}/notes', [SoapNoteController::class, 'store'])->name('soap.store');
+	Route::put('soap/notes/{note}', [SoapNoteController::class, 'update'])->name('soap.update');
+	Route::post('soap/notes/{note}/finalize', [SoapNoteController::class, 'finalize'])->name('soap.finalize');
+	Route::delete('soap/notes/{note}', [SoapNoteController::class, 'destroy'])->name('soap.destroy');
+	Route::post('soap/notes/{note}/restore', [SoapNoteController::class, 'restore'])
 		 ->middleware('can:restore,note')->name('soap.restore'); // admin only
 
 	// ATTACHMENTS
-	Route::post('/soap/notes/{note}/attachments', [SoapAttachmentController::class, 'store'])->name('soap.attach');
+	Route::post('soap/notes/{note}/attachments', [SoapAttachmentController::class, 'store'])->name('soap.attach');
 
 	// COMMENTS (lazy JSON)
-	Route::get('/soap/notes/{note}/comments', [SoapCommentController::class, 'index'])->name('soap.comments.index');
-	Route::post('/soap/notes/{note}/comments', [SoapCommentController::class, 'store'])->name('soap.comments.store');
+	Route::get('soap/notes/{note}/comments', [SoapCommentController::class, 'index'])->name('soap.comments.index');
+	Route::post('soap/notes/{note}/comments', [SoapCommentController::class, 'store'])->name('soap.comments.store');
 });
 
 require __DIR__.'/settings.php';
