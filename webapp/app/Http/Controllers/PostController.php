@@ -35,17 +35,44 @@ class PostController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'title' => 'required|string|max:255',
+            'title' => 'nullable|string|max:255',
             'content' => 'required|string',
         ]);
 
         $post = Post::create([
-            'title' => $request->title,
+            'title' => $request->title ?: '',
             'content' => $request->content,
             'user_id' => auth()->id(),
         ]);
 
-        return redirect()->route('forum.show', $post);
+        return redirect()->route('forum.index');
+    }
+
+    public function indexApi(Request $request)
+    {
+        $posts = Post::with(['user'])
+            ->withCount('comments')
+            ->latest()
+            ->paginate(10);
+
+        return ForumPostResource::collection($posts);
+    }
+
+    public function storeApi(Request $request)
+    {
+        $request->validate([
+            'content' => 'required|string|max:280',
+        ]);
+
+        $post = Post::create([
+            'title' => '', // Empty title for Twitter-like posts
+            'content' => $request->content,
+            'user_id' => auth()->id(),
+        ]);
+
+        $post->load(['user']);
+
+        return response()->json(new ForumPostResource($post), 201);
     }
 
     public function update(Request $request, Post $post)
@@ -53,13 +80,13 @@ class PostController extends Controller
         $this->authorize('update', $post);
 
         $request->validate([
-            'title' => 'required|string|max:255',
+            'title' => 'nullable|string|max:255',
             'content' => 'required|string',
         ]);
 
         $post->update($request->only(['title', 'content']));
 
-        return redirect()->route('forum.show', $post);
+        return redirect()->route('forum.index');
     }
 
     public function destroy(Post $post)

@@ -64,6 +64,14 @@ Route::middleware([
 	Route::put('comments/{comment}', [CommentController::class, 'update'])->name('comments.update');
 	Route::delete('comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy');
 
+	// JSON API routes for timeline
+	Route::prefix('api/forum')->group(function () {
+		Route::get('posts', [PostController::class, 'indexApi'])->name('api.forum.posts.index');
+		Route::post('posts', [PostController::class, 'storeApi'])->name('api.forum.posts.store');
+		Route::get('posts/{post}/comments', [CommentController::class, 'indexApi'])->name('api.forum.comments.index');
+		Route::post('posts/{post}/comments', [CommentController::class, 'storeApi'])->name('api.forum.comments.store');
+	});
+
 	// SOAP routes
 	// NEW PAGES
 	Route::get('soap', [SoapBoardController::class, 'index'])->name('soap.board');
