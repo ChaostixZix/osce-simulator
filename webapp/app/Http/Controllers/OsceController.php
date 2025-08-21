@@ -64,10 +64,23 @@ class OsceController extends Controller
             'examination_findings' => $session->getPhysicalExamFindings(),
         ];
         
+        // Load exam catalog directly for now
+        $examCatalog = [
+            'general' => ['inspection', 'palpation'],
+            'cardiovascular' => ['inspection', 'palpation', 'auscultation'],
+            'respiratory' => ['inspection', 'palpation', 'percussion', 'auscultation'],
+            'abdomen' => ['inspection', 'palpation', 'percussion', 'auscultation'],
+            'neurological' => ['mental_status', 'cranial_nerves', 'motor', 'sensory', 'reflexes', 'gait'],
+            'musculoskeletal' => ['inspection', 'palpation', 'range_of_motion'],
+            'skin' => ['inspection'],
+            'heent' => ['inspection']
+        ];
+        
         return Inertia::render('OsceChat', [
             'session' => $session,
             'user' => $user,
-            'sessionData' => $sessionData
+            'sessionData' => $sessionData,
+            'examCatalog' => $examCatalog
         ]);
     }
 
@@ -113,14 +126,16 @@ class OsceController extends Controller
             ], 400);
         }
 
+        // Create session with pending status first to avoid constraint violation
         $session = OsceSession::create([
             'user_id' => $user->id,
             'osce_case_id' => $request->osce_case_id,
-            'status' => 'in_progress',
+            'status' => 'pending',
         ]);
         
-        // Set started_at explicitly since it's no longer fillable (prevents timer reset bugs)
+        // Now set started_at and update to in_progress atomically
         $session->started_at = now();
+        $session->status = 'in_progress';
         $session->save();
 
         return response()->json([
@@ -491,7 +506,7 @@ class OsceController extends Controller
                     continue; // Skip already performed examinations
                 }
 
-                // Get findings from template
+                // Get findings from template or use safe default
                 $findings = $examFindings[$category][$type] ?? ['No significant findings'];
 
                 // Create examination record
