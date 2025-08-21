@@ -121,7 +121,7 @@ function rel(t: string): string {
           </Card>
         </div>
 
-        <div class="mt-6">
+        <div class="mt-6" v-if="patients.last_page > 1">
             <Pagination v-slot="{ page }" :total="patients.last_page * 10" :sibling-count="1" show-edges :default-page="patients.current_page">
                 <PaginationContent v-slot="{ items }" class="flex items-center justify-center gap-1">
                     <PaginationFirst :href="patients.links[0].url" />
