@@ -159,53 +159,60 @@ IMPORTANT! -> Only invoke creating task using Vibe-Kanban MCP when "cTask" strin
 
 - Vibe Kanban is the todo app and agent system. It owns task creation, assignment, and execution tracking.
 - When the user says “create task(s)” in Vibe Kanban, do not implement code or make repo changes. Only create the requested tasks via the Vibe Kanban MCP.
-- The agents (Diagnosis, Implementation, Testing) will perform the actual work. Claude’s role is to set up and manage the tasks correctly.
+- Single‑agent model: Create one PRD‑style task that fully specifies the work. Implementation and testing happen only if the user asks to execute outside Kanban.
 - Always follow these when creating tasks:
   - Use MCP (not CLI) and include `project_id` and `task_id` for task-scoped operations.
   - Use `TodoWrite` first (with a non-empty `todos` array) to capture intent/context, then perform the MCP task action.
   - Link artifacts (e.g., `.claude/kanban/<feature-slug>.*.md`) in task descriptions for traceability.
   - Do not proceed to implementation unless the user explicitly asks to execute outside the Kanban workflow.
 
-## Vibe Kanban Workflow for New Functions
+### Vibe Kanban — Elaborative Titles and Objective Actions (Required)
 
-When creating a new function, the following three-task process should be used in Vibe Kanban to ensure a structured development process. This approach utilizes a three-agent system for diagnosis, implementation, and testing.
+When creating tasks, always write both the task title and the objective actions as a detailed, self-contained prompt that a developer can execute without guessing. Avoid terse labels. Include scope, rationale, concrete deliverables, file paths, commands, data rules, and acceptance checks.
 
-### Task 1: Diagnosis & Context Agent
--   **Objective**: Analyze the codebase to define the new function's requirements and context.
--   **Actions**:
-    1.  Explain the detailed functionality required, based on the existing codebase.
-    2.  Provide the reasoning and context for why the new function is necessary.
-    3.  Save the output as a detailed prompt in a markdown file (e.g., `feature_prompt.md`).
--   **Vibe Kanban Task Title**: "Diagnosis: [Function Name]"
+- Task title standard (must be elaborative):
+  - Good: "Diagnosis: Build a standalone SOAP module under /soap (Laravel + Vue 3 + Inertia) — define DB schema (patients, soap_notes, attachments, comments), policies (admin override), routes, controllers, and Vue pages with autosave and infinite scroll; isolate from OSCE; SQL LIKE search; acceptance criteria listed."
+  - Bad: "Diagnosis: SOAP module".
 
-### Task 2: Coding Agent
--   **Objective**: Implement the function based on the diagnosis prompt.
--   **Actions**:
-    1.  Write the code for the new function, strictly following the specifications in the `feature_prompt.md` file.
-    2.  Create a markdown report in a table format detailing the work done (e.g., `implementation_report.md`).
--   **Vibe Kanban Task Title**: "Implementation: [Function Name]"
+- Objective actions standard (must be enumerated and explicit):
+  - Include numbered steps with exact commands (e.g., `php artisan make:migration ...`), file paths (e.g., `webapp/app/Models/SoapNote.php`), route names, Vue component filenames, validation rules, and UX states.
+  - End the description with explicit, testable acceptance criteria and edge cases.
 
-### Task 3: Testing Agent
--   **Objective**: Test, debug, and validate the new function.
--   **Actions**:
-    1.  Thoroughly test the implemented function for bugs and edge cases.
-    2.  Debug any issues found.
-    3.  Provide a summary of the test results in a markdown file (e.g., `test_summary.md`).
--   **Vibe Kanban Task Title**: "Testing: [Function Name]"
+- Cross-linking and slug:
+  - Define a single kebab-case `<feature-slug>` in Diagnosis and use it across `.prompt.md`, `.implementation.md`, `.tests.md`.
+  - Link these files in each task body for traceability.
 
-The markdown filenames (`feature_prompt.md`, `implementation_report.md`, `test_summary.md`) should be predefined and consistently used across all three tasks for a given feature.
+- Consistency defaults (unless overridden by the task): Asia/Jakarta timezone, autosave every 10s, 5 MB attachment limit, local storage, SQLite for dev, Inertia SPA conventions.
+
+## Vibe Kanban Workflow for New Functions (Single‑Task, PRD‑Style)
+
+When creating a new function or feature, use a single task that acts as a comprehensive PRD. This one task must contain everything needed for a developer to implement and test the feature without ambiguity.
+
+### Task: Feature PRD (Single Agent)
+-  Objective: Produce a PRD‑level, elaborative prompt describing the feature in depth, including rationale, architecture, exact changes, commands, code examples, tool usage, and acceptance criteria.
+-  Contents (must include all of the following):
+   1) Background and Rationale: why it’s needed now; reference existing files by path and related routes/models/controllers.
+   2) Objectives and Non‑Goals: precise goals; what’s out of scope.
+   3) Architecture and Data Model: migrations, Eloquent models and relationships, indexes, constraints.
+   4) API/Routes and Controllers: route table (methods, URIs, names), controller actions with validation and authorization rules.
+   5) Frontend (Vue + Inertia): pages/components, state, autosave/infinite scroll behavior, UX details.
+   6) Tooling Usage: how to use Laravel Boost MCP tools at each step (list tools, when/why to call them: routes, schema, tinker, docs search, logs); include example calls and expected outputs.
+   7) Commands: exact Artisan and npm commands to run (scaffolding, migrations, building, testing).
+   8) Code Examples: minimal but precise PHP (migrations/models/policies/controllers) and Vue snippets to illustrate patterns and function usage; avoid full implementations unless essential.
+   9) Validation, Errors, and Permissions: rules, common failures, logging and retries strategy.
+   10) Acceptance Criteria: exhaustive, testable checks including UX states, edge cases, and permission matrix.
+   11) Test Plan: what to cover with Pest/PHPUnit and manual/inertia behaviors; data setup and teardown.
+   12) Rollout and Risks: migration order, potential data issues, fallback/rollback notes.
+### Task Title (must be elaborative):
+   - Template: "PRD: <feature-name> — goals, architecture (migrations/models/routes/controllers/components), tool usage (Laravel Boost MCP), commands, code examples, validation/permissions, acceptance criteria, and test plan."
+   - Example: "PRD: Standalone SOAP module under /soap (Laravel + Vue 3 + Inertia) — define patients/soap_notes schema, policies with admin override, routes/controllers, Board.vue/Page.vue with autosave+infinite scroll; use SQL LIKE search; include Laravel Boost MCP tool usage (routes/schema/tinker/docs); provide code examples; acceptance criteria and test plan included."
 
 ### Filename Convention and Task Enforcement
 
-- Always create exactly three Vibe Kanban tasks whenever a new function is requested: Diagnosis, Implementation, and Testing.
-- Predefine a single shared base slug for the feature in Task 1 (kebab-case), and reuse it across all agents and files.
-- Use these filenames, derived from the same base slug, to keep artifacts linked:
-  - `<feature-slug>.prompt.md` — produced by the Diagnosis agent (requirements and context).
-  - `<feature-slug>.implementation.md` — produced by the Implementation agent (what changed, in table form).
-  - `<feature-slug>.tests.md` — produced by the Testing agent (test plan, results, and debugging notes).
-- The Implementation agent must implement strictly against the prompt at `<feature-slug>.prompt.md` and must include a table-form report of completed work in `<feature-slug>.implementation.md`.
-- The Testing agent must execute tests, debug failures, and summarize outcomes in `<feature-slug>.tests.md`.
-- Recommended location for these files: `.claude/kanban/` (e.g., `.claude/kanban/<feature-slug>.prompt.md`).
+- Always create exactly one Vibe Kanban task for a new function/feature: a PRD‑style prompt task (single agent).
+- Define a kebab‑case `<feature-slug>` and save the PRD as `.claude/kanban/<feature-slug>.prd.md`.
+- The task description must include all PRD sections above and link to `.claude/kanban/<feature-slug>.prd.md`.
+- If the user later requests execution, reference this PRD for implementation and testing; track outcomes in the same PRD or in follow‑up notes as requested by the user.
 
 ### Vibe Kanban MCP Parameter Requirements
 
