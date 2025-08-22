@@ -14,16 +14,23 @@ class SoapNoteController extends Controller
     public function store(Request $request, Patient $patient): RedirectResponse
     {
         $validated = $request->validate([
-            'subjective' => 'nullable|string',
-            'objective' => 'nullable|string',
-            'assessment' => 'nullable|string',
-            'plan' => 'nullable|string',
+            'subjective' => 'nullable', // Allow both string and array (JSON)
+            'objective' => 'nullable', 
+            'assessment' => 'nullable',
+            'plan' => 'nullable',
         ]);
 
-        $note = $patient->soapNotes()->create(array_merge($validated, [
+        // Ensure no null values are passed to database (NOT NULL constraint)
+        $cleanedData = [
+            'subjective' => $validated['subjective'] ?? '',
+            'objective' => $validated['objective'] ?? '',
+            'assessment' => $validated['assessment'] ?? '',
+            'plan' => $validated['plan'] ?? '',
             'author_id' => Auth::id(),
             'state' => 'draft',
-        ]));
+        ];
+
+        $note = $patient->soapNotes()->create($cleanedData);
 
         return back()->with('newNoteId', $note->id);
     }
@@ -33,13 +40,21 @@ class SoapNoteController extends Controller
         $this->authorize('update', $note);
 
         $validated = $request->validate([
-            'subjective' => 'nullable|string',
-            'objective' => 'nullable|string',
-            'assessment' => 'nullable|string',
-            'plan' => 'nullable|string',
+            'subjective' => 'nullable', // Allow both string and array (JSON)
+            'objective' => 'nullable', 
+            'assessment' => 'nullable',
+            'plan' => 'nullable',
         ]);
 
-        $note->update($validated);
+        // Ensure no null values are passed to database (NOT NULL constraint)
+        $cleanedData = [
+            'subjective' => $validated['subjective'] ?? '',
+            'objective' => $validated['objective'] ?? '',
+            'assessment' => $validated['assessment'] ?? '',
+            'plan' => $validated['plan'] ?? '',
+        ];
+
+        $note->update($cleanedData);
 
         return back();
     }
@@ -48,7 +63,13 @@ class SoapNoteController extends Controller
     {
         $this->authorize('finalize', $note);
 
-        if (empty($note->subjective) || empty($note->objective) || empty($note->assessment) || empty($note->plan)) {
+        // Check if all fields have content (handle both string and array formats)
+        $hasSubjective = $this->hasContent($note->subjective);
+        $hasObjective = $this->hasContent($note->objective);
+        $hasAssessment = $this->hasContent($note->assessment);
+        $hasPlan = $this->hasContent($note->plan);
+
+        if (!$hasSubjective || !$hasObjective || !$hasAssessment || !$hasPlan) {
             throw ValidationException::withMessages([
                 'form' => 'All SOAP fields must be filled before finalizing.',
             ]);
@@ -75,5 +96,32 @@ class SoapNoteController extends Controller
         $this->authorize('restore', $note);
         $note->restore();
         return back();
+    }
+
+    /**
+     * Check if content field has meaningful content (handles both string and JSON formats)
+     */
+    private function hasContent($content): bool
+    {
+        if (empty($content)) {
+            return false;
+        }
+
+        // If it's a string, check if it's not just empty or whitespace
+        if (is_string($content)) {
+            return !empty(trim(strip_tags($content)));
+        }
+
+        // If it's an array (JSON), check if it has meaningful content
+        if (is_array($content)) {
+            // Basic check for TipTap JSON structure
+            if (isset($content['type']) && $content['type'] === 'doc') {
+                return isset($content['content']) && !empty($content['content']);
+            }
+            // Fallback: any non-empty array considered as having content
+            return !empty($content);
+        }
+
+        return false;
     }
 }

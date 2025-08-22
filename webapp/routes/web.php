@@ -86,6 +86,9 @@ Route::middleware([
 
 	// ATTACHMENTS
 	Route::post('soap/notes/{note}/attachments', [SoapAttachmentController::class, 'store'])->name('soap.attach');
+	
+	// IMAGE UPLOADS (for Novel editor)
+	Route::post('soap/notes/{note}/uploads', [SoapAttachmentController::class, 'uploadImage'])->name('soap.upload-image');
 
 	// COMMENTS (lazy JSON)
 	Route::get('soap/notes/{note}/comments', [SoapCommentController::class, 'index'])->name('soap.comments.index');

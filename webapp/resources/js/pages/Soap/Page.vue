@@ -3,8 +3,17 @@ import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { Head, useForm, router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import TiptapEditor from '@/components/TiptapEditor.vue';
+import SoapNovelEditor from '@/components/SoapNovelEditor.vue';
+import SoapNovelEditorFixed from '@/components/SoapNovelEditorFixed.vue';
+import SimpleTextEditor from '@/components/SimpleTextEditor.vue';
+import SoapNovelEditorWorking from '@/components/SoapNovelEditorWorking.vue';
+import SoapNovelEditorClean from '@/components/SoapNovelEditorClean.vue';
 import { sanitizeHtml, stripHtml } from '@/utils/sanitize';
+import { generateHTML } from '@tiptap/html';
+import StarterKit from '@tiptap/starter-kit';
+import Image from '@tiptap/extension-image';
+import Link from '@tiptap/extension-link';
+import Underline from '@tiptap/extension-underline';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -30,6 +39,8 @@ const noteId = ref<number | null>(props.newNoteId || null);
 const saving = ref(false);
 const saveStatus = ref('');
 const editingNoteId = ref<number | null>(null);
+const isDirty = ref(false);
+const autosaveInterval = ref<NodeJS.Timeout | null>(null);
 
 const form = useForm({
   subjective: '',
@@ -70,6 +81,15 @@ const save = () => {
     return;
   }
 
+  // Debug: Log form data
+  console.log('Save called with form data:', {
+    subjective: form.subjective,
+    objective: form.objective,
+    assessment: form.assessment,
+    plan: form.plan,
+    noteId: noteId.value
+  });
+
   // Check if form has any content
   const hasContent = form.subjective || form.objective || form.assessment || form.plan;
   if (!hasContent) {
@@ -86,7 +106,8 @@ const save = () => {
       if (page.props.newNoteId && !noteId.value) {
         noteId.value = page.props.newNoteId;
       }
-      saveStatus.value = 'Saved successfully!';
+      saveStatus.value = 'Saved';
+      isDirty.value = false;
       setTimeout(() => saveStatus.value = '', 3000);
       
       // Update the timeline data without full reload
@@ -106,6 +127,18 @@ const save = () => {
   } else {
     form.put(route('soap.update', noteId.value), onFinish);
   }
+};
+
+// Autosave function
+const autosave = () => {
+  if (isDirty.value && !saving.value) {
+    save();
+  }
+};
+
+// Track form changes to set dirty state
+const markDirty = () => {
+  isDirty.value = true;
 };
 
 const editNote = (note: any) => {
@@ -210,6 +243,63 @@ function rel(t: string): string {
   if (d < 86400) return `${Math.floor(d / 3600)}h ago`;
   return `${Math.floor(d / 86400)}d ago`;
 }
+
+// Helper function to convert TipTap JSON to HTML for display
+const convertJsonToHtml = (content: any): string => {
+  if (!content) return '';
+  if (typeof content === 'string') {
+    // If it's already HTML, return as-is
+    return content;
+  }
+  try {
+    const extensions = [
+      StarterKit,
+      Underline,
+      Image.configure({
+        HTMLAttributes: {
+          class: 'rounded-lg border border-gray-300 max-w-full h-auto',
+        },
+      }),
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: 'text-blue-600 underline cursor-pointer',
+        },
+      }),
+    ];
+    return generateHTML(content, extensions);
+  } catch (error) {
+    console.warn('Failed to convert JSON to HTML:', error);
+    return '';
+  }
+};
+
+// Helper function to get plain text from TipTap JSON for preview
+const getTextFromJson = (content: any): string => {
+  if (!content) return '';
+  if (typeof content === 'string') {
+    return stripHtml(content);
+  }
+  try {
+    const html = convertJsonToHtml(content);
+    return stripHtml(html);
+  } catch (error) {
+    console.warn('Failed to extract text from JSON:', error);
+    return '';
+  }
+};
+
+// Setup autosave interval and cleanup
+onMounted(() => {
+  // Start autosave interval (every 10 seconds)
+  autosaveInterval.value = setInterval(autosave, 10000);
+});
+
+onUnmounted(() => {
+  if (autosaveInterval.value) {
+    clearInterval(autosaveInterval.value);
+  }
+});
 </script>
 
 <template>
@@ -232,40 +322,48 @@ function rel(t: string): string {
           <CardContent class="space-y-4">
             <div>
               <Label for="subjective">Subjective</Label>
-              <TiptapEditor 
+              <SoapNovelEditorClean 
                 id="subjective" 
                 v-model="form.subjective" 
- 
+                :note-id="noteId"
+                @blur="save"
+                @update:modelValue="markDirty"
                 placeholder="Chief complaint, history of present illness, review of systems..."
                 min-height="160px"
               />
             </div>
             <div>
               <Label for="objective">Objective</Label>
-              <TiptapEditor 
+              <SoapNovelEditorClean 
                 id="objective" 
                 v-model="form.objective" 
- 
+                :note-id="noteId"
+                @blur="save"
+                @update:modelValue="markDirty"
                 placeholder="Vital signs, physical examination findings, diagnostic results..."
                 min-height="160px"
               />
             </div>
             <div>
               <Label for="assessment">Assessment</Label>
-              <TiptapEditor 
+              <SoapNovelEditorClean 
                 id="assessment" 
                 v-model="form.assessment" 
- 
+                :note-id="noteId"
+                @blur="save"
+                @update:modelValue="markDirty"
                 placeholder="Clinical impression, differential diagnosis, problem list..."
                 min-height="160px"
               />
             </div>
             <div>
               <Label for="plan">Plan</Label>
-              <TiptapEditor 
+              <SoapNovelEditorClean 
                 id="plan" 
                 v-model="form.plan" 
- 
+                :note-id="noteId"
+                @blur="save"
+                @update:modelValue="markDirty"
                 placeholder="Treatment plan, medications, follow-up instructions, patient education..."
                 min-height="160px"
               />
@@ -309,32 +407,40 @@ function rel(t: string): string {
                   <div class="space-y-4">
                     <div>
                       <Label>Subjective</Label>
-                      <TiptapEditor 
+                      <SoapNovelEditorClean 
                         v-model="editForm.subjective" 
+                        :note-id="note.id"
+                        :disabled="note.state === 'finalized' && !can.admin"
                         placeholder="Chief complaint, history of present illness, review of systems..."
                         min-height="120px"
                       />
                     </div>
                     <div>
                       <Label>Objective</Label>
-                      <TiptapEditor 
+                      <SoapNovelEditorClean 
                         v-model="editForm.objective" 
+                        :note-id="note.id"
+                        :disabled="note.state === 'finalized' && !can.admin"
                         placeholder="Vital signs, physical examination findings, diagnostic results..."
                         min-height="120px"
                       />
                     </div>
                     <div>
                       <Label>Assessment</Label>
-                      <TiptapEditor 
+                      <SoapNovelEditorClean 
                         v-model="editForm.assessment" 
+                        :note-id="note.id"
+                        :disabled="note.state === 'finalized' && !can.admin"
                         placeholder="Clinical impression, differential diagnosis, problem list..."
                         min-height="120px"
                       />
                     </div>
                     <div>
                       <Label>Plan</Label>
-                      <TiptapEditor 
+                      <SoapNovelEditorClean 
                         v-model="editForm.plan" 
+                        :note-id="note.id"
+                        :disabled="note.state === 'finalized' && !can.admin"
                         placeholder="Treatment plan, medications, follow-up instructions, patient education..."
                         min-height="120px"
                       />
@@ -348,12 +454,12 @@ function rel(t: string): string {
                 <div v-else>
                   <!-- Display mode -->
                   <details>
-                    <summary>{{ stripHtml(note.subjective).substring(0, 120) }}...</summary>
+                    <summary>{{ getTextFromJson(note.subjective).substring(0, 120) }}...</summary>
                     <div class="mt-4 space-y-2">
-                      <div><strong>Subjective:</strong> <div v-html="sanitizeHtml(note.subjective)" class="inline"></div></div>
-                      <div><strong>Objective:</strong> <div v-html="sanitizeHtml(note.objective)" class="inline"></div></div>
-                      <div><strong>Assessment:</strong> <div v-html="sanitizeHtml(note.assessment)" class="inline"></div></div>
-                      <div><strong>Plan:</strong> <div v-html="sanitizeHtml(note.plan)" class="inline"></div></div>
+                      <div><strong>Subjective:</strong> <div v-html="sanitizeHtml(convertJsonToHtml(note.subjective))" class="inline"></div></div>
+                      <div><strong>Objective:</strong> <div v-html="sanitizeHtml(convertJsonToHtml(note.objective))" class="inline"></div></div>
+                      <div><strong>Assessment:</strong> <div v-html="sanitizeHtml(convertJsonToHtml(note.assessment))" class="inline"></div></div>
+                      <div><strong>Plan:</strong> <div v-html="sanitizeHtml(convertJsonToHtml(note.plan))" class="inline"></div></div>
                     </div>
                   </details>
                   <!-- Edit button -->
