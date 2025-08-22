@@ -2,6 +2,7 @@
 import { ref, watch, onMounted, nextTick } from 'vue';
 import { Editor } from 'novel-vue';
 import axios from 'axios';
+import { toTiptapJSON, emptyDoc } from '@/utils/richtext';
 
 interface Props {
   modelValue: any;
@@ -28,50 +29,34 @@ const emit = defineEmits<Emits>();
 const editorRef = ref(null);
 const uploading = ref(false);
 const isReady = ref(false);
-const editorContent = ref('');
+// Keep source of truth minimal; we normalize to JSON for the editor and emit JSON on updates
+const initialValue = ref<any>(emptyDoc());
 
 // Initialize content from props
 onMounted(async () => {
   await nextTick();
   isReady.value = true;
-  // Only set content if it's a valid HTML string
-  if (typeof props.modelValue === 'string' && props.modelValue) {
-    editorContent.value = props.modelValue;
-  }
-  
+  initialValue.value = toTiptapJSON(props.modelValue) || emptyDoc();
   // Clear any localStorage that might contain demo content
   if (typeof window !== 'undefined') {
     try {
-      // Clear any Novel editor storage
       Object.keys(localStorage).forEach(key => {
         if (key.includes('novel') || key.includes('editor')) {
           localStorage.removeItem(key);
         }
       });
-    } catch (e) {
-      // Ignore localStorage errors
+    } catch {
+      // ignore
     }
   }
 });
 
-// Watch for external model value changes - only update if it's different HTML
+// Watch for external model value changes and re-normalize to JSON
 watch(() => props.modelValue, (newValue) => {
-  if (typeof newValue === 'string' && newValue !== editorContent.value) {
-    editorContent.value = newValue;
-  }
+  initialValue.value = toTiptapJSON(newValue) || emptyDoc();
 }, { deep: true });
 
-// Helper to convert content for internal storage - keep as HTML string
-const getContentAsString = (content: any): string => {
-  if (!content) return '';
-  if (typeof content === 'string') return content;
-  if (typeof content === 'object') {
-    // If it's TipTap JSON, ignore it for display purposes
-    // We only store HTML strings internally
-    return '';
-  }
-  return String(content);
-};
+// Removed HTML-centric storage; we normalize to JSON only
 
 // Handle image uploads
 const handleImageUpload = async (file: File): Promise<string> => {
@@ -103,34 +88,32 @@ const handleImageUpload = async (file: File): Promise<string> => {
   }
 };
 
-// Handle content changes - always output HTML string
+// Handle content changes - always emit TipTap JSON
 const handleUpdate = (editor: any) => {
-  let htmlContent = '';
-  
   try {
+    if (editor && typeof editor.getJSON === 'function') {
+      emit('update:modelValue', editor.getJSON());
+      return;
+    }
+    if (editor && typeof editor.getHTML === 'function') {
+      // Fallback: convert editor HTML to TipTap JSON via Novel internals
+      // Novel will pass the new state again, but we still guard
+      emit('update:modelValue', toTiptapJSON(editor.getHTML()));
+      return;
+    }
     if (typeof editor === 'string') {
-      htmlContent = editor;
-    } else if (editor && typeof editor.getHTML === 'function') {
-      htmlContent = editor.getHTML();
-    } else if (editor && editor.content) {
-      // If it's a TipTap JSON object, try to convert to HTML
-      if (typeof editor.content === 'object') {
-        // For now, emit empty HTML if we get JSON
-        htmlContent = '';
-      } else {
-        htmlContent = String(editor.content);
-      }
+      emit('update:modelValue', toTiptapJSON(editor));
+      return;
+    }
+    if (editor && editor.content) {
+      // If raw content provided
+      emit('update:modelValue', toTiptapJSON(editor.content));
+      return;
     }
   } catch (error) {
-    console.warn('Error handling editor update:', error);
-    htmlContent = '';
+    console.warn('Error handling editor update, defaulting to empty doc:', error);
+    emit('update:modelValue', emptyDoc());
   }
-  
-  // Update local content state
-  editorContent.value = htmlContent;
-  
-  // Always emit HTML string, never JSON
-  emit('update:modelValue', htmlContent);
 };
 
 // Handle blur
@@ -138,51 +121,9 @@ const handleBlur = () => {
   emit('blur');
 };
 
-// Convert model value for Novel editor input - must return TipTap JSON format
+// Convert model value for Novel editor input - return TipTap JSON format
 const getEditorValue = () => {
-  if (!props.modelValue) {
-    return {
-      type: 'doc',
-      content: []
-    };
-  }
-  
-  if (typeof props.modelValue === 'string') {
-    if (props.modelValue.trim() === '') {
-      return {
-        type: 'doc',
-        content: []
-      };
-    }
-    
-    // If it's HTML string (contains < and >), let Novel Vue parse it by returning the HTML directly
-    // Novel Vue will automatically convert HTML strings to TipTap JSON internally
-    if (props.modelValue.includes('<') && props.modelValue.includes('>')) {
-      return props.modelValue; // Novel Vue will convert HTML to TipTap JSON
-    } else {
-      // Plain text - wrap in paragraph
-      return {
-        type: 'doc',
-        content: [{
-          type: 'paragraph',
-          content: [{
-            type: 'text',
-            text: props.modelValue
-          }]
-        }]
-      };
-    }
-  }
-  
-  // If it's already an object (TipTap JSON), use it directly
-  if (typeof props.modelValue === 'object') {
-    return props.modelValue;
-  }
-  
-  return {
-    type: 'doc',
-    content: []
-  };
+  return initialValue.value || emptyDoc();
 };
 </script>
 
