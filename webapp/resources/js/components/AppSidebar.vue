@@ -10,12 +10,12 @@ import AppLogo from './AppLogo.vue';
 
 const mainNavItems: NavItem[] = [
     {
-        title: 'Home',
+        title: 'home',
         href: '/',
         icon: BookOpen,
     },
     {
-        title: 'Dashboard',
+        title: 'dashboard',
         href: '/dashboard',
         icon: LayoutGrid,
     },
@@ -30,12 +30,12 @@ const mainNavItems: NavItem[] = [
         icon: Hospital,
     },
     {
-        title: 'SOAP',
+        title: 'soap',
         href: '/soap',
         icon: MessageCircle,
     },
     {
-        title: 'MCQ',
+        title: 'mcq',
         href: '/mcq',
         icon: HelpCircle,
     },
