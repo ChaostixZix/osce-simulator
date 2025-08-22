@@ -20,10 +20,17 @@ class SoapNoteController extends Controller
             'plan' => 'nullable',
         ]);
 
-        $note = $patient->soapNotes()->create(array_merge($validated, [
+        // Ensure no null values are passed to database (NOT NULL constraint)
+        $cleanedData = [
+            'subjective' => $validated['subjective'] ?? '',
+            'objective' => $validated['objective'] ?? '',
+            'assessment' => $validated['assessment'] ?? '',
+            'plan' => $validated['plan'] ?? '',
             'author_id' => Auth::id(),
             'state' => 'draft',
-        ]));
+        ];
+
+        $note = $patient->soapNotes()->create($cleanedData);
 
         return back()->with('newNoteId', $note->id);
     }
@@ -39,7 +46,15 @@ class SoapNoteController extends Controller
             'plan' => 'nullable',
         ]);
 
-        $note->update($validated);
+        // Ensure no null values are passed to database (NOT NULL constraint)
+        $cleanedData = [
+            'subjective' => $validated['subjective'] ?? '',
+            'objective' => $validated['objective'] ?? '',
+            'assessment' => $validated['assessment'] ?? '',
+            'plan' => $validated['plan'] ?? '',
+        ];
+
+        $note->update($cleanedData);
 
         return back();
     }

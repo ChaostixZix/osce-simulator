@@ -26,10 +26,12 @@ class SoapNote extends Model
 
     protected $casts = [
         'finalized_at' => 'datetime',
-        'subjective' => 'array',
-        'objective' => 'array', 
-        'assessment' => 'array',
-        'plan' => 'array',
+        // Temporarily removed array casting to fix NOT NULL constraint
+        // Will add back once basic functionality works
+        // 'subjective' => 'array',
+        // 'objective' => 'array', 
+        // 'assessment' => 'array',
+        // 'plan' => 'array',
     ];
 
     public function patient(): BelongsTo
