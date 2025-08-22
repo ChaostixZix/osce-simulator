@@ -40,6 +40,9 @@ interface Props {
         meta?: any;
         links?: any;
     };
+    auth: {
+        user: User | null;
+    };
 }
 
 const props = defineProps<Props>();
@@ -230,8 +233,9 @@ const getInitials = (name: string) => {
                 <CardContent class="p-4">
                     <div class="flex gap-3">
                         <Avatar class="h-10 w-10 flex-shrink-0">
+                            <AvatarImage :src="props.auth.user?.avatar" />
                             <AvatarFallback>
-                                {{ getInitials('You') }}
+                                {{ props.auth.user?.name ? getInitials(props.auth.user.name) : 'U' }}
                             </AvatarFallback>
                         </Avatar>
                         <div class="flex-1">
@@ -342,8 +346,9 @@ const getInitials = (name: string) => {
                                     <!-- Reply Input -->
                                     <div class="flex gap-3">
                                         <Avatar class="h-8 w-8 flex-shrink-0">
+                                            <AvatarImage :src="props.auth.user?.avatar" />
                                             <AvatarFallback class="text-xs">
-                                                {{ getInitials('You') }}
+                                                {{ props.auth.user?.name ? getInitials(props.auth.user.name) : 'U' }}
                                             </AvatarFallback>
                                         </Avatar>
                                         <div class="flex-1">

@@ -19,6 +19,13 @@ class PostController extends Controller
 
         return Inertia::render('Forum/Index', [
             'posts' => ForumPostResource::collection($posts),
+            'auth' => [
+                'user' => auth()->user() ? [
+                    'id' => auth()->user()->id,
+                    'name' => auth()->user()->name,
+                    'avatar' => auth()->user()->avatar,
+                ] : null,
+            ],
         ]);
     }
 
