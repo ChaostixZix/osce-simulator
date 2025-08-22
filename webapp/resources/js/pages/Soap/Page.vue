@@ -27,9 +27,9 @@ const props = defineProps<{
 }>();
 
 const noteId = ref<number | null>(props.newNoteId || null);
-const dirty = ref(false);
 const saving = ref(false);
 const saveStatus = ref('');
+const editingNoteId = ref<number | null>(null);
 
 const form = useForm({
   subjective: '',
@@ -38,14 +38,11 @@ const form = useForm({
   plan: '',
 });
 
-let saveInterval: number;
-
-onMounted(() => {
-  saveInterval = setInterval(save, 10000);
-});
-
-onUnmounted(() => {
-  clearInterval(saveInterval);
+const editForm = useForm({
+  subjective: '',
+  objective: '',
+  assessment: '',
+  plan: '',
 });
 
 watch(() => props.newNoteId, (newId) => {
@@ -54,13 +51,17 @@ watch(() => props.newNoteId, (newId) => {
   }
 });
 
-watch(form, () => {
-  dirty.value = true;
-}, { deep: true });
-
 
 const save = () => {
-  if (!dirty.value || saving.value) {
+  if (saving.value) {
+    return;
+  }
+
+  // Check if form has any content
+  const hasContent = form.subjective || form.objective || form.assessment || form.plan;
+  if (!hasContent) {
+    saveStatus.value = 'Please add some content before saving';
+    setTimeout(() => saveStatus.value = '', 3000);
     return;
   }
 
@@ -69,17 +70,21 @@ const save = () => {
 
   const onFinish = {
     onSuccess: (page: any) => {
-      if (page.props.newNoteId) {
+      if (page.props.newNoteId && !noteId.value) {
         noteId.value = page.props.newNoteId;
       }
-      dirty.value = false;
-      saveStatus.value = 'Saved';
+      saveStatus.value = 'Saved successfully!';
+      setTimeout(() => saveStatus.value = '', 3000);
+      
+      // Refresh the timeline to show the new/updated note
+      router.reload({ only: ['notes'] });
     },
     onFinish: () => {
       saving.value = false;
     },
     onError: () => {
-        saveStatus.value = 'Error saving';
+      saveStatus.value = 'Error saving';
+      setTimeout(() => saveStatus.value = '', 3000);
     }
   };
 
@@ -90,10 +95,26 @@ const save = () => {
   }
 };
 
-const finalize = () => {
-  if (noteId.value) {
-    router.post(route('soap.finalize', noteId.value));
-  }
+const editNote = (note: any) => {
+  editingNoteId.value = note.id;
+  editForm.subjective = note.subjective;
+  editForm.objective = note.objective;
+  editForm.assessment = note.assessment;
+  editForm.plan = note.plan;
+};
+
+const saveEdit = (noteIdToSave: number) => {
+  editForm.put(route('soap.update', noteIdToSave), {
+    onSuccess: () => {
+      editingNoteId.value = null;
+      router.reload({ only: ['notes'] });
+    }
+  });
+};
+
+const cancelEdit = () => {
+  editingNoteId.value = null;
+  editForm.reset();
 };
 
 const attachmentsForm = useForm({
@@ -181,7 +202,7 @@ function rel(t: string): string {
               <TiptapEditor 
                 id="subjective" 
                 v-model="form.subjective" 
-                @blur="save" 
+ 
                 placeholder="Chief complaint, history of present illness, review of systems..."
                 min-height="160px"
               />
@@ -191,7 +212,7 @@ function rel(t: string): string {
               <TiptapEditor 
                 id="objective" 
                 v-model="form.objective" 
-                @blur="save" 
+ 
                 placeholder="Vital signs, physical examination findings, diagnostic results..."
                 min-height="160px"
               />
@@ -201,7 +222,7 @@ function rel(t: string): string {
               <TiptapEditor 
                 id="assessment" 
                 v-model="form.assessment" 
-                @blur="save" 
+ 
                 placeholder="Clinical impression, differential diagnosis, problem list..."
                 min-height="160px"
               />
@@ -211,14 +232,13 @@ function rel(t: string): string {
               <TiptapEditor 
                 id="plan" 
                 v-model="form.plan" 
-                @blur="save" 
+ 
                 placeholder="Treatment plan, medications, follow-up instructions, patient education..."
                 min-height="160px"
               />
             </div>
             <div class="flex justify-end space-x-4">
-              <Button @click="save">Save Draft</Button>
-              <Button @click="finalize" variant="destructive">Finalize</Button>
+              <Button @click="save" :disabled="saving">{{ saving ? 'Saving...' : 'Save' }}</Button>
             </div>
           </CardContent>
         </Card>
@@ -251,15 +271,63 @@ function rel(t: string): string {
                 </div>
               </CardHeader>
               <CardContent>
-                <details>
-                  <summary>{{ stripHtml(note.subjective).substring(0, 120) }}...</summary>
-                  <div class="mt-4 space-y-2">
-                    <div><strong>Subjective:</strong> <div v-html="sanitizeHtml(note.subjective)" class="inline"></div></div>
-                    <div><strong>Objective:</strong> <div v-html="sanitizeHtml(note.objective)" class="inline"></div></div>
-                    <div><strong>Assessment:</strong> <div v-html="sanitizeHtml(note.assessment)" class="inline"></div></div>
-                    <div><strong>Plan:</strong> <div v-html="sanitizeHtml(note.plan)" class="inline"></div></div>
+                <div v-if="editingNoteId === note.id">
+                  <!-- Inline editing mode -->
+                  <div class="space-y-4">
+                    <div>
+                      <Label>Subjective</Label>
+                      <TiptapEditor 
+                        v-model="editForm.subjective" 
+                        placeholder="Chief complaint, history of present illness, review of systems..."
+                        min-height="120px"
+                      />
+                    </div>
+                    <div>
+                      <Label>Objective</Label>
+                      <TiptapEditor 
+                        v-model="editForm.objective" 
+                        placeholder="Vital signs, physical examination findings, diagnostic results..."
+                        min-height="120px"
+                      />
+                    </div>
+                    <div>
+                      <Label>Assessment</Label>
+                      <TiptapEditor 
+                        v-model="editForm.assessment" 
+                        placeholder="Clinical impression, differential diagnosis, problem list..."
+                        min-height="120px"
+                      />
+                    </div>
+                    <div>
+                      <Label>Plan</Label>
+                      <TiptapEditor 
+                        v-model="editForm.plan" 
+                        placeholder="Treatment plan, medications, follow-up instructions, patient education..."
+                        min-height="120px"
+                      />
+                    </div>
+                    <div class="flex space-x-2">
+                      <Button @click="saveEdit(note.id)" :disabled="editForm.processing">{{ editForm.processing ? 'Saving...' : 'Save' }}</Button>
+                      <Button @click="cancelEdit" variant="outline">Cancel</Button>
+                    </div>
                   </div>
-                </details>
+                </div>
+                <div v-else>
+                  <!-- Display mode -->
+                  <details>
+                    <summary>{{ stripHtml(note.subjective).substring(0, 120) }}...</summary>
+                    <div class="mt-4 space-y-2">
+                      <div><strong>Subjective:</strong> <div v-html="sanitizeHtml(note.subjective)" class="inline"></div></div>
+                      <div><strong>Objective:</strong> <div v-html="sanitizeHtml(note.objective)" class="inline"></div></div>
+                      <div><strong>Assessment:</strong> <div v-html="sanitizeHtml(note.assessment)" class="inline"></div></div>
+                      <div><strong>Plan:</strong> <div v-html="sanitizeHtml(note.plan)" class="inline"></div></div>
+                    </div>
+                  </details>
+                  <!-- Edit button -->
+                  <div class="mt-2 flex space-x-2">
+                    <Button @click="editNote(note)" variant="outline" size="sm">Edit</Button>
+                  </div>
+                </div>
                 <div class="mt-4">
                   <Button @click="toggleComments(note)" variant="link">Show/Hide Comments</Button>
                   <div v-if="comments[note.id]" class="mt-2 space-y-2">
@@ -271,9 +339,6 @@ function rel(t: string): string {
                       <Button @click="postComment(note)">Post</Button>
                     </div>
                   </div>
-                </div>
-                <div v-if="can.admin && note.state === 'finalized'">
-                    <Button variant="outline" class="mt-2">Edit (Admin)</Button>
                 </div>
               </CardContent>
             </Card>
