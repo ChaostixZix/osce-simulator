@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue';
-import { Head, Link, useForm, router } from '@inertiajs/vue3';
+import { Head, useForm, router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
+import TiptapEditor from '@/components/TiptapEditor.vue';
+import { sanitizeHtml, stripHtml } from '@/utils/sanitize';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -178,19 +179,43 @@ function rel(t: string): string {
           <CardContent class="space-y-4">
             <div>
               <Label for="subjective">Subjective</Label>
-              <Textarea id="subjective" v-model="form.subjective" @blur="save" autofocus />
+              <TiptapEditor 
+                id="subjective" 
+                v-model="form.subjective" 
+                @blur="save" 
+                placeholder="Chief complaint, history of present illness, review of systems..."
+                min-height="160px"
+              />
             </div>
             <div>
               <Label for="objective">Objective</Label>
-              <Textarea id="objective" v-model="form.objective" @blur="save" />
+              <TiptapEditor 
+                id="objective" 
+                v-model="form.objective" 
+                @blur="save" 
+                placeholder="Vital signs, physical examination findings, diagnostic results..."
+                min-height="160px"
+              />
             </div>
             <div>
               <Label for="assessment">Assessment</Label>
-              <Textarea id="assessment" v-model="form.assessment" @blur="save" />
+              <TiptapEditor 
+                id="assessment" 
+                v-model="form.assessment" 
+                @blur="save" 
+                placeholder="Clinical impression, differential diagnosis, problem list..."
+                min-height="160px"
+              />
             </div>
             <div>
               <Label for="plan">Plan</Label>
-              <Textarea id="plan" v-model="form.plan" @blur="save" />
+              <TiptapEditor 
+                id="plan" 
+                v-model="form.plan" 
+                @blur="save" 
+                placeholder="Treatment plan, medications, follow-up instructions, patient education..."
+                min-height="160px"
+              />
             </div>
             <div class="flex justify-end space-x-4">
               <Button @click="save">Save Draft</Button>
@@ -228,12 +253,12 @@ function rel(t: string): string {
               </CardHeader>
               <CardContent>
                 <details>
-                  <summary>{{ note.subjective.substring(0, 120) }}...</summary>
+                  <summary>{{ stripHtml(note.subjective).substring(0, 120) }}...</summary>
                   <div class="mt-4 space-y-2">
-                    <p><strong>Subjective:</strong> {{ note.subjective }}</p>
-                    <p><strong>Objective:</strong> {{ note.objective }}</p>
-                    <p><strong>Assessment:</strong> {{ note.assessment }}</p>
-                    <p><strong>Plan:</strong> {{ note.plan }}</p>
+                    <div><strong>Subjective:</strong> <div v-html="sanitizeHtml(note.subjective)" class="inline"></div></div>
+                    <div><strong>Objective:</strong> <div v-html="sanitizeHtml(note.objective)" class="inline"></div></div>
+                    <div><strong>Assessment:</strong> <div v-html="sanitizeHtml(note.assessment)" class="inline"></div></div>
+                    <div><strong>Plan:</strong> <div v-html="sanitizeHtml(note.plan)" class="inline"></div></div>
                   </div>
                 </details>
                 <div class="mt-4">
