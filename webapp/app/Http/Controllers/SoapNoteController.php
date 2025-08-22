@@ -14,18 +14,19 @@ class SoapNoteController extends Controller
     public function store(Request $request, Patient $patient): RedirectResponse
     {
         $validated = $request->validate([
-            'subjective' => 'nullable', // Allow both string and array (JSON)
-            'objective' => 'nullable', 
-            'assessment' => 'nullable',
-            'plan' => 'nullable',
+            'subjective' => 'nullable|array',
+            'objective' => 'nullable|array',
+            'assessment' => 'nullable|array',
+            'plan' => 'nullable|array',
         ]);
 
-        // Ensure no null values are passed to database (NOT NULL constraint)
+        // Ensure consistent JSON structure for rich-text fields (TipTap doc)
+        $emptyDoc = ['type' => 'doc', 'content' => [['type' => 'paragraph']]];
         $cleanedData = [
-            'subjective' => $validated['subjective'] ?? '',
-            'objective' => $validated['objective'] ?? '',
-            'assessment' => $validated['assessment'] ?? '',
-            'plan' => $validated['plan'] ?? '',
+            'subjective' => $validated['subjective'] ?? $emptyDoc,
+            'objective' => $validated['objective'] ?? $emptyDoc,
+            'assessment' => $validated['assessment'] ?? $emptyDoc,
+            'plan' => $validated['plan'] ?? $emptyDoc,
             'author_id' => Auth::id(),
             'state' => 'draft',
         ];
@@ -40,18 +41,19 @@ class SoapNoteController extends Controller
         $this->authorize('update', $note);
 
         $validated = $request->validate([
-            'subjective' => 'nullable', // Allow both string and array (JSON)
-            'objective' => 'nullable', 
-            'assessment' => 'nullable',
-            'plan' => 'nullable',
+            'subjective' => 'nullable|array',
+            'objective' => 'nullable|array',
+            'assessment' => 'nullable|array',
+            'plan' => 'nullable|array',
         ]);
 
-        // Ensure no null values are passed to database (NOT NULL constraint)
+        // Ensure consistent JSON structure for rich-text fields (TipTap doc)
+        $emptyDoc = ['type' => 'doc', 'content' => [['type' => 'paragraph']]];
         $cleanedData = [
-            'subjective' => $validated['subjective'] ?? '',
-            'objective' => $validated['objective'] ?? '',
-            'assessment' => $validated['assessment'] ?? '',
-            'plan' => $validated['plan'] ?? '',
+            'subjective' => $validated['subjective'] ?? $emptyDoc,
+            'objective' => $validated['objective'] ?? $emptyDoc,
+            'assessment' => $validated['assessment'] ?? $emptyDoc,
+            'plan' => $validated['plan'] ?? $emptyDoc,
         ];
 
         $note->update($cleanedData);
