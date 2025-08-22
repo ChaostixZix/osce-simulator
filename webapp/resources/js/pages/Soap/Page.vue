@@ -3,17 +3,8 @@ import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { Head, useForm, router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import SoapNovelEditor from '@/components/SoapNovelEditor.vue';
-import SoapNovelEditorFixed from '@/components/SoapNovelEditorFixed.vue';
-import SimpleTextEditor from '@/components/SimpleTextEditor.vue';
-import SoapNovelEditorWorking from '@/components/SoapNovelEditorWorking.vue';
 import SoapNovelEditorClean from '@/components/SoapNovelEditorClean.vue';
 import { sanitizeHtml, stripHtml } from '@/utils/sanitize';
-import { generateHTML } from '@tiptap/html';
-import StarterKit from '@tiptap/starter-kit';
-import Image from '@tiptap/extension-image';
-import Link from '@tiptap/extension-link';
-import Underline from '@tiptap/extension-underline';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -40,7 +31,6 @@ const saving = ref(false);
 const saveStatus = ref('');
 const editingNoteId = ref<number | null>(null);
 const isDirty = ref(false);
-const autosaveInterval = ref<NodeJS.Timeout | null>(null);
 
 const form = useForm({
   subjective: '',
@@ -126,13 +116,6 @@ const save = () => {
     form.post(route('soap.store', props.patient.id), onFinish);
   } else {
     form.put(route('soap.update', noteId.value), onFinish);
-  }
-};
-
-// Autosave function
-const autosave = () => {
-  if (isDirty.value && !saving.value) {
-    save();
   }
 };
 
@@ -274,31 +257,32 @@ const convertJsonToHtml = (content: any): string => {
   }
 };
 
-// Helper function to get plain text from TipTap JSON for preview
-const getTextFromJson = (content: any): string => {
-  if (!content) return '';
-  if (typeof content === 'string') {
-    return stripHtml(content);
+// Helper function to get text preview for timeline
+const getTextPreview = (content: any): string => {
+  if (!content) return 'Empty';
+  
+  // If it's HTML, strip tags for preview
+  let text = String(content);
+  if (text.includes('<')) {
+    text = stripHtml(text);
   }
-  try {
-    const html = convertJsonToHtml(content);
-    return stripHtml(html);
-  } catch (error) {
-    console.warn('Failed to extract text from JSON:', error);
-    return '';
-  }
+  
+  const preview = text.substring(0, 120);
+  return preview || 'Empty';
 };
 
-// Setup autosave interval and cleanup
+// Helper function to get plain text from content for preview (legacy compatibility)
+const getTextFromJson = (content: any): string => {
+  return getTextPreview(content);
+};
+
+// Component lifecycle
 onMounted(() => {
-  // Start autosave interval (every 10 seconds)
-  autosaveInterval.value = setInterval(autosave, 10000);
+  // Component mounted
 });
 
 onUnmounted(() => {
-  if (autosaveInterval.value) {
-    clearInterval(autosaveInterval.value);
-  }
+  // Component cleanup
 });
 </script>
 
@@ -319,55 +303,59 @@ onUnmounted(() => {
               <span>{{ saveStatus }}</span>
             </div>
           </CardHeader>
-          <CardContent class="space-y-4">
-            <div>
-              <Label for="subjective">Subjective</Label>
-              <SoapNovelEditorClean 
-                id="subjective" 
-                v-model="form.subjective" 
-                :note-id="noteId"
-                @blur="save"
-                @update:modelValue="markDirty"
-                placeholder="Chief complaint, history of present illness, review of systems..."
-                min-height="160px"
-              />
+          <CardContent class="space-y-6">
+            <!-- SOAP Grid Layout: 2 rows x 2 columns -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- First Row: Subjective & Objective -->
+              <div>
+                <Label for="subjective">Subjective</Label>
+                <SoapNovelEditorClean 
+                  id="subjective" 
+                  v-model="form.subjective" 
+                  :note-id="noteId"
+                  @update:modelValue="markDirty"
+                  placeholder="Chief complaint, history of present illness, review of systems..."
+                  min-height="200px"
+                />
+              </div>
+              <div>
+                <Label for="objective">Objective</Label>
+                <SoapNovelEditorClean 
+                  id="objective" 
+                  v-model="form.objective" 
+                  :note-id="noteId"
+                  @update:modelValue="markDirty"
+                  placeholder="Vital signs, physical examination findings, diagnostic results..."
+                  min-height="200px"
+                />
+              </div>
+              
+              <!-- Second Row: Assessment & Plan -->
+              <div>
+                <Label for="assessment">Assessment</Label>
+                <SoapNovelEditorClean 
+                  id="assessment" 
+                  v-model="form.assessment" 
+                  :note-id="noteId"
+                  @update:modelValue="markDirty"
+                  placeholder="Clinical impression, differential diagnosis, problem list..."
+                  min-height="200px"
+                />
+              </div>
+              <div>
+                <Label for="plan">Plan</Label>
+                <SoapNovelEditorClean 
+                  id="plan" 
+                  v-model="form.plan" 
+                  :note-id="noteId"
+                  @update:modelValue="markDirty"
+                  placeholder="Treatment plan, medications, follow-up instructions, patient education..."
+                  min-height="200px"
+                />
+              </div>
             </div>
-            <div>
-              <Label for="objective">Objective</Label>
-              <SoapNovelEditorClean 
-                id="objective" 
-                v-model="form.objective" 
-                :note-id="noteId"
-                @blur="save"
-                @update:modelValue="markDirty"
-                placeholder="Vital signs, physical examination findings, diagnostic results..."
-                min-height="160px"
-              />
-            </div>
-            <div>
-              <Label for="assessment">Assessment</Label>
-              <SoapNovelEditorClean 
-                id="assessment" 
-                v-model="form.assessment" 
-                :note-id="noteId"
-                @blur="save"
-                @update:modelValue="markDirty"
-                placeholder="Clinical impression, differential diagnosis, problem list..."
-                min-height="160px"
-              />
-            </div>
-            <div>
-              <Label for="plan">Plan</Label>
-              <SoapNovelEditorClean 
-                id="plan" 
-                v-model="form.plan" 
-                :note-id="noteId"
-                @blur="save"
-                @update:modelValue="markDirty"
-                placeholder="Treatment plan, medications, follow-up instructions, patient education..."
-                min-height="160px"
-              />
-            </div>
+            
+            <!-- Save Button -->
             <div class="flex justify-end space-x-4">
               <Button @click="save" :disabled="saving">{{ saving ? 'Saving...' : 'Save' }}</Button>
             </div>
@@ -403,8 +391,9 @@ onUnmounted(() => {
               </CardHeader>
               <CardContent>
                 <div v-if="editingNoteId === note.id">
-                  <!-- Inline editing mode -->
-                  <div class="space-y-4">
+                  <!-- Inline editing mode with 2x2 grid -->
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- First Row: Subjective & Objective -->
                     <div>
                       <Label>Subjective</Label>
                       <SoapNovelEditorClean 
@@ -412,7 +401,7 @@ onUnmounted(() => {
                         :note-id="note.id"
                         :disabled="note.state === 'finalized' && !can.admin"
                         placeholder="Chief complaint, history of present illness, review of systems..."
-                        min-height="120px"
+                        min-height="150px"
                       />
                     </div>
                     <div>
@@ -422,9 +411,11 @@ onUnmounted(() => {
                         :note-id="note.id"
                         :disabled="note.state === 'finalized' && !can.admin"
                         placeholder="Vital signs, physical examination findings, diagnostic results..."
-                        min-height="120px"
+                        min-height="150px"
                       />
                     </div>
+                    
+                    <!-- Second Row: Assessment & Plan -->
                     <div>
                       <Label>Assessment</Label>
                       <SoapNovelEditorClean 
@@ -432,7 +423,7 @@ onUnmounted(() => {
                         :note-id="note.id"
                         :disabled="note.state === 'finalized' && !can.admin"
                         placeholder="Clinical impression, differential diagnosis, problem list..."
-                        min-height="120px"
+                        min-height="150px"
                       />
                     </div>
                     <div>
@@ -442,24 +433,26 @@ onUnmounted(() => {
                         :note-id="note.id"
                         :disabled="note.state === 'finalized' && !can.admin"
                         placeholder="Treatment plan, medications, follow-up instructions, patient education..."
-                        min-height="120px"
+                        min-height="150px"
                       />
                     </div>
-                    <div class="flex space-x-2">
-                      <Button @click="saveEdit(note.id)" :disabled="editForm.processing">{{ editForm.processing ? 'Saving...' : 'Save' }}</Button>
-                      <Button @click="cancelEdit" variant="outline">Cancel</Button>
-                    </div>
+                  </div>
+                  
+                  <!-- Edit Actions -->
+                  <div class="flex space-x-2 mt-4">
+                    <Button @click="saveEdit(note.id)" :disabled="editForm.processing">{{ editForm.processing ? 'Saving...' : 'Save' }}</Button>
+                    <Button @click="cancelEdit" variant="outline">Cancel</Button>
                   </div>
                 </div>
                 <div v-else>
                   <!-- Display mode -->
                   <details>
-                    <summary>{{ getTextFromJson(note.subjective).substring(0, 120) }}...</summary>
+                    <summary>{{ getTextPreview(note.subjective) }}...</summary>
                     <div class="mt-4 space-y-2">
-                      <div><strong>Subjective:</strong> <div v-html="sanitizeHtml(convertJsonToHtml(note.subjective))" class="inline"></div></div>
-                      <div><strong>Objective:</strong> <div v-html="sanitizeHtml(convertJsonToHtml(note.objective))" class="inline"></div></div>
-                      <div><strong>Assessment:</strong> <div v-html="sanitizeHtml(convertJsonToHtml(note.assessment))" class="inline"></div></div>
-                      <div><strong>Plan:</strong> <div v-html="sanitizeHtml(convertJsonToHtml(note.plan))" class="inline"></div></div>
+                      <div><strong>Subjective:</strong> <div v-html="sanitizeHtml(note.subjective || '')" class="prose prose-sm max-w-none"></div></div>
+                      <div><strong>Objective:</strong> <div v-html="sanitizeHtml(note.objective || '')" class="prose prose-sm max-w-none"></div></div>
+                      <div><strong>Assessment:</strong> <div v-html="sanitizeHtml(note.assessment || '')" class="prose prose-sm max-w-none"></div></div>
+                      <div><strong>Plan:</strong> <div v-html="sanitizeHtml(note.plan || '')" class="prose prose-sm max-w-none"></div></div>
                     </div>
                   </details>
                   <!-- Edit button -->

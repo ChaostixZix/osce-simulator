@@ -62,13 +62,6 @@ const handleBlur = () => {
 
 <template>
   <div class="relative border border-input rounded-md">
-    <!-- Debug info -->
-    <div class="text-xs text-gray-500 p-2 bg-gray-50 border-b">
-      Debug: modelValue type={{ typeof modelValue }}, 
-      content={{ modelValue ? 'has content' : 'empty' }},
-      length={{ textContent.length }}
-    </div>
-    
     <textarea
       :value="textContent"
       :placeholder="placeholder"
