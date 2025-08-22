@@ -103,6 +103,12 @@ const getDisplayValue = () => {
   if (!props.modelValue) return '';
   return String(props.modelValue);
 };
+
+// Empty TipTap JSON structure
+const emptyTipTapDoc = {
+  type: 'doc',
+  content: []
+};
 </script>
 
 <template>
@@ -124,7 +130,7 @@ const getDisplayValue = () => {
       <Editor
         ref="editorRef"
         :key="`editor-${Date.now()}`"
-        :defaultValue="''"
+        :defaultValue="emptyTipTapDoc"
         completionApi=""
         className="prose prose-sm max-w-none"
         :placeholder="placeholder"
