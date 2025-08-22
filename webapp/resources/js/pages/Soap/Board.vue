@@ -26,7 +26,7 @@ const props = defineProps<{
 }>();
 
 const filters = ref({
-  status: props.filters.status || '',
+  status: props.filters.status || 'all',
   search: props.filters.search || '',
   sort: props.filters.sort || 'name',
 });
@@ -77,7 +77,7 @@ function rel(t: string): string {
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All</SelectItem>
+                  <SelectItem value="all">All</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="discharged">Discharged</SelectItem>
                 </SelectContent>
