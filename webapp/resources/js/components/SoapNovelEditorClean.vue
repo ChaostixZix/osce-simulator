@@ -28,6 +28,7 @@ const emit = defineEmits<Emits>();
 const editorRef = ref(null);
 const uploading = ref(false);
 const isReady = ref(false);
+const editorKey = ref(0);
 
 // Initialize empty - force clear any demo content
 onMounted(async () => {
@@ -48,6 +49,11 @@ onMounted(async () => {
     }
   }
 });
+
+// Watch for external model value changes and force re-render
+watch(() => props.modelValue, () => {
+  editorKey.value++;
+}, { deep: true });
 
 // Handle image uploads
 const handleImageUpload = async (file: File): Promise<string> => {
@@ -98,16 +104,57 @@ const handleBlur = () => {
   emit('blur');
 };
 
-// Convert model value to display format
+// Convert model value to TipTap JSON format for Novel editor
+const getEditorValue = () => {
+  if (!props.modelValue) {
+    return {
+      type: 'doc',
+      content: []
+    };
+  }
+  
+  if (typeof props.modelValue === 'string') {
+    if (props.modelValue.trim() === '') {
+      return {
+        type: 'doc',
+        content: []
+      };
+    }
+    
+    // If it's HTML string, let Novel Vue handle it
+    // If it's plain text, wrap in paragraph
+    if (props.modelValue.includes('<')) {
+      return props.modelValue; // HTML string
+    } else {
+      // Plain text - convert to TipTap structure
+      return {
+        type: 'doc',
+        content: [{
+          type: 'paragraph',
+          content: [{
+            type: 'text',
+            text: props.modelValue
+          }]
+        }]
+      };
+    }
+  }
+  
+  // If it's already an object (TipTap JSON), use it directly
+  if (typeof props.modelValue === 'object') {
+    return props.modelValue;
+  }
+  
+  return {
+    type: 'doc',
+    content: []
+  };
+};
+
+// Convert model value to display format for debug
 const getDisplayValue = () => {
   if (!props.modelValue) return '';
   return String(props.modelValue);
-};
-
-// Empty TipTap JSON structure
-const emptyTipTapDoc = {
-  type: 'doc',
-  content: []
 };
 </script>
 
@@ -129,8 +176,8 @@ const emptyTipTapDoc = {
     <div v-if="isReady">
       <Editor
         ref="editorRef"
-        :key="`editor-${Date.now()}`"
-        :defaultValue="emptyTipTapDoc"
+        :key="`editor-${noteId || 'new'}-${editorKey}`"
+        :defaultValue="getEditorValue()"
         completionApi=""
         className="prose prose-sm max-w-none"
         :placeholder="placeholder"
