@@ -1,8 +1,7 @@
 # Web-Based OSCE Training Platform
 
-A modern web application for Objective Structured Clinical Examination (OSCE) training.  
-Built with **Laravel** and **Vue 3** via [Inertia](https://inertiajs.com), it offers
-AI‑powered patient simulation and structured clinical cases for medical learners.
+A modern web application for Objective Structured Clinical Examination (OSCE) training, featuring an AI-powered patient simulator, a community forum, and knowledge assessment tools.
+Built with **Laravel** and **Vue 3** via [Inertia](https://inertiajs.com), it provides a comprehensive platform for medical learners.
 
 ## 🚀 Quick Start
 
@@ -40,10 +39,12 @@ Visit `http://localhost:8000` to access the application.
 
 ## 🏥 Features
 
-- **AI Patient Simulation** using Google's Gemini for context‑aware conversations
-- **OSCE Case Library** with multiple difficulty levels and structured objectives
-- **Session Tracking** to monitor progress across cases
-- **Secure Authentication** and isolated training sessions
+- **AI Patient Simulation**: Engage in context-aware conversations with an AI patient powered by Google's Gemini.
+- **OSCE Case Library**: Access a range of clinical cases with structured objectives and multiple difficulty levels.
+- **Community Forum**: Discuss cases, share knowledge, and collaborate with other learners.
+- **MCQ Assessment**: Test your knowledge with a multiple-choice question section.
+- **Session Tracking**: Monitor your progress and performance across different cases.
+- **Secure Authentication**: Ensures private and isolated training sessions for each user.
 
 ## 🧱 Project Structure
 
