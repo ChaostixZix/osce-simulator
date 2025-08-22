@@ -70,8 +70,11 @@ function rel(t: string): string {
             <CardTitle>Filter & Sort</CardTitle>
           </CardHeader>
           <CardContent>
-            <div class="flex space-x-4">
-              <Input v-model="filters.search" placeholder="Search by patient name..." @keyup.enter="search" />
+            <div class="flex flex-wrap items-center gap-3 md:gap-4">
+              <Input v-model="filters.search" placeholder="Search by patient name..." @keyup.enter="search" class="flex-1 min-w-[220px]" />
+              <Link :href="route('patients.create')">
+                <Button class="whitespace-nowrap">Add Patient</Button>
+              </Link>
               <Select v-model="filters.status">
                 <SelectTrigger>
                   <SelectValue placeholder="Status" />
@@ -97,11 +100,6 @@ function rel(t: string): string {
           </CardContent>
         </Card>
 
-        <div class="mt-6 flex justify-end">
-          <Link :href="route('patients.create')">
-            <Button>Add Patient</Button>
-          </Link>
-        </div>
 
         <div class="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <Card v-for="patient in patients.data" :key="patient.id">
