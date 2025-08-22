@@ -4,6 +4,8 @@ import { Head, useForm, router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import SoapNovelEditor from '@/components/SoapNovelEditor.vue';
+import SoapNovelEditorFixed from '@/components/SoapNovelEditorFixed.vue';
+import SimpleTextEditor from '@/components/SimpleTextEditor.vue';
 import { sanitizeHtml, stripHtml } from '@/utils/sanitize';
 import { generateHTML } from '@tiptap/html';
 import StarterKit from '@tiptap/starter-kit';
@@ -76,6 +78,15 @@ const save = () => {
   if (saving.value) {
     return;
   }
+
+  // Debug: Log form data
+  console.log('Save called with form data:', {
+    subjective: form.subjective,
+    objective: form.objective,
+    assessment: form.assessment,
+    plan: form.plan,
+    noteId: noteId.value
+  });
 
   // Check if form has any content
   const hasContent = form.subjective || form.objective || form.assessment || form.plan;
@@ -309,7 +320,7 @@ onUnmounted(() => {
           <CardContent class="space-y-4">
             <div>
               <Label for="subjective">Subjective</Label>
-              <SoapNovelEditor 
+              <SimpleTextEditor 
                 id="subjective" 
                 v-model="form.subjective" 
                 :note-id="noteId"
