@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\SoapNote;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 
 class SoapAttachmentController extends Controller
 {
@@ -29,5 +30,33 @@ class SoapAttachmentController extends Controller
         }
 
         return back();
+    }
+
+    public function uploadImage(Request $request, SoapNote $note): JsonResponse
+    {
+        $this->authorize('update', $note);
+
+        $request->validate([
+            'image' => 'required|image|max:5120', // 5MB max
+        ]);
+
+        $file = $request->file('image');
+        $path = $file->store("soap/{$note->id}", 'public');
+
+        // Store the attachment record
+        $attachment = $note->attachments()->create([
+            'disk' => 'public',
+            'path' => $path,
+            'original_name' => $file->getClientOriginalName(),
+            'size' => $file->getSize(),
+            'mime' => $file->getMimeType(),
+        ]);
+
+        // Return the URL for the editor
+        return response()->json([
+            'url' => asset("storage/{$path}"),
+            'alt' => $file->getClientOriginalName(),
+            'attachment_id' => $attachment->id,
+        ]);
     }
 }
