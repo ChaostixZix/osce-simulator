@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch, onMounted, nextTick } from 'vue';
 import { Editor } from 'novel-vue';
 import axios from 'axios';
 
@@ -25,19 +25,27 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<Emits>();
 
-const editorContent = ref('');
+const editorRef = ref(null);
 const uploading = ref(false);
+const isReady = ref(false);
 
-// Initialize content from props
-onMounted(() => {
-  editorContent.value = String(props.modelValue || '');
-});
-
-// Watch for external changes
-watch(() => props.modelValue, (newValue) => {
-  const newContent = String(newValue || '');
-  if (newContent !== editorContent.value) {
-    editorContent.value = newContent;
+// Initialize empty - force clear any demo content
+onMounted(async () => {
+  await nextTick();
+  isReady.value = true;
+  
+  // Clear any localStorage that might contain demo content
+  if (typeof window !== 'undefined') {
+    try {
+      // Clear any Novel editor storage
+      Object.keys(localStorage).forEach(key => {
+        if (key.includes('novel') || key.includes('editor')) {
+          localStorage.removeItem(key);
+        }
+      });
+    } catch (e) {
+      // Ignore localStorage errors
+    }
   }
 });
 
@@ -71,7 +79,7 @@ const handleImageUpload = async (file: File): Promise<string> => {
   }
 };
 
-// Handle content changes - try different event patterns
+// Handle content changes
 const handleUpdate = (editor: any) => {
   let content = '';
   if (typeof editor === 'string') {
@@ -82,13 +90,18 @@ const handleUpdate = (editor: any) => {
     content = editor.content;
   }
   
-  editorContent.value = content;
   emit('update:modelValue', content);
 };
 
 // Handle blur
 const handleBlur = () => {
   emit('blur');
+};
+
+// Convert model value to display format
+const getDisplayValue = () => {
+  if (!props.modelValue) return '';
+  return String(props.modelValue);
 };
 </script>
 
@@ -102,30 +115,35 @@ const handleBlur = () => {
       </div>
     </div>
     
-    <Editor
-      :defaultValue="''"
-      :initialValue="''"
-      :value="editorContent || ''"
-      :content="editorContent || ''"
-      :placeholder="placeholder"
-      :editable="!disabled"
-      :storageKey="null"
-      :disableLocalStorage="true"
-      @update:editor="handleUpdate"
-      @editor-update="handleUpdate"
-      @update="handleUpdate"
-      @change="handleUpdate"
-      @blur="handleBlur"
-      :onImageUpload="props.noteId ? handleImageUpload : undefined"
-      :handleImageUpload="props.noteId ? handleImageUpload : undefined"
-      :style="{ minHeight: minHeight }"
-      class="prose prose-sm max-w-none [&_.ProseMirror]:p-4 [&_.ProseMirror]:outline-none"
-    />
+    <!-- Debug info -->
+    <div class="text-xs text-gray-500 p-2 bg-gray-50 border-b">
+      Novel Editor - modelValue: {{ typeof modelValue }} | ready: {{ isReady }} | length: {{ getDisplayValue().length }}
+    </div>
+    
+    <div v-if="isReady">
+      <Editor
+        ref="editorRef"
+        :key="`editor-${Date.now()}`"
+        :defaultValue="''"
+        completionApi=""
+        className="prose prose-sm max-w-none"
+        :placeholder="placeholder"
+        :editable="!disabled"
+        :disableLocalStorage="true"
+        @update="handleUpdate"
+        @blur="handleBlur"
+        :onImageUpload="props.noteId ? handleImageUpload : undefined"
+        :style="{ minHeight: minHeight }"
+      />
+    </div>
+    
+    <div v-else class="p-4 text-gray-500">
+      Loading editor...
+    </div>
   </div>
 </template>
 
 <style scoped>
-/* Additional Novel-specific styles */
 :deep(.ProseMirror) {
   padding: 1rem !important;
   outline: none !important;
