@@ -28,12 +28,13 @@ const emit = defineEmits<Emits>();
 const editorRef = ref(null);
 const uploading = ref(false);
 const isReady = ref(false);
-const editorKey = ref(0);
+const editorContent = ref('');
 
-// Initialize empty - force clear any demo content
+// Initialize content from props
 onMounted(async () => {
   await nextTick();
   isReady.value = true;
+  editorContent.value = getContentAsString(props.modelValue);
   
   // Clear any localStorage that might contain demo content
   if (typeof window !== 'undefined') {
@@ -50,10 +51,28 @@ onMounted(async () => {
   }
 });
 
-// Watch for external model value changes and force re-render
-watch(() => props.modelValue, () => {
-  editorKey.value++;
+// Watch for external model value changes
+watch(() => props.modelValue, (newValue) => {
+  const newContent = getContentAsString(newValue);
+  if (newContent !== editorContent.value) {
+    editorContent.value = newContent;
+  }
 }, { deep: true });
+
+// Helper to convert any content to string for editor
+const getContentAsString = (content: any): string => {
+  if (!content) return '';
+  if (typeof content === 'string') return content;
+  if (typeof content === 'object') {
+    // If it's TipTap JSON, we'll let the editor handle it
+    try {
+      return JSON.stringify(content);
+    } catch {
+      return '';
+    }
+  }
+  return String(content);
+};
 
 // Handle image uploads
 const handleImageUpload = async (file: File): Promise<string> => {
@@ -85,18 +104,29 @@ const handleImageUpload = async (file: File): Promise<string> => {
   }
 };
 
-// Handle content changes
+// Handle content changes - always output HTML string
 const handleUpdate = (editor: any) => {
-  let content = '';
+  let htmlContent = '';
+  
   if (typeof editor === 'string') {
-    content = editor;
+    htmlContent = editor;
   } else if (editor && typeof editor.getHTML === 'function') {
-    content = editor.getHTML();
+    htmlContent = editor.getHTML();
   } else if (editor && editor.content) {
-    content = editor.content;
+    // If it's a TipTap JSON object, try to convert to HTML
+    if (typeof editor.content === 'object') {
+      // For now, emit empty HTML if we get JSON
+      htmlContent = '';
+    } else {
+      htmlContent = String(editor.content);
+    }
   }
   
-  emit('update:modelValue', content);
+  // Update local content state
+  editorContent.value = htmlContent;
+  
+  // Always emit HTML string, never JSON
+  emit('update:modelValue', htmlContent);
 };
 
 // Handle blur
@@ -104,7 +134,7 @@ const handleBlur = () => {
   emit('blur');
 };
 
-// Convert model value to TipTap JSON format for Novel editor
+// Convert model value for Novel editor input - must return TipTap JSON format
 const getEditorValue = () => {
   if (!props.modelValue) {
     return {
@@ -121,12 +151,12 @@ const getEditorValue = () => {
       };
     }
     
-    // If it's HTML string, let Novel Vue handle it
-    // If it's plain text, wrap in paragraph
-    if (props.modelValue.includes('<')) {
-      return props.modelValue; // HTML string
+    // If it's HTML string (contains < and >), let Novel Vue parse it by returning the HTML directly
+    // Novel Vue will automatically convert HTML strings to TipTap JSON internally
+    if (props.modelValue.includes('<') && props.modelValue.includes('>')) {
+      return props.modelValue; // Novel Vue will convert HTML to TipTap JSON
     } else {
-      // Plain text - convert to TipTap structure
+      // Plain text - wrap in paragraph
       return {
         type: 'doc',
         content: [{
@@ -150,12 +180,6 @@ const getEditorValue = () => {
     content: []
   };
 };
-
-// Convert model value to display format for debug
-const getDisplayValue = () => {
-  if (!props.modelValue) return '';
-  return String(props.modelValue);
-};
 </script>
 
 <template>
@@ -168,16 +192,12 @@ const getDisplayValue = () => {
       </div>
     </div>
     
-    <!-- Debug info -->
-    <div class="text-xs text-gray-500 p-2 bg-gray-50 border-b">
-      Novel Editor - modelValue: {{ typeof modelValue }} | ready: {{ isReady }} | length: {{ getDisplayValue().length }}
-    </div>
-    
     <div v-if="isReady">
       <Editor
         ref="editorRef"
-        :key="`editor-${noteId || 'new'}-${editorKey}`"
+        :key="`editor-${noteId || 'new'}`"
         :defaultValue="getEditorValue()"
+        :content="editorContent"
         completionApi=""
         className="prose prose-sm max-w-none"
         :placeholder="placeholder"
