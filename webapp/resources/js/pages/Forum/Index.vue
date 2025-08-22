@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { MessageSquare, Heart, Share, Send, Loader2 } from 'lucide-vue-next';
+import { MessageSquare, Send, Loader2 } from 'lucide-vue-next';
 import { ref, computed, onMounted, nextTick } from 'vue';
 
 interface User {
@@ -315,7 +315,7 @@ const getInitials = (name: string) => {
                                     <p class="text-sm leading-relaxed whitespace-pre-wrap">{{ post.content }}</p>
                                 </div>
 
-                                <!-- Post Actions -->
+                                <!-- Post Actions (comments only) -->
                                 <div class="flex items-center gap-6 text-muted-foreground">
                                     <button 
                                         @click="toggleComments(post.id)"
@@ -326,18 +326,6 @@ const getInitials = (name: string) => {
                                             <MessageSquare class="w-4 h-4" />
                                         </div>
                                         <span class="text-sm">{{ post.comments_count }}</span>
-                                    </button>
-                                    
-                                    <button class="flex items-center gap-1 hover:text-red-500 transition-colors group">
-                                        <div class="p-2 rounded-full group-hover:bg-red-500/10 transition-colors">
-                                            <Heart class="w-4 h-4" />
-                                        </div>
-                                    </button>
-                                    
-                                    <button class="flex items-center gap-1 hover:text-green-500 transition-colors group">
-                                        <div class="p-2 rounded-full group-hover:bg-green-500/10 transition-colors">
-                                            <Share class="w-4 h-4" />
-                                        </div>
                                     </button>
                                 </div>
 
