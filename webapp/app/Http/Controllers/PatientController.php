@@ -26,6 +26,11 @@ class PatientController extends Controller
 
         $patient = Patient::create($validated);
 
+        // If triggered via Inertia modal on the board, keep user on the board
+        if ($request->header('X-Inertia')) {
+            return back();
+        }
+
         return redirect()->route('soap.page', $patient);
     }
 }
