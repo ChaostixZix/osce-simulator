@@ -237,7 +237,7 @@ const getTextPreview = (content: any): string => {
   
   // Normalize to HTML then strip tags for preview
   const html = toHTML(content);
-  let text = stripHtml(html);
+  const text = stripHtml(html);
   
   const preview = text.substring(0, 120);
   return preview || 'Empty';
