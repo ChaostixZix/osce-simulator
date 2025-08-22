@@ -34,7 +34,10 @@ const editorContent = ref('');
 onMounted(async () => {
   await nextTick();
   isReady.value = true;
-  editorContent.value = getContentAsString(props.modelValue);
+  // Only set content if it's a valid HTML string
+  if (typeof props.modelValue === 'string' && props.modelValue) {
+    editorContent.value = props.modelValue;
+  }
   
   // Clear any localStorage that might contain demo content
   if (typeof window !== 'undefined') {
@@ -51,25 +54,21 @@ onMounted(async () => {
   }
 });
 
-// Watch for external model value changes
+// Watch for external model value changes - only update if it's different HTML
 watch(() => props.modelValue, (newValue) => {
-  const newContent = getContentAsString(newValue);
-  if (newContent !== editorContent.value) {
-    editorContent.value = newContent;
+  if (typeof newValue === 'string' && newValue !== editorContent.value) {
+    editorContent.value = newValue;
   }
 }, { deep: true });
 
-// Helper to convert any content to string for editor
+// Helper to convert content for internal storage - keep as HTML string
 const getContentAsString = (content: any): string => {
   if (!content) return '';
   if (typeof content === 'string') return content;
   if (typeof content === 'object') {
-    // If it's TipTap JSON, we'll let the editor handle it
-    try {
-      return JSON.stringify(content);
-    } catch {
-      return '';
-    }
+    // If it's TipTap JSON, ignore it for display purposes
+    // We only store HTML strings internally
+    return '';
   }
   return String(content);
 };
@@ -108,18 +107,23 @@ const handleImageUpload = async (file: File): Promise<string> => {
 const handleUpdate = (editor: any) => {
   let htmlContent = '';
   
-  if (typeof editor === 'string') {
-    htmlContent = editor;
-  } else if (editor && typeof editor.getHTML === 'function') {
-    htmlContent = editor.getHTML();
-  } else if (editor && editor.content) {
-    // If it's a TipTap JSON object, try to convert to HTML
-    if (typeof editor.content === 'object') {
-      // For now, emit empty HTML if we get JSON
-      htmlContent = '';
-    } else {
-      htmlContent = String(editor.content);
+  try {
+    if (typeof editor === 'string') {
+      htmlContent = editor;
+    } else if (editor && typeof editor.getHTML === 'function') {
+      htmlContent = editor.getHTML();
+    } else if (editor && editor.content) {
+      // If it's a TipTap JSON object, try to convert to HTML
+      if (typeof editor.content === 'object') {
+        // For now, emit empty HTML if we get JSON
+        htmlContent = '';
+      } else {
+        htmlContent = String(editor.content);
+      }
     }
+  } catch (error) {
+    console.warn('Error handling editor update:', error);
+    htmlContent = '';
   }
   
   // Update local content state
@@ -197,7 +201,6 @@ const getEditorValue = () => {
         ref="editorRef"
         :key="`editor-${noteId || 'new'}`"
         :defaultValue="getEditorValue()"
-        :content="editorContent"
         completionApi=""
         className="prose prose-sm max-w-none"
         :placeholder="placeholder"
