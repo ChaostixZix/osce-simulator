@@ -334,7 +334,7 @@ onUnmounted(() => {
             </div>
             <div>
               <Label for="objective">Objective</Label>
-              <SoapNovelEditor 
+              <SoapNovelEditorClean 
                 id="objective" 
                 v-model="form.objective" 
                 :note-id="noteId"
@@ -346,7 +346,7 @@ onUnmounted(() => {
             </div>
             <div>
               <Label for="assessment">Assessment</Label>
-              <SoapNovelEditor 
+              <SoapNovelEditorClean 
                 id="assessment" 
                 v-model="form.assessment" 
                 :note-id="noteId"
@@ -358,7 +358,7 @@ onUnmounted(() => {
             </div>
             <div>
               <Label for="plan">Plan</Label>
-              <SoapNovelEditor 
+              <SoapNovelEditorClean 
                 id="plan" 
                 v-model="form.plan" 
                 :note-id="noteId"
@@ -407,7 +407,7 @@ onUnmounted(() => {
                   <div class="space-y-4">
                     <div>
                       <Label>Subjective</Label>
-                      <SoapNovelEditor 
+                      <SoapNovelEditorClean 
                         v-model="editForm.subjective" 
                         :note-id="note.id"
                         :disabled="note.state === 'finalized' && !can.admin"
@@ -417,7 +417,7 @@ onUnmounted(() => {
                     </div>
                     <div>
                       <Label>Objective</Label>
-                      <SoapNovelEditor 
+                      <SoapNovelEditorClean 
                         v-model="editForm.objective" 
                         :note-id="note.id"
                         :disabled="note.state === 'finalized' && !can.admin"
@@ -427,7 +427,7 @@ onUnmounted(() => {
                     </div>
                     <div>
                       <Label>Assessment</Label>
-                      <SoapNovelEditor 
+                      <SoapNovelEditorClean 
                         v-model="editForm.assessment" 
                         :note-id="note.id"
                         :disabled="note.state === 'finalized' && !can.admin"
@@ -437,7 +437,7 @@ onUnmounted(() => {
                     </div>
                     <div>
                       <Label>Plan</Label>
-                      <SoapNovelEditor 
+                      <SoapNovelEditorClean 
                         v-model="editForm.plan" 
                         :note-id="note.id"
                         :disabled="note.state === 'finalized' && !can.admin"
