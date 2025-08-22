@@ -5,6 +5,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import SoapNovelEditorClean from '@/components/SoapNovelEditorClean.vue';
 import { sanitizeHtml, stripHtml } from '@/utils/sanitize';
+import { emptyDoc, toHTML, hasEditorContent } from '@/utils/richtext';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -33,17 +34,17 @@ const editingNoteId = ref<number | null>(null);
 const isDirty = ref(false);
 
 const form = useForm({
-  subjective: '',
-  objective: '',
-  assessment: '',
-  plan: '',
+  subjective: emptyDoc(),
+  objective: emptyDoc(),
+  assessment: emptyDoc(),
+  plan: emptyDoc(),
 });
 
 const editForm = useForm({
-  subjective: '',
-  objective: '',
-  assessment: '',
-  plan: '',
+  subjective: emptyDoc(),
+  objective: emptyDoc(),
+  assessment: emptyDoc(),
+  plan: emptyDoc(),
 });
 
 watch(() => props.newNoteId, (newId) => {
@@ -80,8 +81,8 @@ const save = () => {
     noteId: noteId.value
   });
 
-  // Check if form has any content
-  const hasContent = form.subjective || form.objective || form.assessment || form.plan;
+  // Check if form has any content (robust for TipTap JSON)
+  const hasContent = hasEditorContent(form.subjective) || hasEditorContent(form.objective) || hasEditorContent(form.assessment) || hasEditorContent(form.plan);
   if (!hasContent) {
     saveStatus.value = 'Please add some content before saving';
     setTimeout(() => saveStatus.value = '', 3000);
@@ -227,45 +228,16 @@ function rel(t: string): string {
   return `${Math.floor(d / 86400)}d ago`;
 }
 
-// Helper function to convert TipTap JSON to HTML for display
-const convertJsonToHtml = (content: any): string => {
-  if (!content) return '';
-  if (typeof content === 'string') {
-    // If it's already HTML, return as-is
-    return content;
-  }
-  try {
-    const extensions = [
-      StarterKit,
-      Underline,
-      Image.configure({
-        HTMLAttributes: {
-          class: 'rounded-lg border border-gray-300 max-w-full h-auto',
-        },
-      }),
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: {
-          class: 'text-blue-600 underline cursor-pointer',
-        },
-      }),
-    ];
-    return generateHTML(content, extensions);
-  } catch (error) {
-    console.warn('Failed to convert JSON to HTML:', error);
-    return '';
-  }
-};
+// Convert mixed input (HTML or TipTap JSON) to HTML for display
+const convertJsonToHtml = (content: any): string => toHTML(content);
 
 // Helper function to get text preview for timeline
 const getTextPreview = (content: any): string => {
   if (!content) return 'Empty';
   
-  // If it's HTML, strip tags for preview
-  let text = String(content);
-  if (text.includes('<')) {
-    text = stripHtml(text);
-  }
+  // Normalize to HTML then strip tags for preview
+  const html = toHTML(content);
+  let text = stripHtml(html);
   
   const preview = text.substring(0, 120);
   return preview || 'Empty';
@@ -449,10 +421,10 @@ onUnmounted(() => {
                   <details>
                     <summary>{{ getTextPreview(note.subjective) }}...</summary>
                     <div class="mt-4 space-y-2">
-                      <div><strong>Subjective:</strong> <div v-html="sanitizeHtml(note.subjective || '')" class="prose prose-sm max-w-none"></div></div>
-                      <div><strong>Objective:</strong> <div v-html="sanitizeHtml(note.objective || '')" class="prose prose-sm max-w-none"></div></div>
-                      <div><strong>Assessment:</strong> <div v-html="sanitizeHtml(note.assessment || '')" class="prose prose-sm max-w-none"></div></div>
-                      <div><strong>Plan:</strong> <div v-html="sanitizeHtml(note.plan || '')" class="prose prose-sm max-w-none"></div></div>
+                      <div><strong>Subjective:</strong> <div v-html="sanitizeHtml(convertJsonToHtml(note.subjective))" class="prose prose-sm max-w-none"></div></div>
+                      <div><strong>Objective:</strong> <div v-html="sanitizeHtml(convertJsonToHtml(note.objective))" class="prose prose-sm max-w-none"></div></div>
+                      <div><strong>Assessment:</strong> <div v-html="sanitizeHtml(convertJsonToHtml(note.assessment))" class="prose prose-sm max-w-none"></div></div>
+                      <div><strong>Plan:</strong> <div v-html="sanitizeHtml(convertJsonToHtml(note.plan))" class="prose prose-sm max-w-none"></div></div>
                     </div>
                   </details>
                   <!-- Edit button -->
