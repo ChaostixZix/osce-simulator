@@ -91,7 +91,8 @@ const submitPost = async () => {
         
         if (response.ok) {
             const newPost = await response.json();
-            posts.value.unshift(newPost.data);
+            // Single resource doesn't have .data wrapper, collections do
+            posts.value.unshift(newPost);
             newPostContent.value = '';
         }
     } catch (error) {
@@ -150,7 +151,7 @@ const submitComment = async (postId: number) => {
         if (response.ok) {
             const newComment = await response.json();
             if (!comments.value[postId]) comments.value[postId] = [];
-            comments.value[postId].push(newComment.data);
+            comments.value[postId].push(newComment);
             commentInput.value[postId] = '';
             
             // Update comments count
