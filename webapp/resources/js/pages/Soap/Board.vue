@@ -13,6 +13,7 @@ import InitialAvatar from '@/components/avatar/InitialAvatar.vue';
 import SoapNovelEditorClean from '@/components/SoapNovelEditorClean.vue';
 import { Label } from '@/components/ui/label';
 import { sanitizeHtml, stripHtml } from '@/utils/sanitize';
+import { toHTML } from '@/utils/richtext';
 import axios from 'axios';
 
 const props = defineProps<{
@@ -124,15 +125,35 @@ const loadMoreSoapNotes = async () => {
 };
 
 function simpleText(content: any): string {
-  return stripHtml(JSON.stringify(content || ''));
+  if (!content) return '';
+  try {
+    // Convert TipTap JSON to HTML first, then strip HTML tags
+    const html = toHTML(content);
+    return stripHtml(html);
+  } catch (error) {
+    console.warn('Error converting content to text:', error);
+    return '';
+  }
 }
 
 function preview(content: any): string {
-  const raw = simpleText(content);
-  return raw.substring(0, 120) || 'Empty';
+  const text = simpleText(content);
+  return text.substring(0, 120) || 'Empty';
 }
 
-// Composer modal inside SOAP modal
+function renderHtml(content: any): string {
+  if (!content) return '';
+  try {
+    // Convert TipTap JSON to sanitized HTML
+    const html = toHTML(content);
+    return sanitizeHtml(html);
+  } catch (error) {
+    console.warn('Error rendering content as HTML:', error);
+    return '';
+  }
+}
+
+// SOAP note form (now integrated in main modal)
 const showComposer = ref(false);
 const noteForm = useForm({ subjective: {}, objective: {}, assessment: {}, plan: {} });
 const composerSaving = ref(false);
@@ -145,8 +166,8 @@ const submitNote = async () => {
     await loadSoapData(selectedPatientId.value!);
     noteForm.reset();
   } catch (e) {
-    // Leave modal open for inline errors if any future validation added
-    console.error(e);
+    console.error('Error saving SOAP note:', e);
+    // Keep composer open so user can try again
   } finally {
     composerSaving.value = false;
   }
@@ -362,10 +383,57 @@ const submitComment = async (noteId: number) => {
 
   <!-- SOAP Modal with Timeline -->
   <AppModal v-model="showSoap" :title="soapPatient ? `SOAP - ${soapPatient.name}` : 'SOAP'" width="xl">
-    <div v-if="soapPatient" class="space-y-4">
+    <div v-if="soapPatient" class="space-y-6">
       <div class="flex items-center justify-between">
         <div class="text-sm text-gray-600">{{ soapPatient.bangsal }} / {{ soapPatient.nomor_kamar }}</div>
-        <Button size="sm" @click="showComposer = true">Add SOAP Timeline</Button>
+        <Button size="sm" @click="showComposer = !showComposer">
+          {{ showComposer ? 'Cancel' : 'Add SOAP Timeline' }}
+        </Button>
+      </div>
+
+      <!-- Add SOAP Timeline Form (integrated) -->
+      <div v-if="showComposer" class="border rounded-lg p-4 bg-gray-50">
+        <h3 class="text-lg font-medium mb-4">New SOAP Note</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label class="text-sm font-medium">Subjective</Label>
+            <SoapNovelEditorClean 
+              v-model="noteForm.subjective" 
+              placeholder="Subjective findings..."
+              min-height="120px"
+            />
+          </div>
+          <div>
+            <Label class="text-sm font-medium">Objective</Label>
+            <SoapNovelEditorClean 
+              v-model="noteForm.objective" 
+              placeholder="Objective findings..."
+              min-height="120px"
+            />
+          </div>
+          <div>
+            <Label class="text-sm font-medium">Assessment</Label>
+            <SoapNovelEditorClean 
+              v-model="noteForm.assessment" 
+              placeholder="Assessment..."
+              min-height="120px"
+            />
+          </div>
+          <div>
+            <Label class="text-sm font-medium">Plan</Label>
+            <SoapNovelEditorClean 
+              v-model="noteForm.plan" 
+              placeholder="Plan..."
+              min-height="120px"
+            />
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 mt-4">
+          <Button @click="showComposer = false" variant="outline" size="sm">Cancel</Button>
+          <Button @click="submitNote" :disabled="composerSaving" size="sm">
+            {{ composerSaving ? 'Saving...' : 'Save SOAP Note' }}
+          </Button>
+        </div>
       </div>
 
       <div class="space-y-4">
@@ -442,19 +510,19 @@ const submitComment = async (noteId: number) => {
               <div class="mt-3 space-y-3">
                 <div v-if="note.subjective" class="border-l-4 border-blue-500 pl-3">
                   <h4 class="font-medium text-sm text-blue-700">Subjective</h4>
-                  <div class="prose prose-sm max-w-none mt-1" v-html="sanitizeHtml(simpleText(note.subjective))"></div>
+                  <div class="prose prose-sm max-w-none mt-1" v-html="renderHtml(note.subjective)"></div>
                 </div>
                 <div v-if="note.objective" class="border-l-4 border-green-500 pl-3">
                   <h4 class="font-medium text-sm text-green-700">Objective</h4>
-                  <div class="prose prose-sm max-w-none mt-1" v-html="sanitizeHtml(simpleText(note.objective))"></div>
+                  <div class="prose prose-sm max-w-none mt-1" v-html="renderHtml(note.objective)"></div>
                 </div>
                 <div v-if="note.assessment" class="border-l-4 border-yellow-500 pl-3">
                   <h4 class="font-medium text-sm text-yellow-700">Assessment</h4>
-                  <div class="prose prose-sm max-w-none mt-1" v-html="sanitizeHtml(simpleText(note.assessment))"></div>
+                  <div class="prose prose-sm max-w-none mt-1" v-html="renderHtml(note.assessment)"></div>
                 </div>
                 <div v-if="note.plan" class="border-l-4 border-purple-500 pl-3">
                   <h4 class="font-medium text-sm text-purple-700">Plan</h4>
-                  <div class="prose prose-sm max-w-none mt-1" v-html="sanitizeHtml(simpleText(note.plan))"></div>
+                  <div class="prose prose-sm max-w-none mt-1" v-html="renderHtml(note.plan)"></div>
                 </div>
               </div>
             </details>
@@ -508,32 +576,6 @@ const submitComment = async (noteId: number) => {
         </Button>
       </div>
     </div>
-  </AppModal>
-
-  <!-- Composer Modal -->
-  <AppModal v-model="showComposer" title="Add SOAP Timeline" width="lg">
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <Label>Subjective</Label>
-        <SoapNovelEditorClean v-model="noteForm.subjective" />
-      </div>
-      <div>
-        <Label>Objective</Label>
-        <SoapNovelEditorClean v-model="noteForm.objective" />
-      </div>
-      <div>
-        <Label>Assessment</Label>
-        <SoapNovelEditorClean v-model="noteForm.assessment" />
-      </div>
-      <div>
-        <Label>Plan</Label>
-        <SoapNovelEditorClean v-model="noteForm.plan" />
-      </div>
-    </div>
-    <template #actions>
-      <Button type="button" variant="outline" @click="showComposer = false">Cancel</Button>
-      <Button type="button" :disabled="composerSaving" @click="submitNote">Save</Button>
-    </template>
   </AppModal>
 
 </template>
