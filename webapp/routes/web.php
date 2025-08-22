@@ -13,6 +13,7 @@ use App\Http\Controllers\SoapCommentController;
 use App\Http\Controllers\SoapNoteController;
 use App\Http\Controllers\SoapPageController;
 use App\Http\Controllers\PatientController;
+use App\Http\Controllers\OsceAssessmentController;
 
 Route::get('/', [LandingController::class, 'index'])->name('home');
 
@@ -46,6 +47,11 @@ Route::middleware([
 	Route::get('api/medical-tests/search', [App\Http\Controllers\MedicalTestController::class, 'search']);
 	Route::get('api/medical-tests/categories', [App\Http\Controllers\MedicalTestController::class, 'getCategories']);
 	Route::post('api/osce/cases/{case}/duration', [App\Http\Controllers\OsceController::class, 'updateCaseDuration']);
+	
+	// OSCE Assessment routes
+	Route::post('api/osce/sessions/{session}/assess', [OsceAssessmentController::class, 'assess'])->name('osce.assess');
+	Route::get('api/osce/sessions/{session}/results', [OsceAssessmentController::class, 'results'])->name('osce.results');
+	Route::get('osce/results/{session}', [OsceAssessmentController::class, 'show'])->name('osce.results.show');
 	
 	// MCQ routes
 	Route::get('mcq', [App\Http\Controllers\MCQController::class, 'index'])->name('mcq.index');
