@@ -30,6 +30,7 @@ class DatabaseSeeder extends Seeder
 			OsceCaseSeeder::class,
 			ComprehensiveMedicalTestSeeder::class,
 			McqTestSeeder::class,
+			PatientSoapSeeder::class,
 		]);
 	}
 }
