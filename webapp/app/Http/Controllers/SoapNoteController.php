@@ -11,6 +11,31 @@ use Illuminate\Validation\ValidationException;
 
 class SoapNoteController extends Controller
 {
+    public function storeApi(Request $request, Patient $patient)
+    {
+        $this->authorize('create', SoapNote::class);
+
+        $validated = $request->validate([
+            'subjective' => 'nullable|array',
+            'objective' => 'nullable|array',
+            'assessment' => 'nullable|array',
+            'plan' => 'nullable|array',
+        ]);
+
+        $emptyDoc = ['type' => 'doc', 'content' => [['type' => 'paragraph']]];
+        $cleanedData = [
+            'subjective' => $validated['subjective'] ?? $emptyDoc,
+            'objective' => $validated['objective'] ?? $emptyDoc,
+            'assessment' => $validated['assessment'] ?? $emptyDoc,
+            'plan' => $validated['plan'] ?? $emptyDoc,
+            'author_id' => Auth::id(),
+            'state' => 'draft',
+        ];
+
+        $note = $patient->soapNotes()->create($cleanedData);
+
+        return response()->json(['id' => $note->id], 201);
+    }
     public function store(Request $request, Patient $patient): RedirectResponse
     {
         $validated = $request->validate([
