@@ -17,6 +17,11 @@ const emits = defineEmits<DialogContentEmits>()
 
 const delegatedProps = computed(() => {
   const { class: _, ...delegated } = props
+  
+  // Remove aria-describedby if it's undefined/empty to prevent a11y warnings
+  if (!delegated['aria-describedby']) {
+    delete delegated['aria-describedby']
+  }
 
   return delegated
 })
