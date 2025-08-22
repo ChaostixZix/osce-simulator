@@ -14,10 +14,10 @@ class SoapNoteController extends Controller
     public function store(Request $request, Patient $patient): RedirectResponse
     {
         $validated = $request->validate([
-            'subjective' => 'required|string',
-            'objective' => 'required|string',
-            'assessment' => 'required|string',
-            'plan' => 'required|string',
+            'subjective' => 'nullable|string',
+            'objective' => 'nullable|string',
+            'assessment' => 'nullable|string',
+            'plan' => 'nullable|string',
         ]);
 
         $note = $patient->soapNotes()->create(array_merge($validated, [
@@ -33,10 +33,10 @@ class SoapNoteController extends Controller
         $this->authorize('update', $note);
 
         $validated = $request->validate([
-            'subjective' => 'required|string',
-            'objective' => 'required|string',
-            'assessment' => 'required|string',
-            'plan' => 'required|string',
+            'subjective' => 'nullable|string',
+            'objective' => 'nullable|string',
+            'assessment' => 'nullable|string',
+            'plan' => 'nullable|string',
         ]);
 
         $note->update($validated);
