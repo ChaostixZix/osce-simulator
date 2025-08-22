@@ -2,13 +2,7 @@
 import { ref, onBeforeUnmount, watch, onMounted } from 'vue';
 import { Editor, EditorContent } from '@tiptap/vue-3';
 import StarterKit from '@tiptap/starter-kit';
-import Bold from '@tiptap/extension-bold';
-import Italic from '@tiptap/extension-italic';
 import Underline from '@tiptap/extension-underline';
-import BulletList from '@tiptap/extension-bullet-list';
-import OrderedList from '@tiptap/extension-ordered-list';
-import ListItem from '@tiptap/extension-list-item';
-import History from '@tiptap/extension-history';
 import { Button } from '@/components/ui/button';
 import { Bold as BoldIcon, Italic as ItalicIcon, Underline as UnderlineIcon, List, ListOrdered, Undo, Redo } from 'lucide-vue-next';
 
@@ -42,15 +36,10 @@ onMounted(() => {
     editable: !props.disabled,
     extensions: [
       StarterKit.configure({
-        history: false, // We'll use our own history extension
+        // StarterKit includes: Bold, Italic, BulletList, OrderedList, ListItem, History by default
+        // We just need to add Underline
       }),
-      Bold,
-      Italic,
       Underline,
-      BulletList,
-      OrderedList,
-      ListItem,
-      History,
     ],
     onUpdate: ({ editor }) => {
       emit('update:modelValue', editor.getHTML());

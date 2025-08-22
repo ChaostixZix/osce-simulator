@@ -22,7 +22,6 @@ const props = defineProps<{
   },
   tz: string,
   errors: any,
-  jetstream: any,
   auth: any,
   newNoteId?: number,
 }>();
