@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import SoapNovelEditor from '@/components/SoapNovelEditor.vue';
 import SoapNovelEditorFixed from '@/components/SoapNovelEditorFixed.vue';
 import SimpleTextEditor from '@/components/SimpleTextEditor.vue';
+import SoapNovelEditorWorking from '@/components/SoapNovelEditorWorking.vue';
 import { sanitizeHtml, stripHtml } from '@/utils/sanitize';
 import { generateHTML } from '@tiptap/html';
 import StarterKit from '@tiptap/starter-kit';
@@ -320,7 +321,7 @@ onUnmounted(() => {
           <CardContent class="space-y-4">
             <div>
               <Label for="subjective">Subjective</Label>
-              <SimpleTextEditor 
+              <SoapNovelEditorWorking 
                 id="subjective" 
                 v-model="form.subjective" 
                 :note-id="noteId"
