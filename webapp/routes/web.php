@@ -71,6 +71,11 @@ Route::middleware([
 		Route::post('posts/{post}/comments', [CommentController::class, 'storeApi'])->name('api.forum.comments.store');
 	});
 
+	// SOAP JSON API for modal timelines
+	Route::prefix('api/soap')->group(function () {
+		Route::get('patients/{patient}', [SoapPageController::class, 'showApi'])->name('api.soap.patient');
+	});
+
 	// SOAP routes
 	// NEW PAGES
 	Route::get('soap', [SoapBoardController::class, 'index'])->name('soap.board');
