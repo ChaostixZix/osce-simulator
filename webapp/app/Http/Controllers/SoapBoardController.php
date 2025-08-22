@@ -17,8 +17,8 @@ class SoapBoardController extends Controller
         $patients = Patient::query()
             ->withCount('soapNotes')
             ->with(['soapNotes' => fn ($query) => $query->latest()->limit(1)])
-            ->when($request->input('status'), function ($query, $status) {
-                $query->where('status', $status);
+            ->when($request->input('status') && $request->input('status') !== 'all', function ($query) use ($request) {
+                $query->where('status', $request->input('status'));
             })
             ->when($request->input('search'), function ($query, $search) {
                 $query->where('name', 'like', "%{$search}%");

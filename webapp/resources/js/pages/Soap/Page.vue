@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue';
-import { Head, Link, useForm, router } from '@inertiajs/vue3';
+import { Head, useForm, router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
+import TiptapEditor from '@/components/TiptapEditor.vue';
+import { sanitizeHtml, stripHtml } from '@/utils/sanitize';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -21,15 +22,14 @@ const props = defineProps<{
   },
   tz: string,
   errors: any,
-  jetstream: any,
   auth: any,
   newNoteId?: number,
 }>();
 
 const noteId = ref<number | null>(props.newNoteId || null);
-const dirty = ref(false);
 const saving = ref(false);
 const saveStatus = ref('');
+const editingNoteId = ref<number | null>(null);
 
 const form = useForm({
   subjective: '',
@@ -38,14 +38,11 @@ const form = useForm({
   plan: '',
 });
 
-let saveInterval: number;
-
-onMounted(() => {
-  saveInterval = setInterval(save, 10000);
-});
-
-onUnmounted(() => {
-  clearInterval(saveInterval);
+const editForm = useForm({
+  subjective: '',
+  objective: '',
+  assessment: '',
+  plan: '',
 });
 
 watch(() => props.newNoteId, (newId) => {
@@ -54,13 +51,30 @@ watch(() => props.newNoteId, (newId) => {
   }
 });
 
-watch(form, () => {
-  dirty.value = true;
-}, { deep: true });
+// Helper function to refresh timeline data while preserving state
+const refreshTimeline = () => {
+  router.get(route('soap.page', props.patient.id), {}, {
+    preserveState: true,
+    preserveScroll: true,
+    only: ['notes'],
+    onSuccess: (page: any) => {
+      timelineNotes.value = page.props.notes.data;
+      nextPageUrl.value = page.props.notes.next_page_url;
+    }
+  });
+};
 
 
 const save = () => {
-  if (!dirty.value || saving.value) {
+  if (saving.value) {
+    return;
+  }
+
+  // Check if form has any content
+  const hasContent = form.subjective || form.objective || form.assessment || form.plan;
+  if (!hasContent) {
+    saveStatus.value = 'Please add some content before saving';
+    setTimeout(() => saveStatus.value = '', 3000);
     return;
   }
 
@@ -69,17 +83,21 @@ const save = () => {
 
   const onFinish = {
     onSuccess: (page: any) => {
-      if (page.props.newNoteId) {
+      if (page.props.newNoteId && !noteId.value) {
         noteId.value = page.props.newNoteId;
       }
-      dirty.value = false;
-      saveStatus.value = 'Saved';
+      saveStatus.value = 'Saved successfully!';
+      setTimeout(() => saveStatus.value = '', 3000);
+      
+      // Update the timeline data without full reload
+      refreshTimeline();
     },
     onFinish: () => {
       saving.value = false;
     },
     onError: () => {
-        saveStatus.value = 'Error saving';
+      saveStatus.value = 'Error saving';
+      setTimeout(() => saveStatus.value = '', 3000);
     }
   };
 
@@ -90,10 +108,33 @@ const save = () => {
   }
 };
 
-const finalize = () => {
-  if (noteId.value) {
-    router.post(route('soap.finalize', noteId.value));
-  }
+const editNote = (note: any) => {
+  editingNoteId.value = note.id;
+  editForm.subjective = note.subjective;
+  editForm.objective = note.objective;
+  editForm.assessment = note.assessment;
+  editForm.plan = note.plan;
+};
+
+const saveEdit = (noteIdToSave: number) => {
+  editForm.put(route('soap.update', noteIdToSave), {
+    preserveState: true,
+    preserveScroll: true,
+    onSuccess: () => {
+      editingNoteId.value = null;
+      editForm.reset();
+      // Refresh timeline to show updated note
+      refreshTimeline();
+    },
+    onError: (errors: any) => {
+      console.error('Error updating note:', errors);
+    }
+  });
+};
+
+const cancelEdit = () => {
+  editingNoteId.value = null;
+  editForm.reset();
 };
 
 const attachmentsForm = useForm({
@@ -104,7 +145,18 @@ const handleFileUpload = (event: Event) => {
   const target = event.target as HTMLInputElement;
   if (target.files) {
     attachmentsForm.files = Array.from(target.files);
-    attachmentsForm.post(route('soap.attach', noteId.value!));
+    attachmentsForm.post(route('soap.attach', noteId.value!), {
+      preserveState: true,
+      preserveScroll: true,
+      onSuccess: () => {
+        // Refresh timeline to show new attachments
+        refreshTimeline();
+        // Reset file input
+        if (event.target) {
+          (event.target as HTMLInputElement).value = '';
+        }
+      }
+    });
   }
 };
 
@@ -124,8 +176,10 @@ const loadMoreNotes = () => {
     onSuccess: (page: any) => {
       timelineNotes.value.push(...page.props.notes.data);
       nextPageUrl.value = page.props.notes.next_page_url;
-      loadingMore.value = false;
     },
+    onFinish: () => {
+      loadingMore.value = false;
+    }
   });
 };
 
@@ -178,23 +232,46 @@ function rel(t: string): string {
           <CardContent class="space-y-4">
             <div>
               <Label for="subjective">Subjective</Label>
-              <Textarea id="subjective" v-model="form.subjective" @blur="save" autofocus />
+              <TiptapEditor 
+                id="subjective" 
+                v-model="form.subjective" 
+ 
+                placeholder="Chief complaint, history of present illness, review of systems..."
+                min-height="160px"
+              />
             </div>
             <div>
               <Label for="objective">Objective</Label>
-              <Textarea id="objective" v-model="form.objective" @blur="save" />
+              <TiptapEditor 
+                id="objective" 
+                v-model="form.objective" 
+ 
+                placeholder="Vital signs, physical examination findings, diagnostic results..."
+                min-height="160px"
+              />
             </div>
             <div>
               <Label for="assessment">Assessment</Label>
-              <Textarea id="assessment" v-model="form.assessment" @blur="save" />
+              <TiptapEditor 
+                id="assessment" 
+                v-model="form.assessment" 
+ 
+                placeholder="Clinical impression, differential diagnosis, problem list..."
+                min-height="160px"
+              />
             </div>
             <div>
               <Label for="plan">Plan</Label>
-              <Textarea id="plan" v-model="form.plan" @blur="save" />
+              <TiptapEditor 
+                id="plan" 
+                v-model="form.plan" 
+ 
+                placeholder="Treatment plan, medications, follow-up instructions, patient education..."
+                min-height="160px"
+              />
             </div>
             <div class="flex justify-end space-x-4">
-              <Button @click="save">Save Draft</Button>
-              <Button @click="finalize" variant="destructive">Finalize</Button>
+              <Button @click="save" :disabled="saving">{{ saving ? 'Saving...' : 'Save' }}</Button>
             </div>
           </CardContent>
         </Card>
@@ -227,15 +304,63 @@ function rel(t: string): string {
                 </div>
               </CardHeader>
               <CardContent>
-                <details>
-                  <summary>{{ note.subjective.substring(0, 120) }}...</summary>
-                  <div class="mt-4 space-y-2">
-                    <p><strong>Subjective:</strong> {{ note.subjective }}</p>
-                    <p><strong>Objective:</strong> {{ note.objective }}</p>
-                    <p><strong>Assessment:</strong> {{ note.assessment }}</p>
-                    <p><strong>Plan:</strong> {{ note.plan }}</p>
+                <div v-if="editingNoteId === note.id">
+                  <!-- Inline editing mode -->
+                  <div class="space-y-4">
+                    <div>
+                      <Label>Subjective</Label>
+                      <TiptapEditor 
+                        v-model="editForm.subjective" 
+                        placeholder="Chief complaint, history of present illness, review of systems..."
+                        min-height="120px"
+                      />
+                    </div>
+                    <div>
+                      <Label>Objective</Label>
+                      <TiptapEditor 
+                        v-model="editForm.objective" 
+                        placeholder="Vital signs, physical examination findings, diagnostic results..."
+                        min-height="120px"
+                      />
+                    </div>
+                    <div>
+                      <Label>Assessment</Label>
+                      <TiptapEditor 
+                        v-model="editForm.assessment" 
+                        placeholder="Clinical impression, differential diagnosis, problem list..."
+                        min-height="120px"
+                      />
+                    </div>
+                    <div>
+                      <Label>Plan</Label>
+                      <TiptapEditor 
+                        v-model="editForm.plan" 
+                        placeholder="Treatment plan, medications, follow-up instructions, patient education..."
+                        min-height="120px"
+                      />
+                    </div>
+                    <div class="flex space-x-2">
+                      <Button @click="saveEdit(note.id)" :disabled="editForm.processing">{{ editForm.processing ? 'Saving...' : 'Save' }}</Button>
+                      <Button @click="cancelEdit" variant="outline">Cancel</Button>
+                    </div>
                   </div>
-                </details>
+                </div>
+                <div v-else>
+                  <!-- Display mode -->
+                  <details>
+                    <summary>{{ stripHtml(note.subjective).substring(0, 120) }}...</summary>
+                    <div class="mt-4 space-y-2">
+                      <div><strong>Subjective:</strong> <div v-html="sanitizeHtml(note.subjective)" class="inline"></div></div>
+                      <div><strong>Objective:</strong> <div v-html="sanitizeHtml(note.objective)" class="inline"></div></div>
+                      <div><strong>Assessment:</strong> <div v-html="sanitizeHtml(note.assessment)" class="inline"></div></div>
+                      <div><strong>Plan:</strong> <div v-html="sanitizeHtml(note.plan)" class="inline"></div></div>
+                    </div>
+                  </details>
+                  <!-- Edit button -->
+                  <div class="mt-2 flex space-x-2">
+                    <Button @click="editNote(note)" variant="outline" size="sm">Edit</Button>
+                  </div>
+                </div>
                 <div class="mt-4">
                   <Button @click="toggleComments(note)" variant="link">Show/Hide Comments</Button>
                   <div v-if="comments[note.id]" class="mt-2 space-y-2">
@@ -247,9 +372,6 @@ function rel(t: string): string {
                       <Button @click="postComment(note)">Post</Button>
                     </div>
                   </div>
-                </div>
-                <div v-if="can.admin && note.state === 'finalized'">
-                    <Button variant="outline" class="mt-2">Edit (Admin)</Button>
                 </div>
               </CardContent>
             </Card>
