@@ -13,6 +13,7 @@ import InitialAvatar from '@/components/avatar/InitialAvatar.vue';
 import SoapNovelEditorClean from '@/components/SoapNovelEditorClean.vue';
 import { Label } from '@/components/ui/label';
 import { sanitizeHtml, stripHtml } from '@/utils/sanitize';
+import { toHTML } from '@/utils/richtext';
 import axios from 'axios';
 
 const props = defineProps<{
@@ -88,6 +89,10 @@ const soapNotes = ref<any[]>([]);
 const soapNextPageUrl = ref<string | null>(null);
 const soapLoading = ref(false);
 
+// Note editing state
+const editingNoteId = ref<number | null>(null);
+const noteEditForms = ref<{[key: number]: any}>({});
+
 const openSoapModal = async (patientId: number) => {
   selectedPatientId.value = patientId;
   showSoap.value = true;
@@ -120,15 +125,35 @@ const loadMoreSoapNotes = async () => {
 };
 
 function simpleText(content: any): string {
-  return stripHtml(JSON.stringify(content || ''));
+  if (!content) return '';
+  try {
+    // Convert TipTap JSON to HTML first, then strip HTML tags
+    const html = toHTML(content);
+    return stripHtml(html);
+  } catch (error) {
+    console.warn('Error converting content to text:', error);
+    return '';
+  }
 }
 
 function preview(content: any): string {
-  const raw = simpleText(content);
-  return raw.substring(0, 120) || 'Empty';
+  const text = simpleText(content);
+  return text.substring(0, 120) || 'Empty';
 }
 
-// Composer modal inside SOAP modal
+function renderHtml(content: any): string {
+  if (!content) return '';
+  try {
+    // Convert TipTap JSON to sanitized HTML
+    const html = toHTML(content);
+    return sanitizeHtml(html);
+  } catch (error) {
+    console.warn('Error rendering content as HTML:', error);
+    return '';
+  }
+}
+
+// SOAP note form (now integrated in main modal)
 const showComposer = ref(false);
 const noteForm = useForm({ subjective: {}, objective: {}, assessment: {}, plan: {} });
 const composerSaving = ref(false);
@@ -141,10 +166,90 @@ const submitNote = async () => {
     await loadSoapData(selectedPatientId.value!);
     noteForm.reset();
   } catch (e) {
-    // Leave modal open for inline errors if any future validation added
-    console.error(e);
+    console.error('Error saving SOAP note:', e);
+    // Keep composer open so user can try again
   } finally {
     composerSaving.value = false;
+  }
+};
+
+// Note editing functions
+const startEditingNote = (note: any) => {
+  editingNoteId.value = note.id;
+  noteEditForms.value[note.id] = {
+    subjective: note.subjective || {},
+    objective: note.objective || {},
+    assessment: note.assessment || {},
+    plan: note.plan || {},
+  };
+};
+
+const cancelEditingNote = () => {
+  if (editingNoteId.value) {
+    delete noteEditForms.value[editingNoteId.value];
+  }
+  editingNoteId.value = null;
+};
+
+const saveEditingNote = async () => {
+  if (!editingNoteId.value) return;
+  
+  try {
+    const formData = noteEditForms.value[editingNoteId.value];
+    await axios.put(route('soap.update', editingNoteId.value), formData);
+    
+    // Refresh SOAP data
+    if (selectedPatientId.value) {
+      await loadSoapData(selectedPatientId.value);
+    }
+    
+    // Clear editing state
+    delete noteEditForms.value[editingNoteId.value];
+    editingNoteId.value = null;
+  } catch (error) {
+    console.error('Failed to update note:', error);
+  }
+};
+
+// Comments functionality
+const expandedNotes = ref<Set<number>>(new Set());
+const noteComments = ref<{[key: number]: any[]}>({});
+const commentForms = ref<{[key: number]: string}>({});
+const loadingComments = ref<Set<number>>(new Set());
+
+const toggleNoteComments = async (noteId: number) => {
+  if (expandedNotes.value.has(noteId)) {
+    expandedNotes.value.delete(noteId);
+  } else {
+    expandedNotes.value.add(noteId);
+    if (!noteComments.value[noteId]) {
+      await loadNoteComments(noteId);
+    }
+  }
+};
+
+const loadNoteComments = async (noteId: number) => {
+  loadingComments.value.add(noteId);
+  try {
+    const { data } = await axios.get(route('soap.comments.index', noteId));
+    noteComments.value[noteId] = data.data;
+  } catch (error) {
+    console.error('Failed to load comments:', error);
+  } finally {
+    loadingComments.value.delete(noteId);
+  }
+};
+
+const submitComment = async (noteId: number) => {
+  const body = commentForms.value[noteId];
+  if (!body?.trim()) return;
+  
+  try {
+    await axios.post(route('soap.comments.store', noteId), { body });
+    commentForms.value[noteId] = '';
+    await loadNoteComments(noteId); // Refresh comments
+  } catch (error) {
+    console.error('Failed to submit comment:', error);
   }
 };
 
@@ -278,59 +383,199 @@ const submitNote = async () => {
 
   <!-- SOAP Modal with Timeline -->
   <AppModal v-model="showSoap" :title="soapPatient ? `SOAP - ${soapPatient.name}` : 'SOAP'" width="xl">
-    <div v-if="soapPatient" class="space-y-4">
+    <div v-if="soapPatient" class="space-y-6">
       <div class="flex items-center justify-between">
         <div class="text-sm text-gray-600">{{ soapPatient.bangsal }} / {{ soapPatient.nomor_kamar }}</div>
-        <Button size="sm" @click="showComposer = true">Add SOAP Timeline</Button>
+        <Button size="sm" @click="showComposer = !showComposer">
+          {{ showComposer ? 'Cancel' : 'Add SOAP Timeline' }}
+        </Button>
       </div>
 
-      <div class="space-y-3">
-        <div v-for="note in soapNotes" :key="note.id" class="border rounded p-3">
-          <div class="flex items-center justify-between">
+      <!-- Add SOAP Timeline Form (integrated) -->
+      <div v-if="showComposer" class="border rounded-lg p-4 bg-gray-50">
+        <h3 class="text-lg font-medium mb-4">New SOAP Note</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label class="text-sm font-medium">Subjective</Label>
+            <SoapNovelEditorClean 
+              v-model="noteForm.subjective" 
+              placeholder="Subjective findings..."
+              min-height="120px"
+            />
+          </div>
+          <div>
+            <Label class="text-sm font-medium">Objective</Label>
+            <SoapNovelEditorClean 
+              v-model="noteForm.objective" 
+              placeholder="Objective findings..."
+              min-height="120px"
+            />
+          </div>
+          <div>
+            <Label class="text-sm font-medium">Assessment</Label>
+            <SoapNovelEditorClean 
+              v-model="noteForm.assessment" 
+              placeholder="Assessment..."
+              min-height="120px"
+            />
+          </div>
+          <div>
+            <Label class="text-sm font-medium">Plan</Label>
+            <SoapNovelEditorClean 
+              v-model="noteForm.plan" 
+              placeholder="Plan..."
+              min-height="120px"
+            />
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 mt-4">
+          <Button @click="showComposer = false" variant="outline" size="sm">Cancel</Button>
+          <Button @click="submitNote" :disabled="composerSaving" size="sm">
+            {{ composerSaving ? 'Saving...' : 'Save SOAP Note' }}
+          </Button>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <div v-for="note in soapNotes" :key="note.id" class="border rounded-lg p-4">
+          <!-- Note Header -->
+          <div class="flex items-center justify-between mb-3">
             <div class="flex items-center gap-2">
               <InitialAvatar :name="note.author?.name" size="sm" />
               <span class="font-medium">{{ note.author?.name }}</span>
               <Badge :class="note.state === 'draft' ? 'bg-yellow-500' : 'bg-green-500'">{{ note.state }}</Badge>
             </div>
-            <span class="text-xs text-gray-500">{{ rel(note.created_at) }}</span>
-          </div>
-          <details class="mt-2">
-            <summary class="cursor-pointer text-sm text-gray-700">{{ preview(note.subjective) }}...</summary>
-            <div class="mt-2 text-sm text-gray-800">
-              <div class="prose prose-sm max-w-none" v-html="sanitizeHtml(simpleText(note.subjective))"></div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-gray-500">{{ rel(note.created_at) }}</span>
+              <Button 
+                v-if="editingNoteId !== note.id && note.state === 'draft'" 
+                @click="startEditingNote(note)" 
+                size="sm" 
+                variant="outline"
+              >
+                Edit
+              </Button>
             </div>
-          </details>
-        </div>
-        <div v-if="soapLoading" class="text-center text-sm">Loading...</div>
-        <Button v-if="soapNextPageUrl" @click="loadMoreSoapNotes" class="w-full" variant="outline" size="sm">Load More</Button>
-      </div>
-    </div>
-  </AppModal>
+          </div>
 
-  <!-- Composer Modal -->
-  <AppModal v-model="showComposer" title="Add SOAP Timeline" width="lg">
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <Label>Subjective</Label>
-        <SoapNovelEditorClean v-model="noteForm.subjective" />
-      </div>
-      <div>
-        <Label>Objective</Label>
-        <SoapNovelEditorClean v-model="noteForm.objective" />
-      </div>
-      <div>
-        <Label>Assessment</Label>
-        <SoapNovelEditorClean v-model="noteForm.assessment" />
-      </div>
-      <div>
-        <Label>Plan</Label>
-        <SoapNovelEditorClean v-model="noteForm.plan" />
+          <!-- Note Content -->
+          <div v-if="editingNoteId === note.id" class="space-y-4">
+            <!-- Editing Mode -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label class="text-sm font-medium">Subjective</Label>
+                <SoapNovelEditorClean 
+                  v-model="noteEditForms[note.id].subjective" 
+                  :note-id="note.id"
+                  min-height="120px"
+                />
+              </div>
+              <div>
+                <Label class="text-sm font-medium">Objective</Label>
+                <SoapNovelEditorClean 
+                  v-model="noteEditForms[note.id].objective" 
+                  :note-id="note.id"
+                  min-height="120px"
+                />
+              </div>
+              <div>
+                <Label class="text-sm font-medium">Assessment</Label>
+                <SoapNovelEditorClean 
+                  v-model="noteEditForms[note.id].assessment" 
+                  :note-id="note.id"
+                  min-height="120px"
+                />
+              </div>
+              <div>
+                <Label class="text-sm font-medium">Plan</Label>
+                <SoapNovelEditorClean 
+                  v-model="noteEditForms[note.id].plan" 
+                  :note-id="note.id"
+                  min-height="120px"
+                />
+              </div>
+            </div>
+            <div class="flex justify-end gap-2">
+              <Button @click="cancelEditingNote" variant="outline" size="sm">Cancel</Button>
+              <Button @click="saveEditingNote" size="sm">Save Changes</Button>
+            </div>
+          </div>
+          
+          <div v-else>
+            <!-- Display Mode -->
+            <details class="group">
+              <summary class="cursor-pointer text-sm text-gray-700 hover:text-gray-900">
+                {{ preview(note.subjective) }}...
+              </summary>
+              <div class="mt-3 space-y-3">
+                <div v-if="note.subjective" class="border-l-4 border-blue-500 pl-3">
+                  <h4 class="font-medium text-sm text-blue-700">Subjective</h4>
+                  <div class="prose prose-sm max-w-none mt-1" v-html="renderHtml(note.subjective)"></div>
+                </div>
+                <div v-if="note.objective" class="border-l-4 border-green-500 pl-3">
+                  <h4 class="font-medium text-sm text-green-700">Objective</h4>
+                  <div class="prose prose-sm max-w-none mt-1" v-html="renderHtml(note.objective)"></div>
+                </div>
+                <div v-if="note.assessment" class="border-l-4 border-yellow-500 pl-3">
+                  <h4 class="font-medium text-sm text-yellow-700">Assessment</h4>
+                  <div class="prose prose-sm max-w-none mt-1" v-html="renderHtml(note.assessment)"></div>
+                </div>
+                <div v-if="note.plan" class="border-l-4 border-purple-500 pl-3">
+                  <h4 class="font-medium text-sm text-purple-700">Plan</h4>
+                  <div class="prose prose-sm max-w-none mt-1" v-html="renderHtml(note.plan)"></div>
+                </div>
+              </div>
+            </details>
+            
+            <!-- Comments Section -->
+            <div class="mt-3 border-t pt-3">
+              <Button 
+                @click="toggleNoteComments(note.id)" 
+                variant="ghost" 
+                size="sm" 
+                class="text-xs text-gray-500 hover:text-gray-700"
+              >
+                {{ expandedNotes.has(note.id) ? 'Hide' : 'Show' }} Comments
+              </Button>
+              
+              <div v-if="expandedNotes.has(note.id)" class="mt-2">
+                <!-- Comments List -->
+                <div v-if="loadingComments.has(note.id)" class="text-xs text-gray-500">Loading comments...</div>
+                <div v-else-if="noteComments[note.id]?.length" class="space-y-2 mb-3">
+                  <div 
+                    v-for="comment in noteComments[note.id]" 
+                    :key="comment.id" 
+                    class="bg-gray-50 rounded p-2 text-sm"
+                  >
+                    <div class="flex items-center justify-between mb-1">
+                      <span class="font-medium text-xs">{{ comment.author?.name }}</span>
+                      <span class="text-xs text-gray-500">{{ rel(comment.created_at) }}</span>
+                    </div>
+                    <div>{{ comment.body }}</div>
+                  </div>
+                </div>
+                
+                <!-- Add Comment Form -->
+                <div class="flex gap-2">
+                  <Input 
+                    v-model="commentForms[note.id]" 
+                    placeholder="Add a comment..." 
+                    size="sm" 
+                    @keyup.enter="submitComment(note.id)"
+                  />
+                  <Button @click="submitComment(note.id)" size="sm">Post</Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div v-if="soapLoading" class="text-center text-sm text-gray-500">Loading...</div>
+        <Button v-if="soapNextPageUrl" @click="loadMoreSoapNotes" class="w-full" variant="outline" size="sm">
+          Load More SOAP Notes
+        </Button>
       </div>
     </div>
-    <template #actions>
-      <Button type="button" variant="outline" @click="showComposer = false">Cancel</Button>
-      <Button type="button" :disabled="composerSaving" @click="submitNote">Save</Button>
-    </template>
   </AppModal>
 
 </template>

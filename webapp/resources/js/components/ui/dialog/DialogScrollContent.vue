@@ -17,6 +17,11 @@ const emits = defineEmits<DialogContentEmits>()
 
 const delegatedProps = computed(() => {
   const { class: _, ...delegated } = props
+  
+  // Remove aria-describedby if it's undefined/empty to prevent a11y warnings
+  if (!delegated['aria-describedby']) {
+    delete delegated['aria-describedby']
+  }
 
   return delegated
 })
@@ -32,7 +37,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
       <DialogContent
         :class="
           cn(
-            'relative z-50 grid w-full max-w-lg my-8 gap-4 border border-border bg-background p-6 shadow-lg duration-200 sm:rounded-lg md:w-full',
+            'relative z-50 grid w-full max-w-[calc(100%-2rem)] my-8 gap-4 border border-border bg-background p-6 shadow-lg duration-200 sm:rounded-lg sm:max-w-lg md:w-full',
             props.class,
           )
         "
