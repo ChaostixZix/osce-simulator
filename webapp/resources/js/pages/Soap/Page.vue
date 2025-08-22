@@ -51,6 +51,19 @@ watch(() => props.newNoteId, (newId) => {
   }
 });
 
+// Helper function to refresh timeline data while preserving state
+const refreshTimeline = () => {
+  router.get(route('soap.page', props.patient.id), {}, {
+    preserveState: true,
+    preserveScroll: true,
+    only: ['notes'],
+    onSuccess: (page: any) => {
+      timelineNotes.value = page.props.notes.data;
+      nextPageUrl.value = page.props.notes.next_page_url;
+    }
+  });
+};
+
 
 const save = () => {
   if (saving.value) {
@@ -76,8 +89,8 @@ const save = () => {
       saveStatus.value = 'Saved successfully!';
       setTimeout(() => saveStatus.value = '', 3000);
       
-      // Refresh the timeline to show the new/updated note
-      router.reload({ only: ['notes'] });
+      // Update the timeline data without full reload
+      refreshTimeline();
     },
     onFinish: () => {
       saving.value = false;
@@ -105,9 +118,16 @@ const editNote = (note: any) => {
 
 const saveEdit = (noteIdToSave: number) => {
   editForm.put(route('soap.update', noteIdToSave), {
+    preserveState: true,
+    preserveScroll: true,
     onSuccess: () => {
       editingNoteId.value = null;
-      router.reload({ only: ['notes'] });
+      editForm.reset();
+      // Refresh timeline to show updated note
+      refreshTimeline();
+    },
+    onError: (errors: any) => {
+      console.error('Error updating note:', errors);
     }
   });
 };
@@ -125,7 +145,18 @@ const handleFileUpload = (event: Event) => {
   const target = event.target as HTMLInputElement;
   if (target.files) {
     attachmentsForm.files = Array.from(target.files);
-    attachmentsForm.post(route('soap.attach', noteId.value!));
+    attachmentsForm.post(route('soap.attach', noteId.value!), {
+      preserveState: true,
+      preserveScroll: true,
+      onSuccess: () => {
+        // Refresh timeline to show new attachments
+        refreshTimeline();
+        // Reset file input
+        if (event.target) {
+          (event.target as HTMLInputElement).value = '';
+        }
+      }
+    });
   }
 };
 
@@ -145,8 +176,10 @@ const loadMoreNotes = () => {
     onSuccess: (page: any) => {
       timelineNotes.value.push(...page.props.notes.data);
       nextPageUrl.value = page.props.notes.next_page_url;
-      loadingMore.value = false;
     },
+    onFinish: () => {
+      loadingMore.value = false;
+    }
   });
 };
 
