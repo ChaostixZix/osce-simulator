@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from 'vue'
+import { computed } from 'vue'
 import { cn } from '@/lib/utils'
 import { reactiveOmit } from '@vueuse/core'
 import { X } from 'lucide-vue-next'
@@ -29,7 +30,16 @@ const emits = defineEmits<DialogContentEmits>()
 
 const delegatedProps = reactiveOmit(props, 'class', 'side')
 
-const forwarded = useForwardPropsEmits(delegatedProps, emits)
+// Clean up undefined aria-describedby to prevent a11y warnings
+const cleanedProps = computed(() => {
+  const cleaned = { ...delegatedProps }
+  if (!cleaned['aria-describedby']) {
+    delete cleaned['aria-describedby']
+  }
+  return cleaned
+})
+
+const forwarded = useForwardPropsEmits(cleanedProps, emits)
 </script>
 
 <template>
