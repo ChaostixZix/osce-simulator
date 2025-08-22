@@ -50,12 +50,67 @@ Visit `http://localhost:8000` to access the application.
 
 ```
 webapp/
-├── app/         # Laravel backend code
-├── database/    # Migrations and seeders
-├── resources/   # Vue components and assets
-├── routes/      # Web & API routes
-├── tests/       # PHPUnit tests
-└── ...
+├── app/                      # Laravel backend code
+│   ├── Http/
+│   │   ├── Controllers/      # Application controllers
+│   │   └── Middleware/
+│   ├── Models/               # Eloquent models
+│   └── Providers/
+├── config/                   # Configuration files
+├── database/
+│   ├── factories/
+│   ├── migrations/
+│   └── seeders/
+├── public/                   # Publicly accessible assets
+├── resources/
+│   ├── css/                  # Compiled CSS
+│   ├── js/                   # Vue components and scripts
+│   │   ├── Components/       # Reusable Vue components
+│   │   ├── Layouts/          # Application layouts
+│   │   └── Pages/            # Inertia page components
+│   └── views/                # Blade views
+├── routes/                   # Web & API routes
+└── tests/                    # PHPUnit tests
+```
+
+### Models
+
+The application's core data structures are defined using Eloquent models:
+
+- **`User`**: Manages user data and authentication.
+- **`OsceCase`**: Represents a clinical case scenario.
+- **`OsceSession`**: Tracks a user's progress through a case.
+- **`OsceChatMessage`**: Stores messages from the AI patient chat.
+- **`MedicalTest`**: Defines available medical tests.
+- **`SessionOrderedTest`**: Logs tests ordered during a session.
+- **`SessionExamination`**: Records examinations performed.
+- **`Post`**: Represents a forum post.
+- **`Comment`**: A comment on a forum post.
+- **`PostInteraction`**: Tracks user engagement (e.g., likes).
+- **`Notification`**: Manages user notifications.
+- **`Patient`**: Represents a patient entity for SOAP notes.
+- **`SoapNote`**: A SOAP note associated with a patient.
+- **`SoapAttachment`**: File attachments for SOAP notes.
+- **`SoapComment`**: Comments on SOAP notes.
+- **`McqTest`**: A multiple-choice question test.
+- **`McqQuestion`**: A single question within a test.
+- **`McqOption`**: An answer option for an MCQ question.
+
+### Controllers
+
+Controllers handle the application's logic and route requests:
+
+- **`LandingController`**: Manages the public-facing landing page.
+- **`DashboardController`**: Handles the main user dashboard.
+- **`OsceController`**: Core logic for OSCE sessions.
+- **`OsceChatController`**: Manages the AI chat functionality.
+- **`MedicalTestController`**: API for medical test data.
+- **`PostController`**: CRUD operations for forum posts.
+- **`CommentController`**: Manages comments on posts.
+- **`MCQController`**: Handles the MCQ assessment feature.
+- **`PatientController`**: Manages patient records.
+- **`SoapBoardController`**, **`SoapPageController`**, **`SoapNoteController`**: Manage the SOAP notes feature.
+- **`Settings/ProfileController`**: Manages user profile settings.
 ```
 
 ## 🧪 Testing
