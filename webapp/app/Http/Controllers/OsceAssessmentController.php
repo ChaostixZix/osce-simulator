@@ -81,6 +81,14 @@ class OsceAssessmentController extends Controller
             abort(403, 'Unauthorized to view assessment results');
         }
 
+        // Gating: results are only viewable after rationalization is complete
+        // Single source of truth: $session->is_rationalization_complete (see OsceSession accessor)
+        if (!$session->is_rationalization_complete) {
+            return response()->json([
+                'error' => 'Complete rationalization first.'
+            ], 403);
+        }
+
         if (!$session->assessed_at) {
             return response()->json([
                 'error' => 'Session has not been assessed yet'
@@ -111,6 +119,14 @@ class OsceAssessmentController extends Controller
             abort(403, 'Unauthorized to view assessment results');
         }
 
+        // Gating: results page requires completed rationalization for the same session
+        // Source of truth: $session->is_rationalization_complete
+        if (!$session->is_rationalization_complete) {
+            return redirect()
+                ->route('osce.chat', $session)
+                ->with('warning', 'Selesaikan rasionalisasi terlebih dahulu.');
+        }
+
         // Load necessary relationships
         $session->load(['osceCase', 'user']);
 
@@ -123,6 +139,9 @@ class OsceAssessmentController extends Controller
                     'completed_at' => $session->completed_at?->toISOString(),
                     'duration_minutes' => $session->duration_minutes,
                     'time_extended' => $session->time_extended,
+                    'clinical_reasoning_score' => $session->clinical_reasoning_score,
+                    'total_test_cost' => $session->total_test_cost,
+                    'evaluation_feedback' => $session->evaluation_feedback,
                     'case' => [
                         'id' => $session->osceCase->id,
                         'title' => $session->osceCase->title,
@@ -171,6 +190,9 @@ class OsceAssessmentController extends Controller
                 'completed_at' => $session->completed_at?->toISOString(),
                 'duration_minutes' => $session->duration_minutes,
                 'time_extended' => $session->time_extended,
+                'clinical_reasoning_score' => $session->clinical_reasoning_score,
+                'total_test_cost' => $session->total_test_cost,
+                'evaluation_feedback' => $session->evaluation_feedback,
                 'case' => [
                     'id' => $session->osceCase->id,
                     'title' => $session->osceCase->title,

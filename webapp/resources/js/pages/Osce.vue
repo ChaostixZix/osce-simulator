@@ -209,6 +209,21 @@ const canContinue = (s: OsceSession) => {
     return s.status === 'in_progress' && timeOk;
 };
 
+// Derive server-truth flags with safe fallbacks for live updates
+const canViewResults = (s: OsceSession) => {
+    // Prefer server-provided boolean if present
+    const provided = (s as any).canViewResults as boolean | undefined;
+    if (typeof provided === 'boolean') return provided;
+    // Fallback: allow when session completed
+    return s.status === 'completed';
+};
+
+const canProceedToScoring = (s: OsceSession) => {
+    const provided = (s as any).canProceedToScoring as boolean | undefined;
+    if (typeof provided === 'boolean') return provided;
+    return canViewResults(s);
+};
+
 const isStartingSession = ref<number | null>(null);
 
 const startCase = async (caseId: number) => {
@@ -407,31 +422,30 @@ onBeforeUnmount(() => {
                                         <span v-else class="text-gray-500">-</span>
                                     </TableCell>
                                     <TableCell>
-                                        <Button
-                                            v-if="canContinue(session)"
-                                            variant="outline"
-                                            size="sm"
-                                            @click="router.visit(`/osce/chat/${session.id}`)"
-                                        >
-                                            Continue
-                                        </Button>
-                                        <Button
-                                            v-else-if="session.status === 'in_progress' && (session.remaining_seconds ?? 0) <= 0"
-                                            variant="outline"
-                                            size="sm"
-                                            disabled
-                                        >
-                                            Time Up
-                                        </Button>
-                                        <Button 
-                                            v-else-if="session.status === 'completed'" 
-                                            variant="ghost" 
-                                            size="sm"
-                                            @click="router.visit(`/osce/results/${session.id}`)"
-                                        >
-                                            View Results
-                                        </Button>
-                                        <span v-else class="text-sm text-gray-500">-</span>
+                                        <div class="flex flex-col gap-1">
+                                            <div v-if="canContinue(session)">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    @click="router.visit(`/osce/chat/${session.id}`)"
+                                                >
+                                                    Continue
+                                                </Button>
+                                            </div>
+                                            <div v-else>
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm"
+                                                    :disabled="!canViewResults(session)"
+                                                    @click="router.visit(`/osce/results/${session.id}`)"
+                                                >
+                                                    View Results
+                                                </Button>
+                                                <p v-if="!canViewResults(session)" class="text-xs text-muted-foreground">
+                                                    Selesaikan rasionalisasi terlebih dahulu.
+                                                </p>
+                                            </div>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             </TableBody>
