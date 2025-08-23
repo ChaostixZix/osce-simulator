@@ -423,7 +423,12 @@ onBeforeUnmount(() => {
                                         >
                                             Time Up
                                         </Button>
-                                        <Button v-else-if="session.status === 'completed'" variant="ghost" size="sm">
+                                        <Button 
+                                            v-else-if="session.status === 'completed'" 
+                                            variant="ghost" 
+                                            size="sm"
+                                            @click="router.visit(`/osce/results/${session.id}`)"
+                                        >
                                             View Results
                                         </Button>
                                         <span v-else class="text-sm text-gray-500">-</span>
