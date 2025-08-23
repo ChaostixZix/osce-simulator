@@ -19,26 +19,26 @@ const mainNavItems: NavItem[] = [
         href: '/dashboard',
         icon: LayoutGrid,
     },
-    {
-        title: 'forum',
-        href: '/forum',
-        icon: MessageSquare,
-    },
+    // {
+    //     title: 'forum',
+    //     href: '/forum',
+    //     icon: MessageSquare,
+    // },
     {
         title: 'osce',
         href: '/osce',
         icon: Hospital,
     },
-    {
-        title: 'soap',
-        href: '/soap',
-        icon: MessageCircle,
-    },
-    {
-        title: 'mcq',
-        href: '/mcq',
-        icon: HelpCircle,
-    },
+    // {
+    //     title: 'soap',
+    //     href: '/soap',
+    //     icon: MessageCircle,
+    // },
+    // {
+    //     title: 'mcq',
+    //     href: '/mcq',
+    //     icon: HelpCircle,
+    // },
 ];
 
 const footerNavItems: NavItem[] = [
