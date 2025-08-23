@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CommentController;
+use Laravel\WorkOS\Http\Middleware\ValidateSessionWithWorkOS;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\OsceAssessmentController;
