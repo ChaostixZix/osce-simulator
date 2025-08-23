@@ -28,15 +28,15 @@ class OsceAssessmentController extends Controller
 
         // Validate request
         $validated = $request->validate([
-            'force' => 'boolean'
+            'force' => 'boolean',
         ]);
 
         $force = $validated['force'] ?? false;
 
         // Check if session is ready for assessment
-        if ($session->status !== 'completed' && !$session->is_expired) {
+        if ($session->status !== 'completed' && ! $session->is_expired) {
             return response()->json([
-                'error' => 'Session must be completed or expired before assessment'
+                'error' => 'Session must be completed or expired before assessment',
             ], 400);
         }
 
@@ -46,10 +46,10 @@ class OsceAssessmentController extends Controller
         }
 
         // Check if already assessed and not forced
-        if ($session->assessed_at && !$force) {
+        if ($session->assessed_at && ! $force) {
             return response()->json([
                 'message' => 'Session already assessed',
-                'assessed_at' => $session->assessed_at->toISOString()
+                'assessed_at' => $session->assessed_at->toISOString(),
             ]);
         }
 
@@ -63,11 +63,11 @@ class OsceAssessmentController extends Controller
         }
 
         return response()->json([
-            'message' => 'Assessment ' . (app()->environment('local') ? 'completed' : 'queued'),
+            'message' => 'Assessment '.(app()->environment('local') ? 'completed' : 'queued'),
             'session_id' => $session->id,
             'score' => $session->score,
             'max_score' => $session->max_score,
-            'assessed_at' => $session->assessed_at?->toISOString()
+            'assessed_at' => $session->assessed_at?->toISOString(),
         ]);
     }
 
@@ -81,9 +81,9 @@ class OsceAssessmentController extends Controller
             abort(403, 'Unauthorized to view assessment results');
         }
 
-        if (!$session->assessed_at) {
+        if (! $session->assessed_at) {
             return response()->json([
-                'error' => 'Session has not been assessed yet'
+                'error' => 'Session has not been assessed yet',
             ], 404);
         }
 
@@ -115,12 +115,12 @@ class OsceAssessmentController extends Controller
         $session->load(['osceCase', 'user']);
 
         // Check if assessed
-        if (!$session->assessed_at) {
+        if (! $session->assessed_at) {
             return Inertia::render('OsceResult', [
                 'session' => $session,
                 'isAssessed' => false,
                 'canReassess' => $session->user_id === Auth::id(),
-                'error' => 'This session has not been assessed yet.'
+                'error' => 'This session has not been assessed yet.',
             ]);
         }
 

@@ -93,7 +93,7 @@ class Notification extends Model
     public function getMessageAttribute(): string
     {
         $fromUserName = $this->fromUser?->name ?? 'Someone';
-        
+
         return match ($this->type) {
             'like' => "{$fromUserName} liked your post",
             'retweet' => "{$fromUserName} retweeted your post",
@@ -101,7 +101,7 @@ class Notification extends Model
             'follow' => "{$fromUserName} started following you",
             'mention' => "{$fromUserName} mentioned you in a post",
             'reply' => "{$fromUserName} replied to your comment",
-            default => "You have a new notification",
+            default => 'You have a new notification',
         };
     }
 

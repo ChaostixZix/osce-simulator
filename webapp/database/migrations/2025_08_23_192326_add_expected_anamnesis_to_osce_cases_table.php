@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('osce_cases', function (Blueprint $table) {
             $table->json('expected_anamnesis_questions')->nullable(); // Array of expected questions
-            $table->json('red_flags')->nullable(); // Array of red flag indicators  
+            $table->json('red_flags')->nullable(); // Array of red flag indicators
             $table->json('common_differentials')->nullable(); // Array of common differential diagnoses
         });
     }

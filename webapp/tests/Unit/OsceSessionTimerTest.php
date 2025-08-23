@@ -6,20 +6,21 @@ use App\Models\OsceCase;
 use App\Models\OsceSession;
 use App\Models\User;
 use Carbon\Carbon;
-use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class OsceSessionTimerTest extends TestCase
 {
     use RefreshDatabase;
 
     private User $user;
+
     private OsceCase $osceCase;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->user = User::factory()->create();
         $this->osceCase = OsceCase::factory()->create([
             'duration_minutes' => 25,
@@ -47,7 +48,7 @@ class OsceSessionTimerTest extends TestCase
     public function it_calculates_elapsed_time_correctly()
     {
         Carbon::setTestNow(now());
-        
+
         $session = OsceSession::create([
             'user_id' => $this->user->id,
             'osce_case_id' => $this->osceCase->id,
@@ -79,7 +80,7 @@ class OsceSessionTimerTest extends TestCase
     public function it_handles_timer_pause_and_resume()
     {
         Carbon::setTestNow(now());
-        
+
         $session = OsceSession::create([
             'user_id' => $this->user->id,
             'osce_case_id' => $this->osceCase->id,
@@ -94,21 +95,21 @@ class OsceSessionTimerTest extends TestCase
         // Pause the timer
         $session->pauseTimer();
         $session = $session->fresh();
-        
+
         $this->assertTrue($session->isPaused());
         $this->assertEquals(1200, $session->current_remaining_seconds);
         $this->assertNotNull($session->paused_at);
 
         // Simulate 2 minutes passing while paused
         Carbon::setTestNow(now()->addMinutes(2));
-        
+
         // Time remaining should still be 1200 because it's paused
         $this->assertEquals(1200, $session->remaining_seconds);
 
         // Resume the timer
         $session->resumeTimer();
         $session = $session->fresh();
-        
+
         $this->assertFalse($session->isPaused());
         $this->assertEquals(120, $session->total_paused_seconds); // 2 minutes paused
         $this->assertNotNull($session->resumed_at);
@@ -122,7 +123,7 @@ class OsceSessionTimerTest extends TestCase
     public function it_calculates_actual_elapsed_seconds_excluding_paused_time()
     {
         Carbon::setTestNow(now());
-        
+
         $session = OsceSession::create([
             'user_id' => $this->user->id,
             'osce_case_id' => $this->osceCase->id,
@@ -140,7 +141,7 @@ class OsceSessionTimerTest extends TestCase
     public function it_handles_multiple_pause_resume_cycles()
     {
         Carbon::setTestNow(now());
-        
+
         $session = OsceSession::create([
             'user_id' => $this->user->id,
             'osce_case_id' => $this->osceCase->id,
@@ -153,7 +154,7 @@ class OsceSessionTimerTest extends TestCase
         Carbon::setTestNow(now()->addMinutes(2)); // 2 minutes paused
         $session->resumeTimer();
         $session = $session->fresh();
-        
+
         $this->assertEquals(120, $session->total_paused_seconds);
 
         // Second pause-resume cycle
@@ -162,7 +163,7 @@ class OsceSessionTimerTest extends TestCase
         Carbon::setTestNow(now()->addMinutes(3)); // 3 minutes paused
         $session->resumeTimer();
         $session = $session->fresh();
-        
+
         $this->assertEquals(300, $session->total_paused_seconds); // 2 + 3 = 5 minutes total paused
 
         // Total elapsed: 11 minutes real time - 5 minutes paused = 6 minutes active
@@ -182,11 +183,11 @@ class OsceSessionTimerTest extends TestCase
 
         $session->pauseTimer();
         $firstPauseTime = $session->fresh()->paused_at;
-        
+
         // Try to pause again - should not change paused_at
         $session->pauseTimer();
         $secondPauseTime = $session->fresh()->paused_at;
-        
+
         $this->assertEquals($firstPauseTime->format('Y-m-d H:i:s'), $secondPauseTime->format('Y-m-d H:i:s'));
     }
 
@@ -202,7 +203,7 @@ class OsceSessionTimerTest extends TestCase
 
         // Try to resume non-paused session
         $session->resumeTimer();
-        
+
         $this->assertNull($session->fresh()->resumed_at);
         $this->assertEquals(0, $session->fresh()->total_paused_seconds);
     }

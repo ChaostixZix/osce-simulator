@@ -6,25 +6,26 @@ use App\Models\OsceCase;
 use App\Models\OsceSession;
 use App\Models\User;
 use Carbon\Carbon;
-use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class OsceSessionTimerApiTest extends TestCase
 {
     use RefreshDatabase;
 
     private User $user;
+
     private OsceCase $osceCase;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->user = User::factory()->create();
         $this->osceCase = OsceCase::factory()->create([
             'duration_minutes' => 25,
         ]);
-        
+
         $this->actingAs($this->user);
     }
 
@@ -41,17 +42,17 @@ class OsceSessionTimerApiTest extends TestCase
         $response = $this->getJson("/api/osce/sessions/{$session->id}/timer");
 
         $response->assertStatus(200)
-                 ->assertJsonStructure([
-                     'session_id',
-                     'elapsed_seconds',
-                     'remaining_seconds',
-                     'duration_minutes',
-                     'is_expired',
-                     'time_status',
-                     'is_paused',
-                     'formatted_time_remaining',
-                     'progress_percentage'
-                 ]);
+            ->assertJsonStructure([
+                'session_id',
+                'elapsed_seconds',
+                'remaining_seconds',
+                'duration_minutes',
+                'is_expired',
+                'time_status',
+                'is_paused',
+                'formatted_time_remaining',
+                'progress_percentage',
+            ]);
 
         $data = $response->json();
         $this->assertEquals(25, $data['duration_minutes']);
@@ -65,7 +66,7 @@ class OsceSessionTimerApiTest extends TestCase
     public function it_auto_resumes_paused_session_when_accessing_timer()
     {
         Carbon::setTestNow(now());
-        
+
         $session = OsceSession::create([
             'user_id' => $this->user->id,
             'osce_case_id' => $this->osceCase->id,
@@ -80,7 +81,7 @@ class OsceSessionTimerApiTest extends TestCase
         $response = $this->getJson("/api/osce/sessions/{$session->id}/timer");
 
         $response->assertStatus(200);
-        
+
         $session = $session->fresh();
         $this->assertFalse($session->isPaused());
         $this->assertEquals(120, $session->total_paused_seconds); // 2 minutes of pause time recorded
@@ -100,10 +101,10 @@ class OsceSessionTimerApiTest extends TestCase
         $response = $this->postJson("/api/osce/sessions/{$session->id}/pause");
 
         $response->assertStatus(200)
-                 ->assertJson([
-                     'message' => 'Session paused',
-                     'is_paused' => true
-                 ]);
+            ->assertJson([
+                'message' => 'Session paused',
+                'is_paused' => true,
+            ]);
 
         $session = $session->fresh();
         $this->assertTrue($session->isPaused());
@@ -115,7 +116,7 @@ class OsceSessionTimerApiTest extends TestCase
     public function it_resumes_session_timer()
     {
         Carbon::setTestNow(now());
-        
+
         $session = OsceSession::create([
             'user_id' => $this->user->id,
             'osce_case_id' => $this->osceCase->id,
@@ -130,10 +131,10 @@ class OsceSessionTimerApiTest extends TestCase
         $response = $this->postJson("/api/osce/sessions/{$session->id}/resume");
 
         $response->assertStatus(200)
-                 ->assertJson([
-                     'message' => 'Session resumed',
-                     'is_paused' => false
-                 ]);
+            ->assertJson([
+                'message' => 'Session resumed',
+                'is_paused' => false,
+            ]);
 
         $session = $session->fresh();
         $this->assertFalse($session->isPaused());
@@ -155,10 +156,10 @@ class OsceSessionTimerApiTest extends TestCase
         $response = $this->postJson("/api/osce/sessions/{$session->id}/auto-pause");
 
         $response->assertStatus(200)
-                 ->assertJson([
-                     'message' => 'Session auto-paused',
-                     'is_paused' => true
-                 ]);
+            ->assertJson([
+                'message' => 'Session auto-paused',
+                'is_paused' => true,
+            ]);
 
         $session = $session->fresh();
         $this->assertTrue($session->isPaused());
@@ -182,7 +183,7 @@ class OsceSessionTimerApiTest extends TestCase
         $response = $this->postJson("/api/osce/sessions/{$session->id}/pause");
 
         $response->assertStatus(200);
-        
+
         $session = $session->fresh();
         $this->assertEquals($originalPausedAt, $session->paused_at->format('Y-m-d H:i:s'));
     }
@@ -200,7 +201,7 @@ class OsceSessionTimerApiTest extends TestCase
         $response = $this->postJson("/api/osce/sessions/{$session->id}/resume");
 
         $response->assertStatus(200);
-        
+
         $session = $session->fresh();
         $this->assertNull($session->resumed_at);
         $this->assertEquals(0, $session->total_paused_seconds);
@@ -239,7 +240,7 @@ class OsceSessionTimerApiTest extends TestCase
         $response = $this->getJson("/api/osce/sessions/{$session->id}/timer");
 
         $response->assertStatus(200);
-        
+
         $session = $session->fresh();
         $this->assertEquals('completed', $session->status);
         $this->assertNotNull($session->completed_at);
@@ -250,7 +251,7 @@ class OsceSessionTimerApiTest extends TestCase
     public function it_handles_timer_persistence_across_multiple_requests()
     {
         Carbon::setTestNow(now());
-        
+
         // Create session and let some time pass
         $session = OsceSession::create([
             'user_id' => $this->user->id,
@@ -274,7 +275,7 @@ class OsceSessionTimerApiTest extends TestCase
         // (only 1 minute should have counted, not the 5 minutes while paused)
         $response2 = $this->getJson("/api/osce/sessions/{$session->id}/timer");
         $data = $response2->json();
-        
+
         $this->assertLessThanOrEqual(1140, $data['remaining_seconds']); // ~19 minutes or slightly less
         $this->assertGreaterThanOrEqual(1120, $data['remaining_seconds']); // Account for small timing differences
         $this->assertFalse($data['is_paused']);

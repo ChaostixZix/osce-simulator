@@ -74,4 +74,3 @@ class CommentController extends Controller
         return redirect()->route('forum.index');
     }
 }
-

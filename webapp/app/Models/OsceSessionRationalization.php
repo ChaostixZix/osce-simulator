@@ -28,7 +28,7 @@ class OsceSessionRationalization extends Model
         'overall_summary',
         'suggested_study_topics',
         'started_at',
-        'completed_at'
+        'completed_at',
     ];
 
     protected $casts = [
@@ -39,7 +39,7 @@ class OsceSessionRationalization extends Model
         'top_fixes' => 'array',
         'suggested_study_topics' => 'array',
         'started_at' => 'datetime',
-        'completed_at' => 'datetime'
+        'completed_at' => 'datetime',
     ];
 
     public function osceSession(): BelongsTo
@@ -85,8 +85,8 @@ class OsceSessionRationalization extends Model
 
         // Check if all required items are completed
         $allCardsAnswered = $this->cards()->where('is_answered', false)->count() === 0;
-        $hasPrimaryDiagnosis = !empty($this->primary_diagnosis);
-        $hasCarePlan = !empty($this->care_plan);
+        $hasPrimaryDiagnosis = ! empty($this->primary_diagnosis);
+        $hasCarePlan = ! empty($this->care_plan);
         $hasAtLeastOneDifferential = $this->diagnosisEntries()->where('diagnosis_type', 'differential')->count() > 0;
 
         return $allCardsAnswered && $hasPrimaryDiagnosis && $hasCarePlan && $hasAtLeastOneDifferential;
@@ -95,7 +95,7 @@ class OsceSessionRationalization extends Model
     public function calculatePerformanceBand(): string
     {
         $totalScore = $this->total_score;
-        
+
         if ($totalScore >= 8) {
             return 'strong';
         } elseif ($totalScore >= 6) {
@@ -109,15 +109,15 @@ class OsceSessionRationalization extends Model
     {
         $totalCards = $this->cards()->count();
         $answeredCards = $this->cards()->where('is_answered', true)->count();
-        
+
         return [
             'cards_completed' => $answeredCards,
             'cards_total' => $totalCards,
             'cards_percentage' => $totalCards > 0 ? round(($answeredCards / $totalCards) * 100, 1) : 0,
-            'has_primary_diagnosis' => !empty($this->primary_diagnosis),
-            'has_care_plan' => !empty($this->care_plan),
+            'has_primary_diagnosis' => ! empty($this->primary_diagnosis),
+            'has_care_plan' => ! empty($this->care_plan),
             'differential_count' => $this->diagnosisEntries()->where('diagnosis_type', 'differential')->count(),
-            'can_unlock' => $this->canUnlockResults()
+            'can_unlock' => $this->canUnlockResults(),
         ];
     }
 }

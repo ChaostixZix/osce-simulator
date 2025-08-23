@@ -203,9 +203,8 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 import { ref, computed } from 'vue'
-import { router } from '@inertiajs/vue3'
 
 export default {
   name: 'RationalizationCard',

@@ -13,7 +13,9 @@ use Illuminate\Support\Facades\Log;
 class GeminiService
 {
     private string $apiKey;
+
     private string $model;
+
     private string $baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models';
 
     public function __construct()
@@ -36,38 +38,39 @@ class GeminiService
                 [
                     'parts' => [
                         [
-                            'text' => $this->buildEvaluationPrompt($systemPrompt, $userRationale, $context)
-                        ]
-                    ]
-                ]
+                            'text' => $this->buildEvaluationPrompt($systemPrompt, $userRationale, $context),
+                        ],
+                    ],
+                ],
             ],
             'tools' => [
                 [
-                    'google_search' => (object)[]
-                ]
+                    'google_search' => (object) [],
+                ],
             ],
             'generationConfig' => [
                 'temperature' => 0.1, // Low temperature for medical accuracy
                 'topP' => 0.8,
                 'maxOutputTokens' => 2048,
                 'responseMimeType' => 'application/json',
-                'responseSchema' => $this->getEvaluationSchema()
-            ]
+                'responseSchema' => $this->getEvaluationSchema(),
+            ],
         ];
 
         try {
             $response = Http::timeout(30)
                 ->withHeaders([
-                    'Content-Type' => 'application/json'
+                    'Content-Type' => 'application/json',
                 ])
                 ->post("{$this->baseUrl}/{$this->model}:generateContent?key={$this->apiKey}", $requestBody);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 Log::error('Gemini API request failed', [
                     'status' => $response->status(),
                     'body' => $response->body(),
-                    'request' => $requestBody
+                    'request' => $requestBody,
                 ]);
+
                 return $this->getFallbackResponse();
             }
 
@@ -76,8 +79,9 @@ class GeminiService
         } catch (\Exception $e) {
             Log::error('Gemini API exception', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return $this->getFallbackResponse();
         }
     }
@@ -87,14 +91,14 @@ class GeminiService
      */
     private function buildEvaluationPrompt(string $systemPrompt, string $userRationale, string $context): string
     {
-        return "You are a strict, objective hospital consultant evaluating clinical reasoning. " .
-               "For every factual claim, search for authoritative medical sources and provide citations.\n\n" .
-               "System Context: {$systemPrompt}\n\n" .
-               "Additional Context: {$context}\n\n" .
-               "User's Rationale to Evaluate: \"{$userRationale}\"\n\n" .
-               "Evaluate this rationale using evidence-based medicine. For every correctness judgment, " .
-               "search for and cite authoritative sources (guidelines, textbooks, reviews). " .
-               "Respond with a structured JSON evaluation including citations.";
+        return 'You are a strict, objective hospital consultant evaluating clinical reasoning. '.
+               "For every factual claim, search for authoritative medical sources and provide citations.\n\n".
+               "System Context: {$systemPrompt}\n\n".
+               "Additional Context: {$context}\n\n".
+               "User's Rationale to Evaluate: \"{$userRationale}\"\n\n".
+               'Evaluate this rationale using evidence-based medicine. For every correctness judgment, '.
+               'search for and cite authoritative sources (guidelines, textbooks, reviews). '.
+               'Respond with a structured JSON evaluation including citations.';
     }
 
     /**
@@ -107,15 +111,15 @@ class GeminiService
             'properties' => [
                 'user_rationale_summary' => [
                     'type' => 'string',
-                    'description' => 'One sentence summary of user rationale'
+                    'description' => 'One sentence summary of user rationale',
                 ],
                 'verdict' => [
                     'type' => 'string',
-                    'enum' => ['correct', 'partially_correct', 'incorrect']
+                    'enum' => ['correct', 'partially_correct', 'incorrect'],
                 ],
                 'feedback_why' => [
                     'type' => 'string',
-                    'description' => '1-2 sentences explaining the verdict with evidence'
+                    'description' => '1-2 sentences explaining the verdict with evidence',
                 ],
                 'score_breakdown' => [
                     'type' => 'object',
@@ -124,14 +128,14 @@ class GeminiService
                         'evidence_accuracy' => ['type' => 'integer', 'minimum' => 0, 'maximum' => 3],
                         'completeness' => ['type' => 'integer', 'minimum' => 0, 'maximum' => 2],
                         'safety' => ['type' => 'integer', 'minimum' => 0, 'maximum' => 2],
-                        'prioritization' => ['type' => 'integer', 'minimum' => 0, 'maximum' => 1]
+                        'prioritization' => ['type' => 'integer', 'minimum' => 0, 'maximum' => 1],
                     ],
-                    'required' => ['relevance', 'evidence_accuracy', 'completeness', 'safety', 'prioritization']
+                    'required' => ['relevance', 'evidence_accuracy', 'completeness', 'safety', 'prioritization'],
                 ],
                 'total_score' => [
                     'type' => 'integer',
                     'minimum' => 0,
-                    'maximum' => 10
+                    'maximum' => 10,
                 ],
                 'citations' => [
                     'type' => 'array',
@@ -141,12 +145,12 @@ class GeminiService
                             'title' => ['type' => 'string'],
                             'source' => ['type' => 'string'],
                             'url' => ['type' => 'string'],
-                            'excerpt' => ['type' => 'string']
-                        ]
-                    ]
-                ]
+                            'excerpt' => ['type' => 'string'],
+                        ],
+                    ],
+                ],
             ],
-            'required' => ['user_rationale_summary', 'verdict', 'feedback_why', 'score_breakdown', 'total_score', 'citations']
+            'required' => ['user_rationale_summary', 'verdict', 'feedback_why', 'score_breakdown', 'total_score', 'citations'],
         ];
     }
 
@@ -156,31 +160,33 @@ class GeminiService
     private function parseGeminiResponse(Response $response): array
     {
         $data = $response->json();
-        
+
         if (empty($data['candidates'][0]['content']['parts'][0]['text'])) {
             Log::warning('No content in Gemini response', ['response' => $data]);
+
             return $this->getFallbackResponse();
         }
 
         $contentText = $data['candidates'][0]['content']['parts'][0]['text'];
-        
+
         // Parse JSON response
         $evaluation = json_decode($contentText, true);
         if (json_last_error() !== JSON_ERROR_NONE) {
             Log::warning('Invalid JSON in Gemini response', ['content' => $contentText]);
+
             return $this->getFallbackResponse();
         }
 
         // Extract grounding metadata if available
         $groundingMetadata = $data['candidates'][0]['groundingMetadata'] ?? null;
-        
+
         return [
             'evaluation' => $evaluation,
             'grounding_metadata' => $groundingMetadata,
             'model_used' => $this->model,
-            'has_citations' => !empty($evaluation['citations']),
+            'has_citations' => ! empty($evaluation['citations']),
             'citation_count' => count($evaluation['citations'] ?? []),
-            'raw_response' => $data
+            'raw_response' => $data,
         ];
     }
 
@@ -199,16 +205,16 @@ class GeminiService
                     'evidence_accuracy' => 1,
                     'completeness' => 1,
                     'safety' => 1,
-                    'prioritization' => 0
+                    'prioritization' => 0,
                 ],
                 'total_score' => 4,
-                'citations' => []
+                'citations' => [],
             ],
             'grounding_metadata' => null,
             'model_used' => $this->model,
             'has_citations' => false,
             'citation_count' => 0,
-            'is_fallback' => true
+            'is_fallback' => true,
         ];
     }
 
@@ -217,16 +223,16 @@ class GeminiService
      */
     public function testConnection(): array
     {
-        $testPrompt = "Test connection: What is evidence-based medicine?";
-        
+        $testPrompt = 'Test connection: What is evidence-based medicine?';
+
         $requestBody = [
             'contents' => [
                 [
                     'parts' => [
-                        ['text' => $testPrompt]
-                    ]
-                ]
-            ]
+                        ['text' => $testPrompt],
+                    ],
+                ],
+            ],
         ];
 
         try {
@@ -239,14 +245,14 @@ class GeminiService
                 'status_code' => $response->status(),
                 'model' => $this->model,
                 'response_length' => strlen($response->body()),
-                'error' => $response->successful() ? null : $response->body()
+                'error' => $response->successful() ? null : $response->body(),
             ];
 
         } catch (\Exception $e) {
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
-                'model' => $this->model
+                'model' => $this->model,
             ];
         }
     }

@@ -16,10 +16,10 @@ return new class extends Migration
             $table->foreignId('follower_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('following_id')->constrained('users')->onDelete('cascade');
             $table->timestamps();
-            
+
             // Ensure a user can only follow another user once
             $table->unique(['follower_id', 'following_id']);
-            
+
             // Indexes for better performance
             $table->index(['follower_id', 'created_at']);
             $table->index(['following_id', 'created_at']);

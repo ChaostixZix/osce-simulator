@@ -9,7 +9,9 @@ use Illuminate\Support\Facades\Log;
 class AiAssessorService
 {
     private ?string $apiKey;
+
     private string $baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models';
+
     private string $model;
 
     public function __construct()
@@ -21,7 +23,7 @@ class AiAssessorService
     public function assess(OsceSession $session, bool $force = false): OsceSession
     {
         // Skip if already assessed and not forced
-        if ($session->assessed_at && !$force) {
+        if ($session->assessed_at && ! $force) {
             return $session;
         }
 
@@ -30,15 +32,15 @@ class AiAssessorService
             'osceCase',
             'chatMessages',
             'orderedTests.medicalTest',
-            'examinations'
+            'examinations',
         ]);
 
         // Build assessment artifact
         $artifact = $this->buildArtifact($session);
-        
+
         // Get scoring configuration
         $config = config('osce_scoring');
-        
+
         // Compute deterministic rubric scores
         $computedScores = $this->computeScores($session, $config);
         $artifact['computed_scores'] = $computedScores;
@@ -109,7 +111,7 @@ class AiAssessorService
         // Calculate timing metrics
         $elapsedMinutes = $session->elapsed_seconds / 60;
         $durationMinutes = $session->duration_minutes;
-        $totalCost = $session->orderedTests->sum(fn($test) => $test->medicalTest?->cost ?? 0);
+        $totalCost = $session->orderedTests->sum(fn ($test) => $test->medicalTest?->cost ?? 0);
 
         // Get case context
         $case = $session->osceCase;
@@ -175,25 +177,25 @@ class AiAssessorService
         switch ($key) {
             case 'history':
                 return $this->scoreHistory($session, $case, $max, $weights);
-            
+
             case 'exam':
                 return $this->scoreExamination($session, $case, $max, $weights);
-            
+
             case 'investigations':
                 return $this->scoreInvestigations($session, $case, $max, $weights, $config['penalties']);
-            
+
             case 'diagnosis':
                 return $this->scoreDiagnosis($session, $case, $max, $weights);
-            
+
             case 'management':
                 return $this->scoreManagement($session, $case, $max, $weights);
-            
+
             case 'communication':
                 return $this->scoreCommunication($session, $case, $max, $weights);
-            
+
             case 'safety':
                 return $this->scoreSafety($session, $case, $max, $weights);
-            
+
             default:
                 return 0;
         }
@@ -203,19 +205,19 @@ class AiAssessorService
     {
         $keyPoints = $case->key_history_points ?? [];
         $chatMessages = $session->chatMessages->where('sender_type', 'user');
-        
+
         if (empty($keyPoints) || $chatMessages->isEmpty()) {
             return (int) ($max * 0.5); // Base score if no specific criteria
         }
 
         $coveredPoints = 0;
         $totalQuestions = $chatMessages->count();
-        
+
         foreach ($keyPoints as $point) {
             $found = $chatMessages->filter(function ($message) use ($point) {
                 return stripos($message->message, $point) !== false;
             })->isNotEmpty();
-            
+
             if ($found) {
                 $coveredPoints++;
             }
@@ -223,7 +225,7 @@ class AiAssessorService
 
         $coverage = count($keyPoints) > 0 ? $coveredPoints / count($keyPoints) : 0.5;
         $efficiency = min(1.0, 10 / max(1, $totalQuestions)); // Penalty for too many questions
-        
+
         $score = $coverage * ($weights['appropriate_questions'] ?? 0.6) * $max +
                 $coverage * ($weights['thoroughness'] ?? 0.3) * $max +
                 $efficiency * ($weights['efficiency'] ?? 0.1) * $max;
@@ -235,7 +237,7 @@ class AiAssessorService
     {
         $criticalExams = $case->critical_examinations ?? [];
         $examinations = $session->examinations;
-        
+
         if (empty($criticalExams) || $examinations->isEmpty()) {
             return (int) ($max * 0.5);
         }
@@ -243,9 +245,9 @@ class AiAssessorService
         $performedCritical = 0;
         foreach ($criticalExams as $critical) {
             $found = $examinations->filter(function ($exam) use ($critical) {
-                return stripos($exam->examination_type . ' ' . $exam->body_part, $critical) !== false;
+                return stripos($exam->examination_type.' '.$exam->body_part, $critical) !== false;
             })->isNotEmpty();
-            
+
             if ($found) {
                 $performedCritical++;
             }
@@ -253,7 +255,7 @@ class AiAssessorService
 
         $relevance = count($criticalExams) > 0 ? $performedCritical / count($criticalExams) : 0.5;
         $technique = min(1.0, $examinations->count() / max(1, count($criticalExams)));
-        
+
         $score = $relevance * ($weights['relevant_examinations'] ?? 0.7) * $max +
                 min(1.0, $technique) * ($weights['technique'] ?? 0.3) * $max;
 
@@ -267,13 +269,13 @@ class AiAssessorService
         $contraindicatedTests = $case->contraindicated_tests ?? [];
         $orderedTests = $session->orderedTests;
         $budget = $case->budget ?? 1000;
-        
+
         $testNames = $orderedTests->pluck('medicalTest.name')->filter()->toArray();
-        $totalCost = $orderedTests->sum(fn($test) => $test->medicalTest?->cost ?? 0);
-        
+        $totalCost = $orderedTests->sum(fn ($test) => $test->medicalTest?->cost ?? 0);
+
         // Check required tests
         $requiredScore = 0;
-        if (!empty($requiredTests)) {
+        if (! empty($requiredTests)) {
             $foundRequired = 0;
             foreach ($requiredTests as $required) {
                 if (in_array($required, $testNames)) {
@@ -284,10 +286,10 @@ class AiAssessorService
         } else {
             $requiredScore = 1; // No penalties if no required tests specified
         }
-        
+
         // Check appropriate tests
         $appropriateScore = 1;
-        if (!empty($appropriateTests)) {
+        if (! empty($appropriateTests)) {
             $foundAppropriate = 0;
             foreach ($testNames as $testName) {
                 if (in_array($testName, $appropriateTests)) {
@@ -296,10 +298,10 @@ class AiAssessorService
             }
             $appropriateScore = count($testNames) > 0 ? $foundAppropriate / count($testNames) : 1;
         }
-        
+
         // Cost effectiveness
         $costScore = $totalCost <= $budget ? 1 : max(0, 1 - (($totalCost - $budget) / $budget));
-        
+
         // Apply penalties
         $penaltyDeduction = 0;
         foreach ($testNames as $testName) {
@@ -307,22 +309,22 @@ class AiAssessorService
                 $penaltyDeduction += $penalties['contraindicated_test'] ?? 5;
             }
         }
-        
+
         // Missing required tests penalty
         $missedRequired = count($requiredTests) - array_intersect($requiredTests, $testNames);
         $penaltyDeduction += $missedRequired * ($penalties['missed_required_test'] ?? 3);
-        
+
         // Over budget penalty
         if ($totalCost > $budget) {
             $penaltyDeduction += $penalties['over_budget'] ?? 2;
         }
-        
+
         $baseScore = $requiredScore * ($weights['appropriate_tests'] ?? 0.5) * $max +
                     $costScore * ($weights['cost_effectiveness'] ?? 0.3) * $max +
                     $appropriateScore * ($weights['timing'] ?? 0.2) * $max;
-        
+
         $finalScore = max(0, $baseScore - $penaltyDeduction);
-        
+
         return min($max, (int) round($finalScore));
     }
 
@@ -343,24 +345,24 @@ class AiAssessorService
     private function scoreCommunication(OsceSession $session, $case, int $max, array $weights): int
     {
         $chatMessages = $session->chatMessages->where('sender_type', 'user');
-        
+
         if ($chatMessages->isEmpty()) {
             return 0;
         }
-        
+
         // Basic communication scoring based on message characteristics
         $totalMessages = $chatMessages->count();
-        $averageLength = $chatMessages->avg(fn($msg) => strlen($msg->message));
-        
+        $averageLength = $chatMessages->avg(fn ($msg) => strlen($msg->message));
+
         // Score based on interaction quality (rough heuristic)
         $clarityScore = min(1.0, $averageLength / 50); // Reasonable message length
         $professionalismScore = 0.8; // Default assumption
         $empathyScore = 0.7; // Default assumption
-        
+
         $score = $clarityScore * ($weights['clarity'] ?? 0.5) * $max +
                 $empathyScore * ($weights['empathy'] ?? 0.3) * $max +
                 $professionalismScore * ($weights['professionalism'] ?? 0.2) * $max;
-        
+
         return min($max, (int) round($score));
     }
 
@@ -368,27 +370,27 @@ class AiAssessorService
     {
         $elapsedMinutes = $session->elapsed_seconds / 60;
         $durationMinutes = $session->duration_minutes;
-        
+
         // Time management score
         $timeScore = 1.0;
         if ($elapsedMinutes > $durationMinutes) {
             $timeScore = max(0, 1 - (($elapsedMinutes - $durationMinutes) / $durationMinutes));
-        } else if ($elapsedMinutes < $durationMinutes * 0.5) {
+        } elseif ($elapsedMinutes < $durationMinutes * 0.5) {
             $timeScore = 0.8; // Slight penalty for finishing too quickly
         }
-        
+
         // Critical actions (placeholder - would need case-specific analysis)
         $criticalActionsScore = 0.8;
-        
+
         $score = $timeScore * ($weights['time_management'] ?? 0.6) * $max +
                 $criticalActionsScore * ($weights['critical_actions'] ?? 0.4) * $max;
-        
+
         return min($max, (int) round($score));
     }
 
     private function getAssessment(array $artifact, array $computedScores, array $config): array
     {
-        if (!$this->isConfigured()) {
+        if (! $this->isConfigured()) {
             return $this->getFallbackAssessment($computedScores, $config);
         }
 
@@ -399,7 +401,7 @@ class AiAssessorService
                 'message' => $e->getMessage(),
                 'session_id' => $artifact['session_id'] ?? null,
             ]);
-            
+
             return $this->getFallbackAssessment($computedScores, $config);
         }
     }
@@ -407,18 +409,18 @@ class AiAssessorService
     private function callGemini(array $artifact, array $computedScores, array $config): array
     {
         $prompt = $this->buildAssessmentPrompt($artifact, $computedScores, $config);
-        
+
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
-        ])->post($this->baseUrl . '/' . $this->model . ':generateContent?key=' . $this->apiKey, [
+        ])->post($this->baseUrl.'/'.$this->model.':generateContent?key='.$this->apiKey, [
             'contents' => [
                 [
                     'parts' => [
                         [
-                            'text' => $prompt
-                        ]
-                    ]
-                ]
+                            'text' => $prompt,
+                        ],
+                    ],
+                ],
             ],
             'generationConfig' => [
                 'temperature' => 0,
@@ -428,13 +430,13 @@ class AiAssessorService
             ],
         ]);
 
-        if (!$response->successful()) {
-            throw new \Exception('Gemini API error: ' . $response->status() . ' - ' . $response->body());
+        if (! $response->successful()) {
+            throw new \Exception('Gemini API error: '.$response->status().' - '.$response->body());
         }
 
         $data = $response->json();
         $text = $data['candidates'][0]['content']['parts'][0]['text'] ?? '';
-        
+
         // Try to parse JSON
         $decoded = json_decode($text, true);
         if (json_last_error() !== JSON_ERROR_NONE) {
@@ -445,12 +447,12 @@ class AiAssessorService
             }
             throw new \Exception('Invalid JSON response from AI');
         }
-        
+
         // Validate schema
-        if (!$this->validateAssessmentSchema($decoded)) {
+        if (! $this->validateAssessmentSchema($decoded)) {
             throw new \Exception('Invalid assessment schema from AI');
         }
-        
+
         return $decoded;
     }
 
@@ -461,12 +463,12 @@ class AiAssessorService
             $cleaned = trim($text);
             $cleaned = preg_replace('/^```json\s*/', '', $cleaned);
             $cleaned = preg_replace('/\s*```$/', '', $cleaned);
-            
+
             $decoded = json_decode($cleaned, true);
             if (json_last_error() === JSON_ERROR_NONE && $this->validateAssessmentSchema($decoded)) {
                 return $decoded;
             }
-            
+
             // If repair fails, return fallback
             return null;
         } catch (\Exception $e) {
@@ -477,26 +479,26 @@ class AiAssessorService
     private function validateAssessmentSchema(array $data): bool
     {
         $required = ['rubric_version', 'criteria', 'overall_comment', 'red_flags', 'model_info'];
-        
+
         foreach ($required as $field) {
-            if (!isset($data[$field])) {
+            if (! isset($data[$field])) {
                 return false;
             }
         }
-        
-        if (!is_array($data['criteria'])) {
+
+        if (! is_array($data['criteria'])) {
             return false;
         }
-        
+
         foreach ($data['criteria'] as $criterion) {
             $requiredFields = ['key', 'score', 'max', 'justification', 'citations'];
             foreach ($requiredFields as $field) {
-                if (!isset($criterion[$field])) {
+                if (! isset($criterion[$field])) {
                     return false;
                 }
             }
         }
-        
+
         return true;
     }
 
@@ -505,7 +507,7 @@ class AiAssessorService
         $artifactJson = json_encode($artifact, JSON_PRETTY_PRINT);
         $rubricJson = json_encode($config, JSON_PRETTY_PRINT);
         $rubricVersion = $config['rubric_version'];
-        
+
         return <<<PROMPT
 You are an experienced physician examiner conducting an OSCE assessment. Produce concise, structured feedback.
 Rules:
@@ -571,6 +573,6 @@ PROMPT;
 
     public function isConfigured(): bool
     {
-        return !empty($this->apiKey);
+        return ! empty($this->apiKey);
     }
 }

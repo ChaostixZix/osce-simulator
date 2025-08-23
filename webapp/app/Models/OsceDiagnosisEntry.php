@@ -24,13 +24,13 @@ class OsceDiagnosisEntry extends Model
         'safety_score',
         'prioritization_score',
         'submitted_at',
-        'evaluated_at'
+        'evaluated_at',
     ];
 
     protected $casts = [
         'citations' => 'array',
         'submitted_at' => 'datetime',
-        'evaluated_at' => 'datetime'
+        'evaluated_at' => 'datetime',
     ];
 
     public function sessionRationalization(): BelongsTo
@@ -50,18 +50,18 @@ class OsceDiagnosisEntry extends Model
 
     public function getTotalScore(): int
     {
-        return $this->relevance_score + 
-               $this->evidence_accuracy_score + 
-               $this->completeness_score + 
-               $this->safety_score + 
+        return $this->relevance_score +
+               $this->evidence_accuracy_score +
+               $this->completeness_score +
+               $this->safety_score +
                $this->prioritization_score;
     }
 
     public function getVerdictColor(): string
     {
-        return match($this->verdict) {
+        return match ($this->verdict) {
             'correct' => 'green',
-            'partially_correct' => 'yellow', 
+            'partially_correct' => 'yellow',
             'incorrect' => 'red',
             default => 'gray'
         };
@@ -69,7 +69,7 @@ class OsceDiagnosisEntry extends Model
 
     public function hasEvaluation(): bool
     {
-        return !empty($this->evaluation_summary) && !empty($this->verdict);
+        return ! empty($this->evaluation_summary) && ! empty($this->verdict);
     }
 
     public function getCitationCount(): int

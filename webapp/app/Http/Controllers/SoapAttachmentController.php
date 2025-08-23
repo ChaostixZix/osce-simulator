@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\SoapNote;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 
 class SoapAttachmentController extends Controller
 {

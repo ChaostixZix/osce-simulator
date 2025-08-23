@@ -20,7 +20,7 @@ return new class extends Migration
             $table->boolean('read')->default(false);
             $table->timestamp('read_at')->nullable();
             $table->timestamps();
-            
+
             // Indexes for better performance
             $table->index(['user_id', 'read', 'created_at']);
             $table->index(['from_user_id', 'created_at']);

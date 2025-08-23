@@ -17,7 +17,7 @@ return new class extends Migration
             $table->text('question');
             $table->integer('order')->default(0);
             $table->timestamps();
-            
+
             $table->index(['mcq_test_id', 'order']);
         });
     }
