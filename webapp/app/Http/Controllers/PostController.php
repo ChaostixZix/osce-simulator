@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Resources\ForumPostResource;
 use App\Http\Resources\CommentResource;
+use App\Http\Resources\ForumPostResource;
 use App\Models\Post;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -105,4 +105,3 @@ class PostController extends Controller
         return redirect()->route('forum.index');
     }
 }
-

@@ -250,7 +250,7 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { router } from '@inertiajs/vue3'
 import RationalizationCard from '@/Components/Rationalization/RationalizationCard.vue'
@@ -285,7 +285,6 @@ export default {
   setup(props) {
     const processing = ref(false)
     const localProgress = ref(props.progress)
-    const localRationalization = ref(props.rationalization)
 
     const askedQuestionCards = computed(() => {
       return props.rationalization.cards?.filter(card => card.card_type === 'asked_question') || []
@@ -303,14 +302,8 @@ export default {
       return localProgress.value.can_unlock
     })
 
-    const handleCardAnswered = async (card) => {
-      // Update local state
-      const cardIndex = props.rationalization.cards.findIndex(c => c.id === card.id)
-      if (cardIndex !== -1) {
-        props.rationalization.cards[cardIndex] = card
-      }
-      
-      // Refresh progress
+    const handleCardAnswered = async () => {
+      // Refresh progress after card update
       await refreshProgress()
     }
 

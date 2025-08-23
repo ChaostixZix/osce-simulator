@@ -36,6 +36,7 @@ class SoapNoteController extends Controller
 
         return response()->json(['id' => $note->id], 201);
     }
+
     public function store(Request $request, Patient $patient): RedirectResponse
     {
         $validated = $request->validate([
@@ -96,7 +97,7 @@ class SoapNoteController extends Controller
         $hasAssessment = $this->hasContent($note->assessment);
         $hasPlan = $this->hasContent($note->plan);
 
-        if (!$hasSubjective || !$hasObjective || !$hasAssessment || !$hasPlan) {
+        if (! $hasSubjective || ! $hasObjective || ! $hasAssessment || ! $hasPlan) {
             throw ValidationException::withMessages([
                 'form' => 'All SOAP fields must be filled before finalizing.',
             ]);
@@ -114,6 +115,7 @@ class SoapNoteController extends Controller
     {
         $this->authorize('delete', $note);
         $note->delete();
+
         return back();
     }
 
@@ -122,6 +124,7 @@ class SoapNoteController extends Controller
         $note = SoapNote::onlyTrashed()->findOrFail($noteId);
         $this->authorize('restore', $note);
         $note->restore();
+
         return back();
     }
 
@@ -136,17 +139,18 @@ class SoapNoteController extends Controller
 
         // If it's a string, check if it's not just empty or whitespace
         if (is_string($content)) {
-            return !empty(trim(strip_tags($content)));
+            return ! empty(trim(strip_tags($content)));
         }
 
         // If it's an array (JSON), check if it has meaningful content
         if (is_array($content)) {
             // Basic check for TipTap JSON structure
             if (isset($content['type']) && $content['type'] === 'doc') {
-                return isset($content['content']) && !empty($content['content']);
+                return isset($content['content']) && ! empty($content['content']);
             }
+
             // Fallback: any non-empty array considered as having content
-            return !empty($content);
+            return ! empty($content);
         }
 
         return false;

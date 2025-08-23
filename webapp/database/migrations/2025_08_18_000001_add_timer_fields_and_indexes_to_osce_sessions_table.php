@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('osce_sessions', function (Blueprint $table) {
-            if (!Schema::hasColumn('osce_sessions', 'time_extended')) {
+            if (! Schema::hasColumn('osce_sessions', 'time_extended')) {
                 $table->integer('time_extended')->nullable()->after('max_score');
             }
             $table->index('started_at');
@@ -34,5 +34,3 @@ return new class extends Migration
         });
     }
 };
-
-

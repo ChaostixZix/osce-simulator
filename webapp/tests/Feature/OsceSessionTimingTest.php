@@ -2,28 +2,29 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
-use App\Models\User;
 use App\Models\OsceCase;
 use App\Models\OsceSession;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class OsceSessionTimingTest extends TestCase
 {
     use RefreshDatabase;
 
     private User $user;
+
     private OsceCase $osceCase;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->user = User::factory()->create();
         $this->osceCase = OsceCase::factory()->create([
             'duration_minutes' => 15,
-            'is_active' => true
+            'is_active' => true,
         ]);
     }
 
@@ -33,7 +34,7 @@ class OsceSessionTimingTest extends TestCase
         // Create a session that started 5 minutes ago
         Carbon::setTestNow(Carbon::now());
         $startTime = Carbon::now()->subMinutes(5);
-        
+
         $session = OsceSession::create([
             'user_id' => $this->user->id,
             'osce_case_id' => $this->osceCase->id,
@@ -52,7 +53,7 @@ class OsceSessionTimingTest extends TestCase
         // Create a session that started 5 minutes ago with 15 minute duration
         Carbon::setTestNow(Carbon::now());
         $startTime = Carbon::now()->subMinutes(5);
-        
+
         $session = OsceSession::create([
             'user_id' => $this->user->id,
             'osce_case_id' => $this->osceCase->id,
@@ -70,7 +71,7 @@ class OsceSessionTimingTest extends TestCase
     {
         Carbon::setTestNow(Carbon::now());
         $startTime = Carbon::now()->subMinutes(5);
-        
+
         $session = OsceSession::create([
             'user_id' => $this->user->id,
             'osce_case_id' => $this->osceCase->id,
@@ -79,13 +80,13 @@ class OsceSessionTimingTest extends TestCase
         ]);
 
         $initialRemaining = $session->remaining_seconds;
-        
+
         // Advance time by 2 minutes
         Carbon::setTestNow(Carbon::now()->addMinutes(2));
         $session = $session->fresh(); // Reload to get updated attributes
-        
+
         $laterRemaining = $session->remaining_seconds;
-        
+
         // Remaining time should decrease
         $this->assertLessThan($initialRemaining, $laterRemaining);
         $this->assertEquals(120, $initialRemaining - $laterRemaining); // 2 minutes difference
@@ -96,7 +97,7 @@ class OsceSessionTimingTest extends TestCase
     {
         Carbon::setTestNow(Carbon::now());
         $startTime = Carbon::now()->subMinutes(20); // Started 20 minutes ago, case duration is 15 minutes
-        
+
         $session = OsceSession::create([
             'user_id' => $this->user->id,
             'osce_case_id' => $this->osceCase->id,
@@ -115,7 +116,7 @@ class OsceSessionTimingTest extends TestCase
     {
         Carbon::setTestNow(Carbon::now());
         $startTime = Carbon::now()->subMinutes(5);
-        
+
         $session = OsceSession::create([
             'user_id' => $this->user->id,
             'osce_case_id' => $this->osceCase->id,
@@ -124,9 +125,9 @@ class OsceSessionTimingTest extends TestCase
         ]);
 
         $this->actingAs($this->user);
-        
+
         $response = $this->getJson("/api/osce/sessions/{$session->id}/timer");
-        
+
         $response->assertOk();
         $response->assertJsonStructure([
             'session_id',
@@ -136,11 +137,11 @@ class OsceSessionTimingTest extends TestCase
             'is_expired',
             'time_status',
             'formatted_time_remaining',
-            'progress_percentage'
+            'progress_percentage',
         ]);
 
         $data = $response->json();
-        
+
         $this->assertEquals(15, $data['duration_minutes']);
         $this->assertEquals(300, $data['elapsed_seconds']); // 5 minutes
         $this->assertEquals(600, $data['remaining_seconds']); // 10 minutes remaining
@@ -153,7 +154,7 @@ class OsceSessionTimingTest extends TestCase
     {
         Carbon::setTestNow(Carbon::now());
         $startTime = Carbon::now()->subMinutes(3);
-        
+
         $session = OsceSession::create([
             'user_id' => $this->user->id,
             'osce_case_id' => $this->osceCase->id,
@@ -162,24 +163,24 @@ class OsceSessionTimingTest extends TestCase
         ]);
 
         $this->actingAs($this->user);
-        
+
         // First request (simulating initial page load)
         $response1 = $this->getJson("/api/osce/sessions/{$session->id}/timer");
         $data1 = $response1->json();
-        
+
         // Advance time by 1 minute
         Carbon::setTestNow(Carbon::now()->addMinutes(1));
-        
+
         // Second request (simulating page refresh)
         $response2 = $this->getJson("/api/osce/sessions/{$session->id}/timer");
         $data2 = $response2->json();
-        
+
         // Elapsed time should increase
         $this->assertGreaterThan($data1['elapsed_seconds'], $data2['elapsed_seconds']);
-        
+
         // Remaining time should decrease
         $this->assertLessThan($data1['remaining_seconds'], $data2['remaining_seconds']);
-        
+
         // The difference should be 60 seconds (1 minute)
         $this->assertEquals(60, $data2['elapsed_seconds'] - $data1['elapsed_seconds']);
         $this->assertEquals(60, $data1['remaining_seconds'] - $data2['remaining_seconds']);
@@ -190,7 +191,7 @@ class OsceSessionTimingTest extends TestCase
     {
         Carbon::setTestNow(Carbon::now());
         $startTime = Carbon::now()->subMinutes(5);
-        
+
         $session = OsceSession::create([
             'user_id' => $this->user->id,
             'osce_case_id' => $this->osceCase->id,
@@ -201,7 +202,7 @@ class OsceSessionTimingTest extends TestCase
 
         // Total duration should be 20 minutes (15 + 5)
         $this->assertEquals(20, $session->duration_minutes);
-        
+
         // With 5 minutes elapsed, should have 15 minutes remaining
         $this->assertEquals(15 * 60, $session->remaining_seconds);
     }
@@ -211,7 +212,7 @@ class OsceSessionTimingTest extends TestCase
     {
         Carbon::setTestNow(Carbon::now());
         $startTime = Carbon::now()->subMinutes(10);
-        
+
         $session = OsceSession::create([
             'user_id' => $this->user->id,
             'osce_case_id' => $this->osceCase->id,

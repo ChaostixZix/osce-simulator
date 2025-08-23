@@ -16,7 +16,7 @@ class PostResource extends JsonResource
     {
         // Let's see what the parent method returns
         $parent = parent::toArray($request);
-        
+
         return [
             'DEBUGGING' => 'Our custom PostResource is being called',
             'PARENT_RESULT' => $parent,

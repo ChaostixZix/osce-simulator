@@ -19,7 +19,7 @@ return new class extends Migration
             $table->json('results'); // The actual results data from the template
             $table->timestamp('ordered_at');
             $table->timestamps();
-            
+
             // Indexes for better performance
             $table->index(['osce_session_id', 'ordered_at']);
             $table->index(['test_type', 'test_name']);

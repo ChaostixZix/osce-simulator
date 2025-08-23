@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Models\OsceSession;
+use Illuminate\Console\Command;
 
 class CleanupExpiredSessions extends Command
 {
@@ -47,5 +47,3 @@ class CleanupExpiredSessions extends Command
         return self::SUCCESS;
     }
 }
-
-

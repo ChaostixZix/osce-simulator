@@ -2,11 +2,10 @@
 
 namespace App\Services;
 
-use App\Models\OsceSession;
-use App\Models\OsceSessionRationalization;
 use App\Models\AnamnesisRationalizationCard;
 use App\Models\OsceDiagnosisEntry;
-use Illuminate\Support\Collection;
+use App\Models\OsceSession;
+use App\Models\OsceSessionRationalization;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -35,7 +34,7 @@ class RationalizationService
         $rationalization = OsceSessionRationalization::create([
             'osce_session_id' => $session->id,
             'status' => 'pending',
-            'started_at' => now()
+            'started_at' => now(),
         ]);
 
         // Generate anamnesis rationalization cards
@@ -43,7 +42,7 @@ class RationalizationService
 
         Log::info('Rationalization initialized', [
             'session_id' => $session->id,
-            'rationalization_id' => $rationalization->id
+            'rationalization_id' => $rationalization->id,
         ]);
 
         return $rationalization;
@@ -55,8 +54,8 @@ class RationalizationService
     public function canUnlockResults(OsceSession $session): bool
     {
         $rationalization = $session->rationalization;
-        
-        if (!$rationalization) {
+
+        if (! $rationalization) {
             return false; // Must complete rationalization first
         }
 
@@ -78,21 +77,21 @@ class RationalizationService
                 'card_type' => 'asked_question',
                 'question_text' => $question,
                 'prompt_text' => "Why did you ask: '{$question}'?",
-                'order_index' => $orderIndex++
+                'order_index' => $orderIndex++,
             ]);
         }
 
         // Generate cards for expected questions not asked (negative anamnesis)
         $expectedQuestions = $session->osceCase->expected_anamnesis_questions ?? [];
         $missedQuestions = $this->findMissedQuestions($askedQuestions, $expectedQuestions);
-        
+
         foreach ($missedQuestions as $missedQuestion) {
             AnamnesisRationalizationCard::create([
                 'session_rationalization_id' => $rationalization->id,
                 'card_type' => 'negative_anamnesis',
                 'question_text' => $missedQuestion,
                 'prompt_text' => "You did not ask: '{$missedQuestion}'. Why?",
-                'order_index' => $orderIndex++
+                'order_index' => $orderIndex++,
             ]);
         }
 
@@ -107,7 +106,7 @@ class RationalizationService
                 'user_rationale' => $test->clinical_reasoning,
                 'is_answered' => true, // Already have rationale from session
                 'answered_at' => $test->ordered_at,
-                'order_index' => $orderIndex++
+                'order_index' => $orderIndex++,
             ]);
         }
     }
@@ -124,11 +123,11 @@ class RationalizationService
         $questions = [];
         foreach ($chatMessages as $message) {
             $text = trim($message->message);
-            
+
             // Simple heuristics to identify questions
             if (str_ends_with($text, '?') || $this->isLikelyQuestion($text)) {
                 $normalized = $this->normalizeQuestion($text);
-                if (!in_array($normalized, $questions)) {
+                if (! in_array($normalized, $questions)) {
                     $questions[] = $normalized;
                 }
             }
@@ -147,7 +146,7 @@ class RationalizationService
             'what', 'when', 'where', 'why', 'how', 'who', 'which',
             'do you', 'did you', 'have you', 'can you', 'will you',
             'are you', 'were you', 'is there', 'was there',
-            'tell me about', 'describe', 'explain'
+            'tell me about', 'describe', 'explain',
         ];
 
         $lowerText = strtolower($text);
@@ -174,18 +173,18 @@ class RationalizationService
     private function deduplicateQuestions(array $questions): array
     {
         $unique = [];
-        
+
         foreach ($questions as $question) {
             $isDuplicate = false;
-            
+
             foreach ($unique as $existingQuestion) {
                 if ($this->areQuestionsSimilar($question, $existingQuestion)) {
                     $isDuplicate = true;
                     break;
                 }
             }
-            
-            if (!$isDuplicate) {
+
+            if (! $isDuplicate) {
                 $unique[] = $question;
             }
         }
@@ -199,6 +198,7 @@ class RationalizationService
     private function areQuestionsSimilar(string $q1, string $q2): bool
     {
         $similarity = similar_text(strtolower($q1), strtolower($q2), $percent);
+
         return $percent > 75; // 75% similarity threshold
     }
 
@@ -208,18 +208,18 @@ class RationalizationService
     private function findMissedQuestions(array $askedQuestions, array $expectedQuestions): array
     {
         $missed = [];
-        
+
         foreach ($expectedQuestions as $expected) {
             $wasAsked = false;
-            
+
             foreach ($askedQuestions as $asked) {
                 if ($this->areQuestionsSimilar($expected, $asked)) {
                     $wasAsked = true;
                     break;
                 }
             }
-            
-            if (!$wasAsked) {
+
+            if (! $wasAsked) {
                 $missed[] = $expected;
             }
         }
@@ -239,7 +239,7 @@ class RationalizationService
         // Update primary diagnosis in rationalization record
         $rationalization->update([
             'primary_diagnosis' => $primaryDiagnosis,
-            'primary_diagnosis_reasoning' => $primaryReasoning
+            'primary_diagnosis_reasoning' => $primaryReasoning,
         ]);
 
         // Create primary diagnosis entry
@@ -249,7 +249,7 @@ class RationalizationService
             'reasoning' => $primaryReasoning,
             'diagnosis_type' => 'primary',
             'order_index' => 0,
-            'submitted_at' => now()
+            'submitted_at' => now(),
         ]);
 
         // Create differential diagnosis entries
@@ -260,7 +260,7 @@ class RationalizationService
                 'reasoning' => $differential['reasoning'],
                 'diagnosis_type' => 'differential',
                 'order_index' => $index + 1,
-                'submitted_at' => now()
+                'submitted_at' => now(),
             ]);
         }
     }
@@ -271,7 +271,7 @@ class RationalizationService
     public function submitCarePlan(OsceSessionRationalization $rationalization, string $carePlan): void
     {
         $rationalization->update([
-            'care_plan' => $carePlan
+            'care_plan' => $carePlan,
         ]);
     }
 
@@ -281,8 +281,8 @@ class RationalizationService
     public function isReadyForEvaluation(OsceSessionRationalization $rationalization): bool
     {
         $allCardsAnswered = $rationalization->cards()->where('is_answered', false)->count() === 0;
-        $hasPrimaryDiagnosis = !empty($rationalization->primary_diagnosis);
-        $hasCarePlan = !empty($rationalization->care_plan);
+        $hasPrimaryDiagnosis = ! empty($rationalization->primary_diagnosis);
+        $hasCarePlan = ! empty($rationalization->care_plan);
         $hasMinimumDifferentials = $rationalization->diagnosisEntries()
             ->where('diagnosis_type', 'differential')
             ->count() >= 1;
@@ -306,12 +306,12 @@ class RationalizationService
         $rationalization->update([
             'status' => 'completed',
             'results_unlocked' => true,
-            'completed_at' => now()
+            'completed_at' => now(),
         ]);
 
         Log::info('Rationalization completed', [
             'rationalization_id' => $rationalization->id,
-            'session_id' => $rationalization->osce_session_id
+            'session_id' => $rationalization->osce_session_id,
         ]);
     }
 }

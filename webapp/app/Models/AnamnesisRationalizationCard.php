@@ -27,7 +27,7 @@ class AnamnesisRationalizationCard extends Model
         'prioritization_score',
         'order_index',
         'answered_at',
-        'evaluated_at'
+        'evaluated_at',
     ];
 
     protected $casts = [
@@ -35,7 +35,7 @@ class AnamnesisRationalizationCard extends Model
         'is_answered' => 'boolean',
         'citations' => 'array',
         'answered_at' => 'datetime',
-        'evaluated_at' => 'datetime'
+        'evaluated_at' => 'datetime',
     ];
 
     public function sessionRationalization(): BelongsTo
@@ -43,7 +43,7 @@ class AnamnesisRationalizationCard extends Model
         return $this->belongsTo(OsceSessionRationalization::class);
     }
 
-    public function markAsAnswered(string $rationale = null): void
+    public function markAsAnswered(?string $rationale = null): void
     {
         $this->user_rationale = $rationale;
         $this->is_answered = true;
@@ -76,16 +76,16 @@ class AnamnesisRationalizationCard extends Model
 
     public function getTotalScore(): int
     {
-        return $this->relevance_score + 
-               $this->evidence_accuracy_score + 
-               $this->completeness_score + 
-               $this->safety_score + 
+        return $this->relevance_score +
+               $this->evidence_accuracy_score +
+               $this->completeness_score +
+               $this->safety_score +
                $this->prioritization_score;
     }
 
     public function getVerdictColor(): string
     {
-        return match($this->verdict) {
+        return match ($this->verdict) {
             'correct' => 'green',
             'partially_correct' => 'yellow',
             'incorrect' => 'red',
@@ -95,7 +95,7 @@ class AnamnesisRationalizationCard extends Model
 
     public function hasEvaluation(): bool
     {
-        return !empty($this->evaluation_summary) && !empty($this->verdict);
+        return ! empty($this->evaluation_summary) && ! empty($this->verdict);
     }
 
     public function getCitationCount(): int

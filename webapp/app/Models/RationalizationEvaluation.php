@@ -21,7 +21,7 @@ class RationalizationEvaluation extends Model
         'evaluation_started_at',
         'evaluation_completed_at',
         'has_citations',
-        'citation_count'
+        'citation_count',
     ];
 
     protected $casts = [
@@ -32,7 +32,7 @@ class RationalizationEvaluation extends Model
         'search_queries' => 'array',
         'has_citations' => 'boolean',
         'evaluation_started_at' => 'datetime',
-        'evaluation_completed_at' => 'datetime'
+        'evaluation_completed_at' => 'datetime',
     ];
 
     public function sessionRationalization(): BelongsTo
@@ -65,6 +65,7 @@ class RationalizationEvaluation extends Model
         if ($this->evaluation_started_at && $this->evaluation_completed_at) {
             return $this->evaluation_started_at->diffInSeconds($this->evaluation_completed_at);
         }
+
         return null;
     }
 
@@ -82,7 +83,7 @@ class RationalizationEvaluation extends Model
 
     public function hasGroundingData(): bool
     {
-        return !empty($this->grounding_metadata);
+        return ! empty($this->grounding_metadata);
     }
 
     public function getSearchQueriesCount(): int

@@ -2,10 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Models\McqTest;
-use App\Models\McqQuestion;
 use App\Models\McqOption;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\McqQuestion;
+use App\Models\McqTest;
 use Illuminate\Database\Seeder;
 
 class McqTestSeeder extends Seeder

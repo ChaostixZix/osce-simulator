@@ -28,7 +28,7 @@ class SoapNote extends Model
         'finalized_at' => 'datetime',
         // Store TipTap JSON as arrays; Eloquent serializes to JSON strings in DB
         'subjective' => 'array',
-        'objective' => 'array', 
+        'objective' => 'array',
         'assessment' => 'array',
         'plan' => 'array',
     ];

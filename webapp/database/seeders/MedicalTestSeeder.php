@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\MedicalTest;
+use Illuminate\Database\Seeder;
 
 class MedicalTestSeeder extends Seeder
 {
@@ -19,11 +19,11 @@ class MedicalTestSeeder extends Seeder
                     'Chest pain suspicious for acute coronary syndrome',
                     'Shortness of breath with cardiac symptoms',
                     'Post-cardiac procedure monitoring',
-                    'Unexplained heart failure'
+                    'Unexplained heart failure',
                 ],
                 'contraindications' => [
                     'Clearly non-cardiac chest pain (e.g., trauma, musculoskeletal)',
-                    'Routine screening without symptoms'
+                    'Routine screening without symptoms',
                 ],
                 'cost' => 45.00,
                 'turnaround_minutes' => 60,
@@ -43,7 +43,7 @@ class MedicalTestSeeder extends Seeder
                 'indications' => [
                     'Chest pain evaluation',
                     'Arrhythmia assessment',
-                    'Syncope workup'
+                    'Syncope workup',
                 ],
                 'contraindications' => [],
                 'cost' => 100.00,
@@ -62,7 +62,7 @@ class MedicalTestSeeder extends Seeder
                 'type' => 'imaging',
                 'description' => 'Radiographic imaging of the chest to evaluate lungs, heart, and bones.',
                 'indications' => [
-                    'Chest pain', 'Shortness of breath', 'Trauma'
+                    'Chest pain', 'Shortness of breath', 'Trauma',
                 ],
                 'contraindications' => ['Pregnancy (relative)'],
                 'cost' => 150.00,
@@ -81,7 +81,7 @@ class MedicalTestSeeder extends Seeder
                 'type' => 'lab',
                 'description' => 'Comprehensive blood cell analysis including WBC, RBC, platelets.',
                 'indications' => [
-                    'Infection screening', 'Anemia evaluation', 'Bleeding assessment', 'Medication monitoring'
+                    'Infection screening', 'Anemia evaluation', 'Bleeding assessment', 'Medication monitoring',
                 ],
                 'contraindications' => [],
                 'cost' => 25.00,
@@ -100,10 +100,10 @@ class MedicalTestSeeder extends Seeder
                 'type' => 'procedure',
                 'description' => 'Evaluates cardiac function under physical stress.',
                 'indications' => [
-                    'Stable chest pain evaluation', 'Pre-operative cardiac assessment', 'Follow-up after cardiac intervention'
+                    'Stable chest pain evaluation', 'Pre-operative cardiac assessment', 'Follow-up after cardiac intervention',
                 ],
                 'contraindications' => [
-                    'Acute myocardial infarction', 'Unstable angina', 'Severe heart failure', 'Significant arrhythmias'
+                    'Acute myocardial infarction', 'Unstable angina', 'Severe heart failure', 'Significant arrhythmias',
                 ],
                 'cost' => 850.00,
                 'turnaround_minutes' => 180,
@@ -115,5 +115,3 @@ class MedicalTestSeeder extends Seeder
         );
     }
 }
-
-

@@ -32,7 +32,7 @@ class OsceCase extends Model
         'urgency_level',
         'setting_limitations',
         'case_budget',
-        'test_results_templates'
+        'test_results_templates',
     ];
 
     protected $casts = [
@@ -49,7 +49,7 @@ class OsceCase extends Model
         'contraindicated_tests' => 'array',
         'required_tests' => 'array',
         'setting_limitations' => 'array',
-        'test_results_templates' => 'array'
+        'test_results_templates' => 'array',
     ];
 
     public function sessions(): HasMany
@@ -64,7 +64,7 @@ class OsceCase extends Model
             'vitals' => $this->ai_patient_vitals,
             'symptoms' => $this->ai_patient_symptoms,
             'instructions' => $this->ai_patient_instructions,
-            'responses' => $this->ai_patient_responses
+            'responses' => $this->ai_patient_responses,
         ];
     }
 }

@@ -18,7 +18,7 @@ return new class extends Migration
             $table->boolean('is_correct')->default(false);
             $table->integer('order')->default(0);
             $table->timestamps();
-            
+
             $table->index(['mcq_question_id', 'order']);
         });
     }

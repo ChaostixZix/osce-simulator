@@ -12,5 +12,3 @@ class LandingController extends Controller
         return Inertia::render('Landing');
     }
 }
-
-
