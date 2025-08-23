@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Jobs\AssessOsceSessionJob;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -29,7 +30,12 @@ class OsceSession extends Model
         'total_test_cost',
         'evaluation_feedback',
         'responses',
-        'feedback'
+        'feedback',
+        'assessor_payload',
+        'assessor_output',
+        'assessed_at',
+        'assessor_model',
+        'rubric_version'
     ];
 
     protected $appends = [
@@ -43,10 +49,13 @@ class OsceSession extends Model
     protected $casts = [
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
+        'assessed_at' => 'datetime',
         'time_extended' => 'integer',
         'responses' => 'array',
         'feedback' => 'array',
-        'evaluation_feedback' => 'array'
+        'evaluation_feedback' => 'array',
+        'assessor_payload' => 'array',
+        'assessor_output' => 'array'
     ];
 
     public function user(): BelongsTo
@@ -191,6 +200,11 @@ class OsceSession extends Model
                 'final_score' => $finalScore,
                 'completed_at' => $this->completed_at?->toISOString()
             ]);
+
+            // Dispatch assessment job if not already assessed
+            if (!$this->assessed_at) {
+                AssessOsceSessionJob::dispatch($this->id);
+            }
         }
     }
 
