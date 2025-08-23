@@ -210,6 +210,11 @@ const formatDateTime = (dateString: string) => {
     });
 };
 
+const scrollToClinicalReasoning = () => {
+    const element = document.getElementById('clinical-reasoning');
+    element?.scrollIntoView({ behavior: 'smooth' });
+};
+
 const getScoreColor = (score: number, max: number) => {
     const percentage = (score / max) * 100;
     if (percentage >= 80) return 'text-green-600';
@@ -598,8 +603,7 @@ const criteriaLabels: Record<string, string> = {
                                 </Badge>
                                 <Badge variant="outline" class="flex items-center space-x-1">
                                     <Calendar class="h-3 w-3" />
-                                    <span>{{ session.completed_at ? formatDateTime(session.completed_at) : "Not
-                                        completed" }}></span>
+                                    <span>{{ session.completed_at ? formatDateTime(session.completed_at) : "Not completed" }}</span>
                                 </Badge>
                             </div>
                         </div>
@@ -658,8 +662,7 @@ const criteriaLabels: Record<string, string> = {
                                 <span>Overall Performance</span>
                             </CardTitle>
                             <div class="ml-auto">
-                                <Button variant="outline" size="sm"
-                                    @click="() => document.getElementById('clinical-reasoning')?.scrollIntoView({ behavior: 'smooth' })">
+                                <Button variant="outline" size="sm" @click="scrollToClinicalReasoning">
                                     Go to Clinical Reasoning
                                 </Button>
                             </div>
@@ -1056,15 +1059,15 @@ const criteriaLabels: Record<string, string> = {
                                 </div>
                                 <div class="text-center p-4 bg-green-50 rounded-lg">
                                     <div class="text-2xl font-bold text-green-600">
-                                        {{props.session.rationalization.evaluations.reduce((sum, eval) => sum +
-                                            eval.citation_count, 0)}}
+                                        {{props.session.rationalization.evaluations.reduce((sum, evaluation) => sum +
+                                            evaluation.citation_count, 0)}}
                                     </div>
                                     <p class="text-sm text-green-600">Total Citations</p>
                                 </div>
                                 <div class="text-center p-4 bg-purple-50 rounded-lg">
                                     <div class="text-2xl font-bold text-purple-600">
-                                        {{props.session.rationalization.evaluations.reduce((sum, eval) => sum +
-                                            eval.total_score, 0)}}
+                                        {{props.session.rationalization.evaluations.reduce((sum, evaluation) => sum +
+                                            evaluation.total_score, 0)}}
                                     </div>
                                     <p class="text-sm text-purple-600">Total Score</p>
                                 </div>
@@ -1089,10 +1092,9 @@ const criteriaLabels: Record<string, string> = {
                                                             :variant="card.card_type === 'asked_question' ? 'default' : 'secondary'"
                                                             class="mb-2">
                                                             {{ card.card_type === 'asked_question' ? 'Asked Question' :
-                                                                card.card_type === 'negative_anamnesis' ? 'Expected
-                                                            Question' :
+                                                                card.card_type === 'negative_anamnesis' ? 'Expected Question' :
                                                             card.card_type === 'investigation' ? 'Investigation' :
-                                                                card.card_type }}
+                                                            card.card_type }}
                                                         </Badge>
                                                         <h5 class="font-medium">{{ card.question_text }}</h5>
                                                         <div v-if="card.user_rationale"

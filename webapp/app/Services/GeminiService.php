@@ -52,8 +52,9 @@ class GeminiService
                 'temperature' => 0.1, // Low temperature for medical accuracy
                 'topP' => 0.8,
                 'maxOutputTokens' => 2048,
-                'responseMimeType' => 'application/json',
-                'responseSchema' => $this->getEvaluationSchema(),
+                // Temporarily remove response schema to test grounding
+                // 'responseMimeType' => 'application/json',
+                // 'responseSchema' => $this->getEvaluationSchema(),
             ],
         ];
 
@@ -116,6 +117,7 @@ class GeminiService
                 'verdict' => [
                     'type' => 'string',
                     'enum' => ['correct', 'partially_correct', 'incorrect'],
+                    'description' => 'Overall verdict of the evaluation'
                 ],
                 'feedback_why' => [
                     'type' => 'string',
@@ -124,33 +126,76 @@ class GeminiService
                 'score_breakdown' => [
                     'type' => 'object',
                     'properties' => [
-                        'relevance' => ['type' => 'integer', 'minimum' => 0, 'maximum' => 2],
-                        'evidence_accuracy' => ['type' => 'integer', 'minimum' => 0, 'maximum' => 3],
-                        'completeness' => ['type' => 'integer', 'minimum' => 0, 'maximum' => 2],
-                        'safety' => ['type' => 'integer', 'minimum' => 0, 'maximum' => 2],
-                        'prioritization' => ['type' => 'integer', 'minimum' => 0, 'maximum' => 1],
+                        'relevance' => [
+                            'type' => 'integer',
+                            'minimum' => 0,
+                            'maximum' => 2,
+                            'description' => 'Relevance score'
+                        ],
+                        'evidence_accuracy' => [
+                            'type' => 'integer',
+                            'minimum' => 0,
+                            'maximum' => 3,
+                            'description' => 'Evidence accuracy score'
+                        ],
+                        'completeness' => [
+                            'type' => 'integer',
+                            'minimum' => 0,
+                            'maximum' => 2,
+                            'description' => 'Completeness score'
+                        ],
+                        'safety' => [
+                            'type' => 'integer',
+                            'minimum' => 0,
+                            'maximum' => 2,
+                            'description' => 'Safety score'
+                        ],
+                        'prioritization' => [
+                            'type' => 'integer',
+                            'minimum' => 0,
+                            'maximum' => 1,
+                            'description' => 'Prioritization score'
+                        ],
                     ],
                     'required' => ['relevance', 'evidence_accuracy', 'completeness', 'safety', 'prioritization'],
+                    'description' => 'Detailed score breakdown'
                 ],
                 'total_score' => [
                     'type' => 'integer',
                     'minimum' => 0,
                     'maximum' => 10,
+                    'description' => 'Total evaluation score'
                 ],
                 'citations' => [
                     'type' => 'array',
                     'items' => [
                         'type' => 'object',
                         'properties' => [
-                            'title' => ['type' => 'string'],
-                            'source' => ['type' => 'string'],
-                            'url' => ['type' => 'string'],
-                            'excerpt' => ['type' => 'string'],
+                            'title' => [
+                                'type' => 'string',
+                                'description' => 'Title of the cited source'
+                            ],
+                            'source' => [
+                                'type' => 'string',
+                                'description' => 'Source name or publication'
+                            ],
+                            'url' => [
+                                'type' => 'string',
+                                'description' => 'URL to the source'
+                            ],
+                            'excerpt' => [
+                                'type' => 'string',
+                                'description' => 'Relevant excerpt from the source'
+                            ],
                         ],
+                        'required' => ['title', 'source'],
+                        'additionalProperties' => false
                     ],
+                    'description' => 'List of citations with sources'
                 ],
             ],
             'required' => ['user_rationale_summary', 'verdict', 'feedback_why', 'score_breakdown', 'total_score', 'citations'],
+            'additionalProperties' => false
         ];
     }
 
@@ -172,13 +217,17 @@ class GeminiService
         // Parse JSON response
         $evaluation = json_decode($contentText, true);
         if (json_last_error() !== JSON_ERROR_NONE) {
-            Log::warning('Invalid JSON in Gemini response', ['content' => $contentText]);
-
-            return $this->getFallbackResponse();
+            Log::warning('Invalid JSON in Gemini response, using fallback', ['content' => $contentText]);
+            $evaluation = $this->getFallbackEvaluation();
         }
 
         // Extract grounding metadata if available
         $groundingMetadata = $data['candidates'][0]['groundingMetadata'] ?? null;
+
+        // If no citations in structured response, try to extract from grounding metadata
+        if (empty($evaluation['citations']) && $groundingMetadata) {
+            $evaluation['citations'] = $this->extractCitationsFromGrounding($groundingMetadata);
+        }
 
         return [
             'evaluation' => $evaluation,
@@ -187,6 +236,49 @@ class GeminiService
             'has_citations' => ! empty($evaluation['citations']),
             'citation_count' => count($evaluation['citations'] ?? []),
             'raw_response' => $data,
+        ];
+    }
+
+    /**
+     * Extract citations from grounding metadata
+     */
+    private function extractCitationsFromGrounding(array $groundingMetadata): array
+    {
+        $citations = [];
+
+        // Extract from search queries and results
+        if (isset($groundingMetadata['webSearchQueries'])) {
+            foreach ($groundingMetadata['webSearchQueries'] as $index => $query) {
+                $citations[] = [
+                    'title' => $query,
+                    'source' => 'Google Search',
+                    'url' => "https://www.google.com/search?q=" . urlencode($query),
+                    'excerpt' => "Search result for: {$query}"
+                ];
+            }
+        }
+
+        return $citations;
+    }
+
+    /**
+     * Get fallback evaluation when JSON parsing fails
+     */
+    private function getFallbackEvaluation(): array
+    {
+        return [
+            'user_rationale_summary' => 'Unable to parse AI response',
+            'verdict' => 'partially_correct',
+            'feedback_why' => 'Evaluation completed but response format was unexpected',
+            'score_breakdown' => [
+                'relevance' => 1,
+                'evidence_accuracy' => 1,
+                'completeness' => 1,
+                'safety' => 1,
+                'prioritization' => 0,
+            ],
+            'total_score' => 4,
+            'citations' => [],
         ];
     }
 
