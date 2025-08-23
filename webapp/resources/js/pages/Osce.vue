@@ -204,9 +204,9 @@ const getStatusIcon = (status: string) => {
 
 // Guard: can this session be continued from the dashboard?
 const canContinue = (s: OsceSession) => {
-    const seconds = s.remaining_seconds ?? 0;
-    const timeOk = seconds > 0 && s.time_status !== 'expired';
-    return s.status === 'in_progress' && timeOk;
+    if (s.status !== 'in_progress') return false;
+    if (s.time_status === 'expired') return false;
+    return true; // do not block on missing remaining_seconds; server will guard
 };
 
 // Derive server-truth flags with safe fallbacks for live updates
@@ -423,16 +423,15 @@ onBeforeUnmount(() => {
                                     </TableCell>
                                     <TableCell>
                                         <div class="flex flex-col gap-1">
-                                            <div v-if="canContinue(session)">
+                                            <div class="flex items-center gap-2">
                                                 <Button
+                                                    v-if="canContinue(session)"
                                                     variant="outline"
                                                     size="sm"
                                                     @click="router.visit(`/osce/chat/${session.id}`)"
                                                 >
                                                     Rasionalisasi
                                                 </Button>
-                                            </div>
-                                            <div v-else>
                                                 <Button 
                                                     variant="ghost" 
                                                     size="sm"
@@ -441,10 +440,10 @@ onBeforeUnmount(() => {
                                                 >
                                                     View Results
                                                 </Button>
-                                                <p v-if="!canViewResults(session)" class="text-xs text-muted-foreground">
-                                                    Selesaikan rasionalisasi terlebih dahulu.
-                                                </p>
                                             </div>
+                                            <p v-if="!canViewResults(session)" class="text-xs text-muted-foreground">
+                                                Selesaikan rasionalisasi terlebih dahulu.
+                                            </p>
                                         </div>
                                     </TableCell>
                                 </TableRow>
