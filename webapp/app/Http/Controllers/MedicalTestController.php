@@ -19,8 +19,8 @@ class MedicalTestController extends Controller
             ->when($query, function ($q) use ($query) {
                 $q->where(function ($q2) use ($query) {
                     $q2->where('name', 'like', "%{$query}%")
-                       ->orWhere('category', 'like', "%{$query}%")
-                       ->orWhere('description', 'like', "%{$query}%");
+                        ->orWhere('category', 'like', "%{$query}%")
+                        ->orWhere('description', 'like', "%{$query}%");
                 });
             })
             ->when($category, fn ($q) => $q->where('category', $category))
@@ -44,5 +44,3 @@ class MedicalTestController extends Controller
         return response()->json($categories);
     }
 }
-
-

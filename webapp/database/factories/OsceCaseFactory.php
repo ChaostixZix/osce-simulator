@@ -27,7 +27,7 @@ class OsceCaseFactory extends Factory
             'vital_signs' => [
                 'temperature' => $this->faker->randomFloat(1, 36.0, 39.0),
                 'heart_rate' => $this->faker->numberBetween(60, 120),
-                'blood_pressure' => $this->faker->numberBetween(90, 160) . '/' . $this->faker->numberBetween(60, 100),
+                'blood_pressure' => $this->faker->numberBetween(90, 160).'/'.$this->faker->numberBetween(60, 100),
                 'respiratory_rate' => $this->faker->numberBetween(12, 24),
                 'oxygen_saturation' => $this->faker->numberBetween(92, 100),
             ],

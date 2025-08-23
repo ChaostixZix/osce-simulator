@@ -17,10 +17,10 @@ return new class extends Migration
             $table->foreignId('post_id')->constrained()->onDelete('cascade');
             $table->enum('type', ['like', 'retweet', 'bookmark']);
             $table->timestamps();
-            
+
             // Ensure a user can only interact once per post per type
             $table->unique(['user_id', 'post_id', 'type']);
-            
+
             // Indexes for better performance
             $table->index(['post_id', 'type']);
             $table->index(['user_id', 'type']);

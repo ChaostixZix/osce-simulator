@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -17,7 +17,7 @@ return new class extends Migration
 
         if ($driver === 'sqlite') {
             // SQLite doesn't support ALTER TABLE ... ADD CONSTRAINT for CHECKs; use triggers.
-            DB::unprepared(<<<SQL
+            DB::unprepared(<<<'SQL'
                 CREATE TRIGGER IF NOT EXISTS osce_sessions_started_at_check_insert
                 BEFORE INSERT ON osce_sessions
                 FOR EACH ROW
@@ -27,7 +27,7 @@ return new class extends Migration
                 END;
             SQL);
 
-            DB::unprepared(<<<SQL
+            DB::unprepared(<<<'SQL'
                 CREATE TRIGGER IF NOT EXISTS osce_sessions_started_at_check_update
                 BEFORE UPDATE ON osce_sessions
                 FOR EACH ROW
@@ -39,12 +39,12 @@ return new class extends Migration
         } else {
             DB::statement("\n                ALTER TABLE osce_sessions\n                ADD CONSTRAINT check_started_at_not_null\n                CHECK (status != 'in_progress' OR started_at IS NOT NULL)\n            ");
         }
-        
+
         // Add index for better performance on timer queries
         Schema::table('osce_sessions', function (Blueprint $table) {
             $table->index(['user_id', 'status'], 'idx_user_status_timer');
         });
-        
+
         // Update any existing sessions that might have null started_at
         DB::table('osce_sessions')
             ->where('status', 'in_progress')
@@ -71,10 +71,9 @@ return new class extends Migration
                 // Ignore if CHECK did not exist (older MySQL/MariaDB)
             }
         }
-        
+
         Schema::table('osce_sessions', function (Blueprint $table) {
             $table->dropIndex('idx_user_status_timer');
         });
     }
 };
-

@@ -35,7 +35,7 @@ class OsceSession extends Model
         'assessor_output',
         'assessed_at',
         'assessor_model',
-        'rubric_version'
+        'rubric_version',
     ];
 
     protected $appends = [
@@ -43,7 +43,7 @@ class OsceSession extends Model
         'remaining_seconds',
         'duration_minutes',
         'is_expired',
-        'time_status'
+        'time_status',
     ];
 
     protected $casts = [
@@ -55,7 +55,7 @@ class OsceSession extends Model
         'feedback' => 'array',
         'evaluation_feedback' => 'array',
         'assessor_payload' => 'array',
-        'assessor_output' => 'array'
+        'assessor_output' => 'array',
     ];
 
     public function user(): BelongsTo
@@ -88,6 +88,11 @@ class OsceSession extends Model
         return $this->hasMany(SessionExamination::class, 'osce_session_id')->orderBy('performed_at', 'desc');
     }
 
+    public function rationalization(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(OsceSessionRationalization::class);
+    }
+
     public function getLabResults(): \Illuminate\Database\Eloquent\Collection
     {
         return $this->orderedTests()->where('test_type', 'lab')->get();
@@ -109,6 +114,7 @@ class OsceSession extends Model
         // Use the case's configured duration, do not hardcode defaults
         $base = (int) ($case?->duration_minutes ?? 0);
         $extension = (int) ($this->time_extended ?? 0);
+
         return max(0, $base + $extension);
     }
 
@@ -120,7 +126,7 @@ class OsceSession extends Model
     {
         // Fallback to created_at if started_at is not set (defensive for legacy rows)
         $startedBase = $this->started_at ?? $this->created_at;
-        if (!$startedBase) {
+        if (! $startedBase) {
             return 0;
         }
 
@@ -141,23 +147,23 @@ class OsceSession extends Model
         if ($this->status === 'completed') {
             return 0;
         }
-        
+
         $durationSeconds = $this->duration_minutes * 60;
         $elapsedSeconds = $this->elapsed_seconds;
-        
+
         // Calculate remaining time
         $remaining = max(0, $durationSeconds - $elapsedSeconds);
-        
+
         // Log if timer expires
         if ($remaining === 0 && $this->status === 'in_progress') {
             \Log::info('OSCE Session expired', [
                 'session_id' => $this->id,
                 'started_at' => $this->started_at?->toISOString(),
                 'duration_minutes' => $this->duration_minutes,
-                'elapsed_seconds' => $elapsedSeconds
+                'elapsed_seconds' => $elapsedSeconds,
             ]);
         }
-        
+
         return (int) $remaining;
     }
 
@@ -177,6 +183,7 @@ class OsceSession extends Model
         if ($this->status === 'completed') {
             return 'completed';
         }
+
         return $this->is_expired ? 'expired' : 'active';
     }
 
@@ -187,22 +194,22 @@ class OsceSession extends Model
     {
         if ($this->status !== 'completed') {
             $this->status = 'completed';
-            if (!$this->completed_at) {
+            if (! $this->completed_at) {
                 $this->completed_at = now();
             }
-            if (!is_null($finalScore)) {
+            if (! is_null($finalScore)) {
                 $this->score = $finalScore;
             }
             $this->save();
-            
+
             \Log::info('OSCE Session completed', [
                 'session_id' => $this->id,
                 'final_score' => $finalScore,
-                'completed_at' => $this->completed_at?->toISOString()
+                'completed_at' => $this->completed_at?->toISOString(),
             ]);
 
             // Dispatch assessment job if not already assessed
-            if (!$this->assessed_at) {
+            if (! $this->assessed_at) {
                 AssessOsceSessionJob::dispatch($this->id);
             }
         }
@@ -213,7 +220,7 @@ class OsceSession extends Model
      */
     public function isActive(): bool
     {
-        return $this->status === 'in_progress' && !$this->is_expired;
+        return $this->status === 'in_progress' && ! $this->is_expired;
     }
 
     /**
@@ -236,13 +243,13 @@ class OsceSession extends Model
                 'session_id' => $this->id,
                 'original_started_at' => $this->getOriginal('started_at'),
                 'new_started_at' => $this->started_at,
-                'stack_trace' => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10)
+                'stack_trace' => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10),
             ]);
-            
+
             // Restore original started_at to prevent timer reset
             $this->started_at = $this->getOriginal('started_at');
         }
-        
+
         return parent::save($options);
     }
 
@@ -255,11 +262,12 @@ class OsceSession extends Model
             \Log::warning('Attempted to modify started_at on existing session', [
                 'session_id' => $this->id,
                 'current_started_at' => $this->started_at,
-                'attempted_started_at' => $timestamp
+                'attempted_started_at' => $timestamp,
             ]);
+
             return; // Ignore the update
         }
-        
+
         $this->started_at = $timestamp;
     }
 
