@@ -52,6 +52,8 @@ Route::middleware([
 	Route::post('api/osce/sessions/{session}/assess', [OsceAssessmentController::class, 'assess'])->name('osce.assess');
 	Route::get('api/osce/sessions/{session}/results', [OsceAssessmentController::class, 'results'])->name('osce.results');
 	Route::get('osce/results/{session}', [OsceAssessmentController::class, 'show'])->name('osce.results.show');
+	// Optional scoring alias: follows the same gating as results
+	Route::get('osce/scoring/{session}', [OsceAssessmentController::class, 'show'])->name('osce.scoring.show');
 	
 	// MCQ routes
 	Route::get('mcq', [App\Http\Controllers\MCQController::class, 'index'])->name('mcq.index');

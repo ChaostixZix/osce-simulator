@@ -26,7 +26,15 @@ class OsceController extends Controller
             ->where('user_id', $user->id)
             ->orderBy('created_at', 'desc')
             ->limit(10)
-            ->get();
+            ->get()
+            ->map(function (OsceSession $s) {
+                // Server-truth booleans to drive UI button states
+                return array_merge($s->toArray(), [
+                    'canViewResults' => (bool) $s->is_rationalization_complete,
+                    // Scoring step follows the same completion requirement for now
+                    'canProceedToScoring' => (bool) $s->is_rationalization_complete,
+                ]);
+            });
         
         return Inertia::render('Osce', [
             'cases' => $cases,
