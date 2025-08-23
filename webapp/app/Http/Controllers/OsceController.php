@@ -6,6 +6,7 @@ use App\Models\OsceCase;
 use App\Models\OsceSession;
 use App\Models\SessionOrderedTest;
 use App\Models\SessionExamination;
+use App\Services\RationalizationService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -220,6 +221,45 @@ class OsceController extends Controller
         return response()->json([
             'message' => 'Session marked as completed',
             'session' => $session->fresh()->load('osceCase')
+        ]);
+    }
+
+    /**
+     * Show session results with rationalization gating
+     */
+    public function showResults(OsceSession $session, RationalizationService $rationalizationService)
+    {
+        $user = auth()->user();
+        if ($session->user_id !== $user->id) {
+            abort(403, 'Unauthorized access to session');
+        }
+
+        // Session must be completed
+        if ($session->status !== 'completed') {
+            return redirect()->route('osce.chat', $session)
+                ->withErrors(['error' => 'Session must be completed first']);
+        }
+
+        // Check if rationalization is required and completed
+        if (!$rationalizationService->canUnlockResults($session)) {
+            // Redirect to rationalization interface
+            return redirect()->route('rationalization.show', $session)
+                ->with('message', 'Complete the rationalization review to view your results.');
+        }
+
+        // Load all session data for results display
+        $session->load([
+            'osceCase',
+            'orderedTests',
+            'examinations',
+            'rationalization.cards',
+            'rationalization.diagnosisEntries',
+            'rationalization.evaluations'
+        ]);
+
+        return Inertia::render('OsceResults', [
+            'session' => $session,
+            'user' => $user
         ]);
     }
 
