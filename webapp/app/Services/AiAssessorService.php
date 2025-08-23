@@ -27,19 +27,40 @@ class AiAssessorService
 
         // Check if AI is configured
         if (!$this->isConfigured()) {
-            // AI not available - return without assessment
-            $session->update([
-                'score' => null,
-                'max_score' => null,
-                'assessor_payload' => null,
-                'assessor_output' => [
-                    'error' => 'AI is not available right now and no scoring done',
-                    'message' => 'Assessment requires AI functionality which is currently unavailable. Please try again later.',
-                    'status' => 'ai_unavailable',
+            // Fallback: compute rubric-based scores locally when AI is unavailable
+            $session->load(['osceCase', 'chatMessages', 'orderedTests.medicalTest', 'examinations']);
+            $artifact = $this->buildArtifact($session);
+            $config = config('osce_scoring');
+            $computed = $this->computeScores($session, $config);
+            $totalScore = array_sum(array_column($computed, 'score'));
+            $maxScore = array_sum(array_column($computed, 'max'));
+
+            $fallbackOutput = [
+                'assessment_type' => 'session_assessment',
+                'strengths' => [],
+                'areas_for_improvement' => [],
+                'clinical_reasoning_analysis' => 'AI unavailable. This is a rubric-based fallback summary computed locally from available actions.',
+                'safety_concerns' => [],
+                'overall_feedback' => 'AI unavailable. Baseline rubric applied using configured criteria and available session data.',
+                'score_justification' => 'Scores computed locally via configured rubric. No AI narrative available.',
+                'recommendations' => [],
+                'model_info' => [
+                    'name' => 'fallback-local-rubric',
+                    'temperature' => 0,
+                    'assessment_approach' => 'rubric_fallback'
                 ],
+                'criteria' => $computed,
+                'artifact_preview' => [ 'session_id' => $artifact['session_id'] ?? null ],
+            ];
+
+            $session->update([
+                'score' => $totalScore,
+                'max_score' => $maxScore,
+                'assessor_payload' => $artifact,
+                'assessor_output' => $fallbackOutput,
                 'assessed_at' => now(),
                 'assessor_model' => 'unavailable',
-                'rubric_version' => null,
+                'rubric_version' => $config['rubric_version'] ?? null,
             ]);
 
             return $session;
@@ -63,15 +84,38 @@ class AiAssessorService
         $assessorOutput = $this->getAiSessionAssessment($artifact, $session);
 
         if (isset($assessorOutput['error'])) {
-            // AI assessment failed - return error state
+            // Fallback if AI returned error
+            $config = config('osce_scoring');
+            $computed = $this->computeScores($session, $config);
+            $totalScore = array_sum(array_column($computed, 'score'));
+            $maxScore = array_sum(array_column($computed, 'max'));
+
+            $fallbackOutput = [
+                'assessment_type' => 'session_assessment',
+                'strengths' => [],
+                'areas_for_improvement' => [],
+                'clinical_reasoning_analysis' => 'AI error. This is a rubric-based fallback summary computed locally.',
+                'safety_concerns' => [],
+                'overall_feedback' => 'AI error. Baseline rubric applied using configured criteria and available session data.',
+                'score_justification' => 'Scores computed locally via configured rubric. No AI narrative available.',
+                'recommendations' => [],
+                'model_info' => [
+                    'name' => $this->model,
+                    'temperature' => 0,
+                    'assessment_approach' => 'rubric_fallback'
+                ],
+                'criteria' => $computed,
+                'ai_error' => $assessorOutput,
+            ];
+
             $session->update([
-                'score' => null,
-                'max_score' => null,
+                'score' => $totalScore,
+                'max_score' => $maxScore,
                 'assessor_payload' => $artifact,
-                'assessor_output' => $assessorOutput,
+                'assessor_output' => $fallbackOutput,
                 'assessed_at' => now(),
                 'assessor_model' => $this->model,
-                'rubric_version' => null, // No rubric dependency
+                'rubric_version' => $config['rubric_version'] ?? null,
             ]);
 
             return $session;
