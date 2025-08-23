@@ -12,12 +12,12 @@ class OsceChatMessage extends Model
         'sender_type',
         'message',
         'metadata',
-        'sent_at'
+        'sent_at',
     ];
 
     protected $casts = [
         'metadata' => 'array',
-        'sent_at' => 'datetime'
+        'sent_at' => 'datetime',
     ];
 
     public function osceSession(): BelongsTo

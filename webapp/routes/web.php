@@ -1,27 +1,29 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
-use Laravel\WorkOS\Http\Middleware\ValidateSessionWithWorkOS;
-use App\Http\Controllers\PostController;
 use App\Http\Controllers\CommentController;
-use App\Http\Controllers\LandingController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\LandingController;
+use App\Http\Controllers\OsceAssessmentController;
+use App\Http\Controllers\PatientController;
+use App\Http\Controllers\PostController;
 use App\Http\Controllers\SoapAttachmentController;
 use App\Http\Controllers\SoapBoardController;
 use App\Http\Controllers\SoapCommentController;
 use App\Http\Controllers\SoapNoteController;
 use App\Http\Controllers\SoapPageController;
+
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\OsceAssessmentController;
 use App\Http\Controllers\OsceRationalizationController;
 
+
 Route::get('/', [LandingController::class, 'index'])->name('home');
 
 Route::middleware([
-	'auth',
-	ValidateSessionWithWorkOS::class,
+    'auth',
+    ValidateSessionWithWorkOS::class,
 ])->group(function () {
+
 	Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 	
 	Route::get('osce', [App\Http\Controllers\OsceController::class, 'index'])->name('osce');
@@ -116,6 +118,7 @@ Route::middleware([
 	// PATIENTS
 	Route::get('patients/create', [PatientController::class, 'create'])->name('patients.create');
 	Route::post('patients', [PatientController::class, 'store'])->name('patients.store');
+
 });
 
 require __DIR__.'/settings.php';

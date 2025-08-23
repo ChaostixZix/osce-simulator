@@ -41,8 +41,7 @@ class ProcessTestResultsJob implements ShouldQueue
         ];
         $result = is_array($byId) ? $byId : $fallback;
         $result['turnaround_time_minutes'] = $test->ordered_at ? $test->ordered_at->diffInMinutes(now()) : null;
+
         return $result;
     }
 }
-
-

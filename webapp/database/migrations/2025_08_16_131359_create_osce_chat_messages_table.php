@@ -19,7 +19,7 @@ return new class extends Migration
             $table->json('metadata')->nullable(); // For storing additional context like patient symptoms, vital signs, etc.
             $table->timestamp('sent_at');
             $table->timestamps();
-            
+
             // Indexes for better performance
             $table->index(['osce_session_id', 'sent_at']);
             $table->index('sender_type');

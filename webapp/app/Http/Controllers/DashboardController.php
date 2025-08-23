@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\McqTest;
 use App\Models\OsceCase;
 use App\Models\Post;
 use App\Models\User;
-use App\Models\McqTest;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 

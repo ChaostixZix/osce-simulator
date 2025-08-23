@@ -15,7 +15,7 @@ class UserResource extends JsonResource
     public function toArray(Request $request): array
     {
         $currentUser = $request->user();
-        
+
         return [
             'id' => $this->id,
             'name' => $this->name,
@@ -31,16 +31,16 @@ class UserResource extends JsonResource
             'social_links' => $this->social_links,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
-            
+
             // Counts
             'posts_count' => $this->posts_count,
             'followers_count' => $this->followers_count,
             'following_count' => $this->following_count,
-            
+
             // Current user's relationship with this user
             'is_following' => $currentUser ? $this->isFollowing($currentUser) : false,
             'is_followed_by' => $currentUser ? $this->isFollowedBy($currentUser) : false,
-            
+
             // Formatted timestamps
             'formatted_created_at' => $this->created_at?->diffForHumans(),
             'formatted_updated_at' => $this->updated_at?->diffForHumans(),

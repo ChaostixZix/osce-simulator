@@ -2,7 +2,7 @@
 
 return [
     'rubric_version' => 'RUBRIC_V1.0',
-    
+
     'criteria' => [
         ['key' => 'history', 'label' => 'History-taking', 'max' => 20],
         ['key' => 'exam', 'label' => 'Physical Exam', 'max' => 15],
@@ -12,7 +12,7 @@ return [
         ['key' => 'communication', 'label' => 'Communication/Professionalism', 'max' => 5],
         ['key' => 'safety', 'label' => 'Time Use/Safety', 'max' => 5],
     ],
-    
+
     'penalties' => [
         'contraindicated_test' => 5,
         'inappropriate_test' => 2,
@@ -20,7 +20,7 @@ return [
         'over_budget' => 2,
         'unsafe_statement' => 3,
     ],
-    
+
     // Scoring weights for different aspects
     'weights' => [
         'history' => [

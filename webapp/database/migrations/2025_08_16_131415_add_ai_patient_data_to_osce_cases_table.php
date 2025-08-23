@@ -31,7 +31,7 @@ return new class extends Migration
                 'ai_patient_vitals',
                 'ai_patient_symptoms',
                 'ai_patient_instructions',
-                'ai_patient_responses'
+                'ai_patient_responses',
             ]);
         });
     }

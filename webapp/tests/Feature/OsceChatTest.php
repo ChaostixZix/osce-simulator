@@ -1,9 +1,9 @@
 <?php
 
 use App\Models\OsceCase;
+use App\Models\OsceChatMessage;
 use App\Models\OsceSession;
 use App\Models\User;
-use App\Models\OsceChatMessage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -24,9 +24,9 @@ beforeEach(function () {
         'ai_patient_vitals' => ['BP' => '120/80'],
         'ai_patient_symptoms' => ['Symptom 1'],
         'ai_patient_instructions' => 'Test instructions',
-        'ai_patient_responses' => ['test' => 'Test response']
+        'ai_patient_responses' => ['test' => 'Test response'],
     ]);
-    
+
     $this->session = OsceSession::create([
         'user_id' => $this->user->id,
         'osce_case_id' => $this->osceCase->id,
@@ -38,19 +38,19 @@ beforeEach(function () {
 it('can start chat for an active session', function () {
     $response = $this->actingAs($this->user)
         ->postJson('/api/osce/chat/start', [
-            'session_id' => $this->session->id
+            'session_id' => $this->session->id,
         ]);
 
     $response->assertSuccessful()
         ->assertJsonStructure([
             'success',
             'session',
-            'system_message'
+            'system_message',
         ]);
 
     $this->assertDatabaseHas('osce_chat_messages', [
         'osce_session_id' => $this->session->id,
-        'sender_type' => 'system'
+        'sender_type' => 'system',
     ]);
 });
 
@@ -59,7 +59,7 @@ it('cannot start chat for inactive session', function () {
 
     $response = $this->actingAs($this->user)
         ->postJson('/api/osce/chat/start', [
-            'session_id' => $this->session->id
+            'session_id' => $this->session->id,
         ]);
 
     $response->assertStatus(400)
@@ -77,7 +77,7 @@ it('cannot start chat for another users session', function () {
 
     $response = $this->actingAs($this->user)
         ->postJson('/api/osce/chat/start', [
-            'session_id' => $otherSession->id
+            'session_id' => $otherSession->id,
         ]);
 
     $response->assertStatus(404);
@@ -94,26 +94,26 @@ it('can send message and receive ai response', function () {
     $response = $this->actingAs($this->user)
         ->postJson('/api/osce/chat/message', [
             'session_id' => $this->session->id,
-            'message' => 'Hello, how are you feeling?'
+            'message' => 'Hello, how are you feeling?',
         ]);
 
     $response->assertSuccessful()
         ->assertJsonStructure([
             'success',
             'user_message',
-            'ai_response'
+            'ai_response',
         ]);
 
     $this->assertDatabaseHas('osce_chat_messages', [
         'osce_session_id' => $this->session->id,
         'sender_type' => 'user',
-        'message' => 'Hello, how are you feeling?'
+        'message' => 'Hello, how are you feeling?',
     ]);
 
     $this->assertDatabaseHas('osce_chat_messages', [
         'osce_session_id' => $this->session->id,
         'sender_type' => 'ai_patient',
-        'message' => 'Mock AI response'
+        'message' => 'Mock AI response',
     ]);
 });
 
@@ -123,7 +123,7 @@ it('cannot send message to inactive session', function () {
     $response = $this->actingAs($this->user)
         ->postJson('/api/osce/chat/message', [
             'session_id' => $this->session->id,
-            'message' => 'Test message'
+            'message' => 'Test message',
         ]);
 
     $response->assertStatus(400)
@@ -134,7 +134,7 @@ it('validates message input', function () {
     $response = $this->actingAs($this->user)
         ->postJson('/api/osce/chat/message', [
             'session_id' => $this->session->id,
-            'message' => '' // Empty message
+            'message' => '', // Empty message
         ]);
 
     $response->assertStatus(422);
@@ -142,7 +142,7 @@ it('validates message input', function () {
     $response = $this->actingAs($this->user)
         ->postJson('/api/osce/chat/message', [
             'session_id' => $this->session->id,
-            'message' => str_repeat('a', 1001) // Too long message
+            'message' => str_repeat('a', 1001), // Too long message
         ]);
 
     $response->assertStatus(422);
@@ -154,14 +154,14 @@ it('can retrieve chat history', function () {
         'osce_session_id' => $this->session->id,
         'sender_type' => 'user',
         'message' => 'User message 1',
-        'sent_at' => now()->subMinutes(2)
+        'sent_at' => now()->subMinutes(2),
     ]);
 
     OsceChatMessage::create([
         'osce_session_id' => $this->session->id,
         'sender_type' => 'ai_patient',
         'message' => 'AI response 1',
-        'sent_at' => now()->subMinute()
+        'sent_at' => now()->subMinute(),
     ]);
 
     $response = $this->actingAs($this->user)
@@ -170,7 +170,7 @@ it('can retrieve chat history', function () {
     $response->assertSuccessful()
         ->assertJsonStructure([
             'success',
-            'messages'
+            'messages',
         ])
         ->assertJsonCount('messages', 2);
 });
