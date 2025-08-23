@@ -73,6 +73,14 @@ interface Session {
         id: number;
         name: string;
     };
+    rationalization?: {
+        id: number;
+        status: string;
+        completed_at?: string;
+        cards?: RationalizationCard[];
+        evaluations?: RationalizationEvaluation[];
+        diagnosisEntries?: any[];
+    };
 }
 
 interface AssessmentCriterion {
@@ -92,6 +100,40 @@ interface ClinicalArea {
     citations: string[];
     strengths: string[];
     areas_for_improvement: string[];
+}
+
+interface RationalizationCitation {
+    title: string;
+    source: string;
+    url: string;
+    excerpt: string;
+}
+
+interface RationalizationEvaluation {
+    id: number;
+    evaluation_type: string;
+    section_score: number;
+    total_score: number;
+    max_score: number;
+    has_citations: boolean;
+    citation_count: number;
+    evaluation_summary: string;
+    verdict: string;
+    feedback_why: string;
+    created_at: string;
+}
+
+interface RationalizationCard {
+    id: number;
+    card_type: string;
+    question_text: string;
+    user_rationale?: string;
+    evaluation_summary?: string;
+    verdict?: string;
+    feedback_why?: string;
+    score?: number;
+    citations?: RationalizationCitation[];
+    evaluated_at?: string;
 }
 
 interface Assessment {
@@ -556,7 +598,8 @@ const criteriaLabels: Record<string, string> = {
                                 </Badge>
                                 <Badge variant="outline" class="flex items-center space-x-1">
                                     <Calendar class="h-3 w-3" />
-                                    <span>{{ session.completed_at ? formatDateTime(session.completed_at) : "Not completed" }}></span>
+                                    <span>{{ session.completed_at ? formatDateTime(session.completed_at) : "Not
+                                        completed" }}></span>
                                 </Badge>
                             </div>
                         </div>
@@ -609,17 +652,18 @@ const criteriaLabels: Record<string, string> = {
                 <div v-if="isAssessed && assessment" class="space-y-6">
                     <!-- Overall Score Card -->
                     <Card>
-<CardHeader>
-    <CardTitle class="flex items-center space-x-2">
-        <Award class="h-5 w-5" />
-        <span>Overall Performance</span>
-    </CardTitle>
-    <div class="ml-auto">
-        <Button variant="outline" size="sm" @click="() => document.getElementById('clinical-reasoning')?.scrollIntoView({ behavior: 'smooth' })">
-            Go to Clinical Reasoning
-        </Button>
-    </div>
-</CardHeader>
+                        <CardHeader>
+                            <CardTitle class="flex items-center space-x-2">
+                                <Award class="h-5 w-5" />
+                                <span>Overall Performance</span>
+                            </CardTitle>
+                            <div class="ml-auto">
+                                <Button variant="outline" size="sm"
+                                    @click="() => document.getElementById('clinical-reasoning')?.scrollIntoView({ behavior: 'smooth' })">
+                                    Go to Clinical Reasoning
+                                </Button>
+                            </div>
+                        </CardHeader>
                         <CardContent>
                             <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                                 <div class="text-center">
@@ -656,8 +700,8 @@ const criteriaLabels: Record<string, string> = {
                         </CardContent>
                     </Card>
 
-                <!-- Detailed Clinical Areas Assessment -->
-                <Card v-if="isDetailedAreasAssessment">
+                    <!-- Detailed Clinical Areas Assessment -->
+                    <Card v-if="isDetailedAreasAssessment">
                         <CardHeader>
                             <CardTitle class="flex items-center space-x-2">
                                 <FileText class="h-5 w-5" />
@@ -729,51 +773,55 @@ const criteriaLabels: Record<string, string> = {
                                 </div>
                             </div>
                         </CardContent>
-                </Card>
+                    </Card>
 
-                <!-- Clinical Reasoning (Dedicated Section) -->
-                <Card v-if="isDetailedAreasAssessment && clinicalReasoningArea" id="clinical-reasoning">
-                    <CardHeader>
-                        <CardTitle class="flex items-center space-x-2">
-                            <Zap class="h-5 w-5" />
-                            <span>Clinical Reasoning</span>
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent class="space-y-4">
-                        <div class="flex items-center justify-between">
-                            <div class="text-sm text-muted-foreground">AI Clinical Reasoning Score</div>
-                            <Badge :variant="getScoreBadgeVariant(clinicalReasoningArea.score, clinicalReasoningArea.max_score)">
-                                {{ clinicalReasoningArea.score }}/{{ clinicalReasoningArea.max_score }}
-                            </Badge>
-                        </div>
-
-                        <div>
-                            <h4 class="font-semibold mb-2">AI Commentary</h4>
-                            <div class="bg-muted p-3 rounded-md text-sm whitespace-pre-line">
-                                {{ clinicalReasoningArea.justification }}
+                    <!-- Clinical Reasoning (Dedicated Section) -->
+                    <Card v-if="isDetailedAreasAssessment && clinicalReasoningArea" id="clinical-reasoning">
+                        <CardHeader>
+                            <CardTitle class="flex items-center space-x-2">
+                                <Zap class="h-5 w-5" />
+                                <span>Clinical Reasoning</span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div class="text-sm text-muted-foreground">AI Clinical Reasoning Score</div>
+                                <Badge
+                                    :variant="getScoreBadgeVariant(clinicalReasoningArea.score, clinicalReasoningArea.max_score)">
+                                    {{ clinicalReasoningArea.score }}/{{ clinicalReasoningArea.max_score }}
+                                </Badge>
                             </div>
-                        </div>
 
-                        <div v-if="session?.clinical_reasoning_score || (session?.evaluation_feedback && session.evaluation_feedback.length)">
-                            <h4 class="font-semibold mb-2">Rationalization Contributions</h4>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div class="text-center">
-                                    <div class="text-2xl font-bold">{{ session?.clinical_reasoning_score ?? 0 }}</div>
-                                    <div class="text-xs text-muted-foreground">Reasoning Score (orders)</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="text-2xl font-bold">{{ session?.total_test_cost ?? 0 }}</div>
-                                    <div class="text-xs text-muted-foreground">Total Test Cost</div>
+                            <div>
+                                <h4 class="font-semibold mb-2">AI Commentary</h4>
+                                <div class="bg-muted p-3 rounded-md text-sm whitespace-pre-line">
+                                    {{ clinicalReasoningArea.justification }}
                                 </div>
                             </div>
-                            <div v-if="session?.evaluation_feedback && session.evaluation_feedback.length > 0" class="mt-3">
-                                <ul class="list-disc pl-5 text-sm space-y-1">
-                                    <li v-for="(f, idx) in session.evaluation_feedback" :key="idx">{{ f }}</li>
-                                </ul>
+
+                            <div
+                                v-if="session?.clinical_reasoning_score || (session?.evaluation_feedback && session.evaluation_feedback.length)">
+                                <h4 class="font-semibold mb-2">Rationalization Contributions</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div class="text-center">
+                                        <div class="text-2xl font-bold">{{ session?.clinical_reasoning_score ?? 0 }}
+                                        </div>
+                                        <div class="text-xs text-muted-foreground">Reasoning Score (orders)</div>
+                                    </div>
+                                    <div class="text-center">
+                                        <div class="text-2xl font-bold">{{ session?.total_test_cost ?? 0 }}</div>
+                                        <div class="text-xs text-muted-foreground">Total Test Cost</div>
+                                    </div>
+                                </div>
+                                <div v-if="session?.evaluation_feedback && session.evaluation_feedback.length > 0"
+                                    class="mt-3">
+                                    <ul class="list-disc pl-5 text-sm space-y-1">
+                                        <li v-for="(f, idx) in session.evaluation_feedback" :key="idx">{{ f }}</li>
+                                    </ul>
+                                </div>
                             </div>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
 
                     <!-- Session-based Assessment -->
                     <Card v-else-if="isSessionAssessment">
@@ -978,6 +1026,172 @@ const criteriaLabels: Record<string, string> = {
                                         <RefreshCw class="h-3 w-3" :class="{ 'animate-spin': isReassessing }" />
                                         <span>{{ isReassessing ? 'Reassessing...' : 'Reassess' }}</span>
                                     </Button>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                <!-- Rationalization Evaluation Results -->
+                <div v-if="props.session.rationalization?.evaluations?.length" class="space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle class="flex items-center space-x-2">
+                                <FileText class="h-5 w-5" />
+                                <span>Rationalization Evaluation</span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent class="space-y-6">
+                            <div class="text-sm text-muted-foreground">
+                                Evidence-based evaluation of your clinical reasoning and decision-making process.
+                            </div>
+
+                            <!-- Evaluation Summary -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="text-center p-4 bg-blue-50 rounded-lg">
+                                    <div class="text-2xl font-bold text-blue-600">
+                                        {{ props.session.rationalization.evaluations.length }}
+                                    </div>
+                                    <p class="text-sm text-blue-600">Evaluation Sections</p>
+                                </div>
+                                <div class="text-center p-4 bg-green-50 rounded-lg">
+                                    <div class="text-2xl font-bold text-green-600">
+                                        {{props.session.rationalization.evaluations.reduce((sum, eval) => sum +
+                                            eval.citation_count, 0)}}
+                                    </div>
+                                    <p class="text-sm text-green-600">Total Citations</p>
+                                </div>
+                                <div class="text-center p-4 bg-purple-50 rounded-lg">
+                                    <div class="text-2xl font-bold text-purple-600">
+                                        {{props.session.rationalization.evaluations.reduce((sum, eval) => sum +
+                                            eval.total_score, 0)}}
+                                    </div>
+                                    <p class="text-sm text-purple-600">Total Score</p>
+                                </div>
+                            </div>
+
+                            <!-- Individual Card Evaluations -->
+                            <div v-if="props.session.rationalization.cards?.length" class="space-y-4">
+                                <h4 class="font-semibold text-lg">Detailed Card Evaluations</h4>
+                                <div class="space-y-3">
+                                    <Card v-for="card in props.session.rationalization.cards" :key="card.id"
+                                        class="border-l-4" :class="{
+                                            'border-l-green-500': card.verdict === 'correct',
+                                            'border-l-yellow-500': card.verdict === 'partially_correct',
+                                            'border-l-red-500': card.verdict === 'incorrect',
+                                            'border-l-gray-300': !card.verdict
+                                        }">
+                                        <CardContent class="p-4">
+                                            <div class="space-y-3">
+                                                <div class="flex items-start justify-between">
+                                                    <div class="flex-1">
+                                                        <Badge
+                                                            :variant="card.card_type === 'asked_question' ? 'default' : 'secondary'"
+                                                            class="mb-2">
+                                                            {{ card.card_type === 'asked_question' ? 'Asked Question' :
+                                                                card.card_type === 'negative_anamnesis' ? 'Expected
+                                                            Question' :
+                                                            card.card_type === 'investigation' ? 'Investigation' :
+                                                                card.card_type }}
+                                                        </Badge>
+                                                        <h5 class="font-medium">{{ card.question_text }}</h5>
+                                                        <div v-if="card.user_rationale"
+                                                            class="mt-2 text-sm bg-gray-50 p-3 rounded">
+                                                            <strong>Your Rationale:</strong> {{ card.user_rationale }}
+                                                        </div>
+                                                    </div>
+                                                    <div class="text-right ml-4">
+                                                        <Badge
+                                                            :variant="card.verdict === 'correct' ? 'default' :
+                                                                card.verdict === 'partially_correct' ? 'secondary' : 'destructive'">
+                                                            {{ card.verdict || 'Not Evaluated' }}
+                                                        </Badge>
+                                                        <div v-if="card.score !== undefined"
+                                                            class="text-sm text-muted-foreground mt-1">
+                                                            Score: {{ card.score }}/10
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div v-if="card.evaluation_summary" class="bg-blue-50 p-3 rounded">
+                                                    <h6 class="font-medium text-blue-800 mb-1">AI Evaluation:</h6>
+                                                    <p class="text-sm text-blue-700">{{ card.evaluation_summary }}</p>
+                                                </div>
+
+                                                <div v-if="card.feedback_why" class="bg-amber-50 p-3 rounded">
+                                                    <h6 class="font-medium text-amber-800 mb-1">Why:</h6>
+                                                    <p class="text-sm text-amber-700">{{ card.feedback_why }}</p>
+                                                </div>
+
+                                                <!-- Citations Section -->
+                                                <div v-if="card.citations?.length" class="space-y-2">
+                                                    <h6 class="font-medium text-green-800 flex items-center space-x-1">
+                                                        <span>📚 Citations ({{ card.citations.length }})</span>
+                                                    </h6>
+                                                    <div class="space-y-2">
+                                                        <div v-for="(citation, idx) in card.citations" :key="idx"
+                                                            class="bg-green-50 border border-green-200 p-3 rounded text-sm">
+                                                            <div class="flex items-start space-x-2">
+                                                                <span class="text-green-600 font-medium min-w-[20px]">
+                                                                    {{ idx + 1 }}.
+                                                                </span>
+                                                                <div class="flex-1">
+                                                                    <div class="font-medium text-green-800">{{
+                                                                        citation.title }}</div>
+                                                                    <div class="text-green-600 text-xs mt-1">
+                                                                        Source: {{ citation.source }}
+                                                                    </div>
+                                                                    <div v-if="citation.url" class="mt-2">
+                                                                        <a :href="citation.url" target="_blank"
+                                                                            class="text-blue-600 hover:text-blue-800 text-xs underline">
+                                                                            View Source →
+                                                                        </a>
+                                                                    </div>
+                                                                    <div v-if="citation.excerpt"
+                                                                        class="mt-2 text-green-700 italic">
+                                                                        "{{ citation.excerpt }}"
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div v-if="card.evaluated_at"
+                                                    class="text-xs text-muted-foreground pt-2 border-t">
+                                                    Evaluated: {{ formatDateTime(card.evaluated_at) }}
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+                            </div>
+
+                            <!-- Section Evaluations -->
+                            <div v-if="props.session.rationalization.evaluations?.length" class="space-y-4">
+                                <h4 class="font-semibold text-lg">Section Evaluations</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <Card v-for="evaluation in props.session.rationalization.evaluations"
+                                        :key="evaluation.id">
+                                        <CardContent class="p-4">
+                                            <div class="flex items-center justify-between mb-2">
+                                                <Badge variant="outline">
+                                                    {{ evaluation.evaluation_type.replace('_', ' ').toUpperCase() }}
+                                                </Badge>
+                                                <div class="text-right">
+                                                    <div class="text-lg font-bold">{{ evaluation.section_score }}/10
+                                                    </div>
+                                                    <div class="text-xs text-muted-foreground">
+                                                        Citations: {{ evaluation.citation_count }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div v-if="evaluation.evaluation_summary"
+                                                class="text-sm text-muted-foreground">
+                                                {{ evaluation.evaluation_summary }}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
                                 </div>
                             </div>
                         </CardContent>
