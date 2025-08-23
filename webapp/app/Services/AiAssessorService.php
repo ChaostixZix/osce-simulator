@@ -956,10 +956,15 @@ INVESTIGATIONS (0-20 points): Analyze detailed_analysis.tests data
 - Reference specific test orders with costs and timing
 - Example scoring: 0-8 = poor test selection, 9-12 = adequate, 13-16 = good, 17-20 = excellent
 
-CLINICAL REASONING & DIAGNOSIS (0-20 points): Analyze overall clinical reasoning from transcript and actions
-- Score based on: logical thinking, differential diagnosis consideration, integration of findings, diagnostic accuracy
-- Use conversation flow and clinical decision patterns
-- Example scoring: 0-8 = no reasoning, 9-12 = basic, 13-16 = good, 17-20 = excellent
+CLINICAL REASONING (0-10 points): Analyze reasoning quality from transcript and actions
+- Score based on: hypothesis generation, prioritization, integration of cues, justification of actions
+- Use conversation flow, ordered tests rationale, and decision patterns for evidence
+- Example scoring: 0-3 = minimal/no reasoning, 4-6 = basic, 7-8 = good, 9-10 = excellent
+
+DIAGNOSIS (0-10 points): Analyze diagnostic thinking and accuracy
+- Score based on: accurate working diagnosis, appropriate differentials, use of evidence for confirmation/exclusion
+- Use transcript and investigations/exam findings for evidence
+- Example scoring: 0-3 = inaccurate/unsafe, 4-6 = partially correct, 7-8 = good, 9-10 = excellent
 
 MANAGEMENT PLAN (0-15 points): Analyze management discussion in transcript and clinical actions
 - Score based on: appropriate treatment plans, safety considerations, follow-up, therapeutic reasoning
@@ -1015,12 +1020,22 @@ Return JSON matching this exact schema:
       "areas_for_improvement": string[]
     },
     {
-      "area": "Clinical Reasoning & Diagnosis",
+      "area": "Clinical Reasoning",
+      "key": "clinical_reasoning",
+      "score": number, // 0-10 - YOU MUST ASSIGN BASED ON EVIDENCE  
+      "max_score": 10,
+      "justification": string, // COMPREHENSIVE analysis of reasoning process with specific evidence
+      "citations": string[], // Refs to reasoning patterns in messages and actions
+      "strengths": string[],
+      "areas_for_improvement": string[]
+    },
+    {
+      "area": "Diagnosis",
       "key": "diagnosis",
-      "score": number, // 0-20 - YOU MUST ASSIGN BASED ON EVIDENCE  
-      "max_score": 20,
-      "justification": string, // COMPREHENSIVE analysis of reasoning process and diagnostic thinking
-      "citations": string[], // Refs to reasoning patterns in messages
+      "score": number, // 0-10 - YOU MUST ASSIGN BASED ON EVIDENCE  
+      "max_score": 10,
+      "justification": string, // COMPREHENSIVE analysis of diagnostic thinking and accuracy
+      "citations": string[], // Refs to key evidence used to confirm/deny diagnoses
       "strengths": string[],
       "areas_for_improvement": string[]
     },

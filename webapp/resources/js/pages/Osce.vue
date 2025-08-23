@@ -429,7 +429,7 @@ onBeforeUnmount(() => {
                                                     size="sm"
                                                     @click="router.visit(`/osce/chat/${session.id}`)"
                                                 >
-                                                    Continue
+                                                    Rasionalisasi
                                                 </Button>
                                             </div>
                                             <div v-else>
