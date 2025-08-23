@@ -37,7 +37,7 @@ return new class extends Migration
                 'birth_date',
                 'is_verified',
                 'is_private',
-                'social_links'
+                'social_links',
             ]);
         });
     }

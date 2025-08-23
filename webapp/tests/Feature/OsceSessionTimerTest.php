@@ -2,25 +2,25 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
-use App\Models\User;
 use App\Models\OsceCase;
 use App\Models\OsceSession;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
-use Carbon\Carbon;
+use Tests\TestCase;
 
 class OsceSessionTimerTest extends TestCase
 {
     use RefreshDatabase, WithFaker;
 
     protected User $user;
+
     protected OsceCase $osceCase;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->user = User::factory()->create();
         $this->osceCase = OsceCase::create([
             'title' => 'Test Case',
@@ -78,10 +78,10 @@ class OsceSessionTimerTest extends TestCase
             ->getJson("/api/osce/sessions/{$session->id}/timer");
 
         $response->assertOk();
-        
+
         $data = $response->json();
         $expectedRemaining = (25 * 60) - (15 * 60); // 25 - 15 = 10 minutes
-        
+
         // Allow 1 second tolerance for test execution time
         $this->assertGreaterThanOrEqual($expectedRemaining - 1, $data['remaining_seconds']);
         $this->assertLessThanOrEqual($expectedRemaining + 1, $data['remaining_seconds']);
@@ -103,12 +103,12 @@ class OsceSessionTimerTest extends TestCase
             ->getJson("/api/osce/sessions/{$session->id}/timer");
 
         $response->assertOk();
-        
+
         // Session should be marked as completed
         $session->refresh();
         $this->assertEquals('completed', $session->status);
         $this->assertNotNull($session->completed_at);
-        
+
         $data = $response->json();
         $this->assertEquals('completed', $data['time_status']);
         $this->assertEquals(0, $data['remaining_seconds']);
@@ -126,14 +126,14 @@ class OsceSessionTimerTest extends TestCase
         ]);
 
         $sessionId = $session->id;
-        
+
         // Attempt to modify started_at (this should be prevented)
         $session->started_at = now();
         $session->save();
-        
+
         // Refresh from database
         $session->refresh();
-        
+
         // started_at should remain unchanged
         $this->assertEquals($originalStartTime->timestamp, $session->started_at->timestamp);
     }
@@ -150,7 +150,7 @@ class OsceSessionTimerTest extends TestCase
 
         // Set duration to 0
         $this->osceCase->update(['duration_minutes' => 0]);
-        
+
         $this->assertEquals(0, $session->remaining_seconds);
         $this->assertTrue($session->is_expired);
     }
@@ -168,7 +168,7 @@ class OsceSessionTimerTest extends TestCase
 
         // Total duration should be 25 + 5 = 30 minutes
         $this->assertEquals(30, $session->duration_minutes);
-        
+
         // Remaining time should account for extension
         $expectedRemaining = (30 * 60) - (10 * 60); // 30 - 10 = 20 minutes
         $this->assertEquals($expectedRemaining, $session->remaining_seconds);
@@ -188,9 +188,9 @@ class OsceSessionTimerTest extends TestCase
             ->getJson("/api/osce/sessions/{$session->id}/timer");
 
         $response->assertOk();
-        
+
         $data = $response->json();
-        
+
         $this->assertArrayHasKey('session_id', $data);
         $this->assertArrayHasKey('elapsed_seconds', $data);
         $this->assertArrayHasKey('remaining_seconds', $data);
@@ -201,7 +201,7 @@ class OsceSessionTimerTest extends TestCase
         $this->assertArrayHasKey('progress_percentage', $data);
         $this->assertArrayHasKey('server_timestamp', $data);
         $this->assertArrayHasKey('started_at_timestamp', $data);
-        
+
         // Verify data types
         $this->assertIsInt($data['elapsed_seconds']);
         $this->assertIsInt($data['remaining_seconds']);

@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -13,7 +13,7 @@ return new class extends Migration
     public function up(): void
     {
         // Ensure table exists; choose a safe anchor column for ordering
-        if (!Schema::hasTable('osce_sessions')) {
+        if (! Schema::hasTable('osce_sessions')) {
             return;
         }
 
@@ -21,16 +21,16 @@ return new class extends Migration
 
         Schema::table('osce_sessions', function (Blueprint $table) use ($anchor) {
             // Add columns only if they do not already exist to make the migration idempotent
-            if (!Schema::hasColumn('osce_sessions', 'paused_at')) {
+            if (! Schema::hasColumn('osce_sessions', 'paused_at')) {
                 $table->timestamp('paused_at')->nullable()->after($anchor);
             }
-            if (!Schema::hasColumn('osce_sessions', 'resumed_at')) {
+            if (! Schema::hasColumn('osce_sessions', 'resumed_at')) {
                 $table->timestamp('resumed_at')->nullable()->after('paused_at');
             }
-            if (!Schema::hasColumn('osce_sessions', 'total_paused_seconds')) {
+            if (! Schema::hasColumn('osce_sessions', 'total_paused_seconds')) {
                 $table->integer('total_paused_seconds')->default(0)->after('resumed_at');
             }
-            if (!Schema::hasColumn('osce_sessions', 'current_remaining_seconds')) {
+            if (! Schema::hasColumn('osce_sessions', 'current_remaining_seconds')) {
                 $table->integer('current_remaining_seconds')->nullable()->after('total_paused_seconds');
             }
         });
@@ -41,8 +41,8 @@ return new class extends Migration
             DB::statement('CREATE INDEX IF NOT EXISTS osce_sessions_paused_at_index ON osce_sessions (paused_at)');
             DB::statement('CREATE INDEX IF NOT EXISTS osce_sessions_status_paused_at_index ON osce_sessions (status, paused_at)');
         } else {
-             // For other databases, we can use a different approach
-             Schema::table('osce_sessions', function (Blueprint $table) {
+            // For other databases, we can use a different approach
+            Schema::table('osce_sessions', function (Blueprint $table) {
                 $table->index('paused_at');
                 $table->index(['status', 'paused_at']);
             });
@@ -54,7 +54,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        if (!Schema::hasTable('osce_sessions')) {
+        if (! Schema::hasTable('osce_sessions')) {
             return;
         }
 
@@ -80,11 +80,10 @@ return new class extends Migration
             }
         }
 
-        if (!empty($columnsToDrop)) {
+        if (! empty($columnsToDrop)) {
             Schema::table('osce_sessions', function (Blueprint $table) use ($columnsToDrop) {
                 $table->dropColumn($columnsToDrop);
             });
         }
     }
 };
-

@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\OsceCase;
 use App\Models\OsceSession;
-use App\Models\SessionOrderedTest;
 use App\Models\SessionExamination;
+use App\Models\SessionOrderedTest;
+use App\Services\RationalizationService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -15,55 +17,56 @@ class OsceController extends Controller
     public function index(): Response
     {
         $user = auth()->user();
-        
+
         // Get all active OSCE cases
         $cases = OsceCase::where('is_active', true)
             ->orderBy('created_at', 'desc')
             ->get();
-        
+
         // Get user's recent sessions
         $userSessions = OsceSession::with('osceCase')
             ->where('user_id', $user->id)
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get();
-        
+
         return Inertia::render('Osce', [
             'cases' => $cases,
             'userSessions' => $userSessions,
-            'user' => $user
+            'user' => $user,
         ]);
     }
 
-    public function showChat(OsceSession $session): Response
+    public function showChat(OsceSession $session): Response|RedirectResponse
     {
         $user = auth()->user();
-        
+
         // Ensure the session belongs to the authenticated user
         if ($session->user_id !== $user->id) {
             abort(403, 'Unauthorized access to session');
         }
-        
+
         // Load the session with case information and related data
         $session->load(['osceCase', 'orderedTests', 'examinations']);
 
         // Auto-complete if expired before rendering and prevent reopening
         if ($session->time_status === 'expired') {
             $session->markAsCompleted();
+
             // Redirect back to OSCE list; do not allow returning to an ended session
             return redirect()->route('osce');
         }
-        if (!$session->isActive() && $session->status === 'completed') {
+        if (! $session->isActive() && $session->status === 'completed') {
             return redirect()->route('osce');
         }
-        
+
         // Prepare session data (legacy arrays removed in new system)
         $sessionData = [
             'lab_results' => $session->getLabResults(),
             'procedure_results' => $session->getProcedureResults(),
             'examination_findings' => $session->getPhysicalExamFindings(),
         ];
-        
+
         // Load exam catalog directly for now
         $examCatalog = [
             'general' => ['inspection', 'palpation'],
@@ -73,14 +76,14 @@ class OsceController extends Controller
             'neurological' => ['mental_status', 'cranial_nerves', 'motor', 'sensory', 'reflexes', 'gait'],
             'musculoskeletal' => ['inspection', 'palpation', 'range_of_motion'],
             'skin' => ['inspection'],
-            'heent' => ['inspection']
+            'heent' => ['inspection'],
         ];
-        
+
         return Inertia::render('OsceChat', [
             'session' => $session,
             'user' => $user,
             'sessionData' => $sessionData,
-            'examCatalog' => $examCatalog
+            'examCatalog' => $examCatalog,
         ]);
     }
 
@@ -89,40 +92,40 @@ class OsceController extends Controller
         $cases = OsceCase::where('is_active', true)
             ->orderBy('created_at', 'desc')
             ->get();
-            
+
         return response()->json($cases);
     }
 
     public function getUserSessions()
     {
         $user = auth()->user();
-        
+
         $sessions = OsceSession::with('osceCase')
             ->where('user_id', $user->id)
             ->orderBy('created_at', 'desc')
             ->get();
-            
+
         return response()->json($sessions);
     }
 
     public function startSession(Request $request)
     {
         $request->validate([
-            'osce_case_id' => 'required|exists:osce_cases,id'
+            'osce_case_id' => 'required|exists:osce_cases,id',
         ]);
 
         $user = auth()->user();
-        
+
         // Check if user already has an active session for this case
         $existingSession = OsceSession::where('user_id', $user->id)
             ->where('osce_case_id', $request->osce_case_id)
             ->where('status', 'in_progress')
             ->first();
-            
+
         if ($existingSession) {
             return response()->json([
                 'message' => 'You already have an active session for this case',
-                'session' => $existingSession
+                'session' => $existingSession,
             ], 400);
         }
 
@@ -132,7 +135,7 @@ class OsceController extends Controller
             'osce_case_id' => $request->osce_case_id,
             'status' => 'pending',
         ]);
-        
+
         // Now set started_at and update to in_progress atomically
         $session->started_at = now();
         $session->status = 'in_progress';
@@ -140,7 +143,7 @@ class OsceController extends Controller
 
         return response()->json([
             'message' => 'Session started successfully',
-            'session' => $session->load('osceCase')
+            'session' => $session->load('osceCase'),
         ]);
     }
 
@@ -162,7 +165,7 @@ class OsceController extends Controller
         $session = $session->fresh();
 
         // Defensive: ensure started_at is set for in-progress sessions (legacy rows)
-        if ($session->status === 'in_progress' && !$session->started_at) {
+        if ($session->status === 'in_progress' && ! $session->started_at) {
             // Backfill from created_at to prevent full reset on refresh
             $session->started_at = $session->created_at ?? now();
             $session->save();
@@ -184,7 +187,7 @@ class OsceController extends Controller
             'remaining_seconds' => $session->remaining_seconds,
             'duration_minutes' => $session->duration_minutes,
             'status' => $session->status,
-            'time_status' => $session->time_status
+            'time_status' => $session->time_status,
         ]);
 
         $response = [
@@ -219,7 +222,46 @@ class OsceController extends Controller
 
         return response()->json([
             'message' => 'Session marked as completed',
-            'session' => $session->fresh()->load('osceCase')
+            'session' => $session->fresh()->load('osceCase'),
+        ]);
+    }
+
+    /**
+     * Show session results with rationalization gating
+     */
+    public function showResults(OsceSession $session, RationalizationService $rationalizationService)
+    {
+        $user = auth()->user();
+        if ($session->user_id !== $user->id) {
+            abort(403, 'Unauthorized access to session');
+        }
+
+        // Session must be completed
+        if ($session->status !== 'completed') {
+            return redirect()->route('osce.chat', $session)
+                ->withErrors(['error' => 'Session must be completed first']);
+        }
+
+        // Check if rationalization is required and completed
+        if (! $rationalizationService->canUnlockResults($session)) {
+            // Redirect to rationalization interface
+            return redirect()->route('rationalization.show', $session)
+                ->with('message', 'Complete the rationalization review to view your results.');
+        }
+
+        // Load all session data for results display
+        $session->load([
+            'osceCase',
+            'orderedTests',
+            'examinations',
+            'rationalization.cards',
+            'rationalization.diagnosisEntries',
+            'rationalization.evaluations',
+        ]);
+
+        return Inertia::render('OsceResults', [
+            'session' => $session,
+            'user' => $user,
         ]);
     }
 
@@ -231,7 +273,7 @@ class OsceController extends Controller
             'orders' => 'required|array|min:1',
             'orders.*.medical_test_id' => 'required|integer',
             'orders.*.clinical_reasoning' => 'required|string|min:20|max:500',
-            'orders.*.priority' => 'required|in:immediate,urgent,routine'
+            'orders.*.priority' => 'required|in:immediate,urgent,routine',
         ]);
 
         try {
@@ -240,10 +282,11 @@ class OsceController extends Controller
                 ->where('user_id', auth()->id())
                 ->firstOrFail();
 
-            if (!$session->isActive()) {
+            if (! $session->isActive()) {
                 if ($session->is_expired) {
                     $session->markAsCompleted();
                 }
+
                 return response()->json(['error' => 'Session is not active', 'time_status' => $session->time_status], 400);
             }
 
@@ -261,7 +304,7 @@ class OsceController extends Controller
                 }
 
                 $availableSettings = $test->available_settings ?? [];
-                if (!in_array('all', $availableSettings) && !in_array($session->osceCase->clinical_setting ?? 'emergency', $availableSettings)) {
+                if (! in_array('all', $availableSettings) && ! in_array($session->osceCase->clinical_setting ?? 'emergency', $availableSettings)) {
                     // Graceful no-data response for unavailable tests
                     $orderedTests[] = new \App\Models\SessionOrderedTest([
                         'osce_session_id' => $session->id,
@@ -275,9 +318,10 @@ class OsceController extends Controller
                         'results_available_at' => now(),
                         'results' => [
                             'status' => 'no_data',
-                            'message' => $test->name . ' is not available in this setting'
+                            'message' => $test->name.' is not available in this setting',
                         ],
                     ]);
+
                     continue;
                 }
 
@@ -311,7 +355,7 @@ class OsceController extends Controller
                 'ordered_tests' => $orderedTests,
                 'total_cost' => $totalCost,
                 'evaluation' => $evaluation,
-                'session' => $session->fresh()
+                'session' => $session->fresh(),
             ]);
 
         } catch (\Exception $e) {
@@ -341,31 +385,31 @@ class OsceController extends Controller
 
             if (in_array($testName, $highlyAppropriate, true)) {
                 $score += 3;
-                $feedback[] = 'Excellent: ' . $testName . ' is highly appropriate for this presentation.';
+                $feedback[] = 'Excellent: '.$testName.' is highly appropriate for this presentation.';
                 if ($this->validateReasoning($reasoning, $testName)) {
                     $score += 1;
-                    $feedback[] = 'Strong clinical reasoning for ' . $testName . '.';
+                    $feedback[] = 'Strong clinical reasoning for '.$testName.'.';
                 }
             } elseif (in_array($testName, $appropriate, true)) {
                 $score += 1;
-                $feedback[] = 'Good choice: ' . $testName . ' is appropriate.';
+                $feedback[] = 'Good choice: '.$testName.' is appropriate.';
             } elseif (in_array($testName, $acceptable, true)) {
-                $feedback[] = 'Acceptable: ' . $testName . ' is reasonable but may not be essential.';
+                $feedback[] = 'Acceptable: '.$testName.' is reasonable but may not be essential.';
             } elseif (in_array($testName, $inappropriate, true)) {
                 $score -= 2;
-                $feedback[] = 'Consider: ' . $testName . ' may not be necessary for this presentation.';
+                $feedback[] = 'Consider: '.$testName.' may not be necessary for this presentation.';
             } elseif (in_array($testName, $contraindicated, true)) {
                 $score -= 5;
-                $feedback[] = 'Warning: ' . $testName . ' could be harmful or contraindicated in this situation!';
+                $feedback[] = 'Warning: '.$testName.' could be harmful or contraindicated in this situation!';
             }
 
             if ($cost > 500) {
-                $feedback[] = 'Cost consideration: ' . $testName . ' is expensive ($' . number_format($cost, 2) . '). Ensure it\'s justified.';
+                $feedback[] = 'Cost consideration: '.$testName.' is expensive ($'.number_format($cost, 2).'). Ensure it\'s justified.';
             }
 
             $testModel = \App\Models\MedicalTest::where('name', $testName)->first();
             if ($testModel && (int) $testModel->risk_level > 3) {
-                $feedback[] = 'Risk: ' . $testName . ' is a high-risk procedure. Ensure benefits outweigh risks.';
+                $feedback[] = 'Risk: '.$testName.' is a high-risk procedure. Ensure benefits outweigh risks.';
             }
         }
 
@@ -373,13 +417,13 @@ class OsceController extends Controller
         $missedRequired = array_values(array_diff($required, $orderedTestNames));
         foreach ($missedRequired as $missedTest) {
             $score -= 3;
-            $feedback[] = 'Critical miss: ' . $missedTest . ' is essential for this case.';
+            $feedback[] = 'Critical miss: '.$missedTest.' is essential for this case.';
         }
 
         $budgetLimit = $case->case_budget ?? 1000;
         if ($totalCost > (float) $budgetLimit) {
             $score -= 2;
-            $feedback[] = 'Budget exceeded: Total cost $' . number_format($totalCost, 2) . ' exceeds recommended limit of $' . number_format((float) $budgetLimit, 2) . '.';
+            $feedback[] = 'Budget exceeded: Total cost $'.number_format($totalCost, 2).' exceeds recommended limit of $'.number_format((float) $budgetLimit, 2).'.';
         }
 
         return [
@@ -395,7 +439,7 @@ class OsceController extends Controller
     {
         $qualityIndicators = [
             'rule out', 'differential', 'diagnos', 'assess', 'monitor',
-            'because', 'suspect', 'evaluate', 'screen', 'confirm'
+            'because', 'suspect', 'evaluate', 'screen', 'confirm',
         ];
         $reasoningLower = strtolower($reasoning);
         $score = 0;
@@ -404,6 +448,7 @@ class OsceController extends Controller
                 $score++;
             }
         }
+
         return $score >= 2 && strlen($reasoning) >= 25;
     }
 
@@ -414,7 +459,7 @@ class OsceController extends Controller
     {
         $request->validate([
             'session_id' => 'required|exists:osce_sessions,id',
-            'procedure_name' => 'required|string'
+            'procedure_name' => 'required|string',
         ]);
 
         try {
@@ -424,10 +469,11 @@ class OsceController extends Controller
                 ->firstOrFail();
 
             // Check if session is active
-            if (!$session->isActive()) {
+            if (! $session->isActive()) {
                 if ($session->is_expired) {
                     $session->markAsCompleted();
                 }
+
                 return back()->withErrors(['error' => 'Session is not active']);
             }
 
@@ -452,7 +498,7 @@ class OsceController extends Controller
                 'test_type' => 'procedure',
                 'test_name' => $request->procedure_name,
                 'results' => $results,
-                'ordered_at' => now()
+                'ordered_at' => now(),
             ]);
 
             // Redirect back to chat with updated data
@@ -472,7 +518,7 @@ class OsceController extends Controller
             'session_id' => 'required|exists:osce_sessions,id',
             'examinations' => 'required|array',
             'examinations.*.category' => 'required|string',
-            'examinations.*.type' => 'required|string'
+            'examinations.*.type' => 'required|string',
         ]);
 
         try {
@@ -482,10 +528,11 @@ class OsceController extends Controller
                 ->firstOrFail();
 
             // Check if session is active
-            if (!$session->isActive()) {
+            if (! $session->isActive()) {
                 if ($session->is_expired) {
                     $session->markAsCompleted();
                 }
+
                 return back()->withErrors(['error' => 'Session is not active']);
             }
 
@@ -515,7 +562,7 @@ class OsceController extends Controller
                     'examination_category' => $category,
                     'examination_type' => $type,
                     'findings' => $findings,
-                    'performed_at' => now()
+                    'performed_at' => now(),
                 ]);
 
                 $createdCount++;
@@ -540,13 +587,14 @@ class OsceController extends Controller
             abort(403, 'Unauthorized access to session');
         }
         $data = $request->validate([
-            'minutes' => 'required|integer|min:1|max:180'
+            'minutes' => 'required|integer|min:1|max:180',
         ]);
         $session->time_extended = (int) ($session->time_extended ?? 0) + (int) $data['minutes'];
         $session->save();
+
         return response()->json([
             'message' => 'Session extended',
-            'session' => $session->fresh()->load('osceCase')
+            'session' => $session->fresh()->load('osceCase'),
         ]);
     }
 
@@ -555,20 +603,21 @@ class OsceController extends Controller
         // Optional policy check; comment if not using policies
         // $this->authorize('update', $case);
         $data = $request->validate([
-            'duration_minutes' => 'required|integer|min:1|max:240'
+            'duration_minutes' => 'required|integer|min:1|max:240',
         ]);
         $case->duration_minutes = (int) $data['duration_minutes'];
         $case->save();
+
         return response()->json([
             'message' => 'Case duration updated',
-            'case' => $case
+            'case' => $case,
         ]);
     }
 
     public function refreshTestResults(OsceSession $session)
     {
         $user = auth()->user();
-        
+
         // Ensure the session belongs to the authenticated user
         if ($session->user_id !== $user->id) {
             abort(403, 'Unauthorized access to session');
@@ -583,7 +632,7 @@ class OsceController extends Controller
         return response()->json([
             'message' => 'Test results refreshed',
             'session' => $session,
-            'ordered_tests' => $session->orderedTests
+            'ordered_tests' => $session->orderedTests,
         ]);
     }
 }

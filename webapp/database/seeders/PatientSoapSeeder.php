@@ -2,12 +2,12 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Patient;
-use App\Models\SoapNote;
 use App\Models\SoapComment;
+use App\Models\SoapNote;
 use App\Models\User;
 use Faker\Factory as Faker;
+use Illuminate\Database\Seeder;
 
 class PatientSoapSeeder extends Seeder
 {
@@ -21,7 +21,7 @@ class PatientSoapSeeder extends Seeder
         $faker = Faker::create('id_ID');
         $user = User::first();
 
-        if (!$user) {
+        if (! $user) {
             $user = User::factory()->create();
         }
 

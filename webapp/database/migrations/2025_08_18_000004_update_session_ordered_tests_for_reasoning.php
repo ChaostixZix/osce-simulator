@@ -28,10 +28,9 @@ return new class extends Migration
                     $toDrop[] = $col;
                 }
             }
-            if (!empty($toDrop)) {
+            if (! empty($toDrop)) {
                 $table->dropColumn($toDrop);
             }
         });
     }
 };
-

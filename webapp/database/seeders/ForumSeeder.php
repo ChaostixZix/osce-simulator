@@ -2,10 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use App\Models\Post;
 use App\Models\Comment;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\Post;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class ForumSeeder extends Seeder
@@ -17,7 +16,7 @@ class ForumSeeder extends Seeder
     {
         // Create a test user if none exists
         $user = User::first();
-        if (!$user) {
+        if (! $user) {
             $user = User::create([
                 'name' => 'Test User',
                 'email' => 'test@example.com',

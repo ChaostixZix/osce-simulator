@@ -36,7 +36,7 @@ class SoapBoardController extends Controller
                     $query->leftJoinSub($latestNotes, 'latest_notes', function ($join) {
                         $join->on('patients.id', '=', 'latest_notes.patient_id');
                     })
-                    ->orderByDesc('last_note_at');
+                        ->orderByDesc('last_note_at');
                 }
             }, function ($query) {
                 // Default sort

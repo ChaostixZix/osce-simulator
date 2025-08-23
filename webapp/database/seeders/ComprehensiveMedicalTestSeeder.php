@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\MedicalTest;
+use Illuminate\Database\Seeder;
 
 class ComprehensiveMedicalTestSeeder extends Seeder
 {
@@ -97,7 +97,7 @@ class ComprehensiveMedicalTestSeeder extends Seeder
                 'description' => 'Reveals inflammatory activity in the body.',
                 'cost' => 20.00,
                 'turnaround_minutes' => 60,
-            ]
+            ],
         ];
 
         foreach ($tests as $test) {

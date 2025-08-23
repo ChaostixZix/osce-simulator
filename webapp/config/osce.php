@@ -14,24 +14,24 @@ return [
     'exam_catalog' => [
         'general' => [
             'inspection',
-            'palpation'
+            'palpation',
         ],
         'cardiovascular' => [
             'inspection',
             'palpation',
-            'auscultation'
+            'auscultation',
         ],
         'respiratory' => [
             'inspection',
             'palpation',
             'percussion',
-            'auscultation'
+            'auscultation',
         ],
         'abdomen' => [
             'inspection',
             'palpation',
             'percussion',
-            'auscultation'
+            'auscultation',
         ],
         'neurological' => [
             'mental_status',
@@ -39,18 +39,18 @@ return [
             'motor',
             'sensory',
             'reflexes',
-            'gait'
+            'gait',
         ],
         'musculoskeletal' => [
             'inspection',
             'palpation',
-            'range_of_motion'
+            'range_of_motion',
         ],
         'skin' => [
-            'inspection'
+            'inspection',
         ],
         'heent' => [
-            'inspection'
-        ]
-    ]
+            'inspection',
+        ],
+    ],
 ];

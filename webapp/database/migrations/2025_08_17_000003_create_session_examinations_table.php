@@ -19,7 +19,7 @@ return new class extends Migration
             $table->json('findings'); // The examination findings from the template
             $table->timestamp('performed_at');
             $table->timestamps();
-            
+
             // Indexes for better performance
             $table->index(['osce_session_id', 'performed_at']);
             $table->index(['examination_category', 'examination_type']);
