@@ -221,7 +221,7 @@ class RationalizationEvaluationService
     }
 
     /**
-     * Evaluate investigation card
+     * Evaluate investigation card with complete clinical context
      */
     private function evaluateInvestigationCard(AnamnesisRationalizationCard $card, OsceSessionRationalization $rationalization): array
     {
@@ -231,14 +231,35 @@ class RationalizationEvaluationService
         // Find the actual test order for context
         $orderedTest = $session->orderedTests()->where('test_name', $card->question_text)->first();
 
-        $systemPrompt = $this->buildInvestigationSystemPrompt($card, $osceCase, $orderedTest);
+        // Get all ordered tests for complete context
+        $allOrderedTests = $session->orderedTests;
+        $testNames = $allOrderedTests->pluck('test_name')->toArray();
+
+        Log::info('Evaluating investigation card with context', [
+            'card_id' => $card->id,
+            'test_name' => $card->question_text,
+            'all_ordered_tests' => $testNames,
+            'total_tests' => count($testNames)
+        ]);
+
+        $systemPrompt = $this->buildInvestigationSystemPromptWithContext($card, $osceCase, $orderedTest, $testNames);
         $context = $this->buildContextString($rationalization);
 
-        return $this->geminiService->evaluateWithGrounding(
+        $result = $this->geminiService->evaluateWithGrounding(
             $systemPrompt,
             $card->user_rationale,
             $context
         );
+
+        Log::info('Investigation evaluation completed', [
+            'card_id' => $card->id,
+            'test_name' => $card->question_text,
+            'verdict' => $result['evaluation']['verdict'] ?? 'unknown',
+            'has_citations' => !empty($result['evaluation']['citations']),
+            'citation_count' => count($result['evaluation']['citations'] ?? [])
+        ]);
+
+        return $result;
     }
 
     /**
@@ -290,7 +311,33 @@ class RationalizationEvaluationService
     }
 
     /**
-     * Build system prompt for investigation evaluation
+     * Build system prompt for investigation evaluation with complete context
+     */
+    private function buildInvestigationSystemPromptWithContext(AnamnesisRationalizationCard $card, $osceCase, $orderedTest = null, array $allOrderedTests = []): string
+    {
+        $caseTitle = $osceCase->title;
+        $testName = $card->question_text;
+        $costInfo = $orderedTest ? ' (Cost: $'.number_format($orderedTest->cost, 2).')' : '';
+
+        // Build context of all tests ordered
+        $allTestsContext = '';
+        if (!empty($allOrderedTests)) {
+            $allTestsContext = ' The student ordered the following complete set of investigations: ' . implode(', ', $allOrderedTests) . '. ';
+            $allTestsContext .= 'Consider how this specific test fits into the overall diagnostic strategy rather than evaluating it in isolation.';
+        }
+
+        return "Evaluate the clinical reasoning for ordering '{$testName}'{$costInfo} in case: '{$caseTitle}'. ".
+               $allTestsContext .
+               'Assess appropriateness vs pretest probability, evidence-based indications, cost-effectiveness, '.
+               'timing and sequencing, potential harms/risks, and contribution to diagnosis/management. '.
+               'Consider current medical guidelines, risk-benefit analysis, and resource utilization. '.
+               'IMPORTANT: If this test was already covered by another investigation ordered, or if the overall test strategy '.
+               'adequately addresses this clinical question, do not criticize it as redundant. '.
+               'Provide evidence-based feedback with authoritative medical sources.';
+    }
+
+    /**
+     * Build system prompt for investigation evaluation (legacy method)
      */
     private function buildInvestigationSystemPrompt(AnamnesisRationalizationCard $card, $osceCase, $orderedTest = null): string
     {

@@ -1500,33 +1500,30 @@ PROMPT;
         return ! empty($this->apiKey);
     }
 
-}
-
-
     private function categorizeQuestionType(string $text): string
     {
         $text = strtolower($text);
-        
+
         if (preg_match('/\b(what|how|when|where|which|why)\b/', $text)) {
             return 'Open-ended';
         }
-        
+
         if (preg_match('/\b(is|are|do|does|did|can|could|would|will|have|has)\b.*\?/', $text)) {
             return 'Closed-ended';
         }
-        
+
         if (preg_match('/\b(tell me|describe|explain|can you)\b/', $text)) {
             return 'Exploratory';
         }
-        
+
         if (preg_match('/\b(pain|hurt|feel|symptom|problem|issue)\b/', $text)) {
             return 'Symptom-focused';
         }
-        
+
         if (preg_match('/\b(history|family|medication|allergy|smoke|drink)\b/', $text)) {
             return 'History-taking';
         }
-        
+
         return 'General';
     }
 }
