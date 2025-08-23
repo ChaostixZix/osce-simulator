@@ -29,19 +29,40 @@ class AiAssessorService
 
         // Check if AI is configured
         if (!$this->isConfigured()) {
-            // AI not available - return without assessment
-            $session->update([
-                'score' => null,
-                'max_score' => null,
-                'assessor_payload' => null,
-                'assessor_output' => [
-                    'error' => 'AI is not available right now and no scoring done',
-                    'message' => 'Assessment requires AI functionality which is currently unavailable. Please try again later.',
-                    'status' => 'ai_unavailable',
+            // Fallback: compute rubric-based scores locally when AI is unavailable
+            $session->load(['osceCase', 'chatMessages', 'orderedTests.medicalTest', 'examinations']);
+            $artifact = $this->buildArtifact($session);
+            $config = config('osce_scoring');
+            $computed = $this->computeScores($session, $config);
+            $totalScore = array_sum(array_column($computed, 'score'));
+            $maxScore = array_sum(array_column($computed, 'max'));
+
+            $fallbackOutput = [
+                'assessment_type' => 'session_assessment',
+                'strengths' => [],
+                'areas_for_improvement' => [],
+                'clinical_reasoning_analysis' => 'AI unavailable. This is a rubric-based fallback summary computed locally from available actions.',
+                'safety_concerns' => [],
+                'overall_feedback' => 'AI unavailable. Baseline rubric applied using configured criteria and available session data.',
+                'score_justification' => 'Scores computed locally via configured rubric. No AI narrative available.',
+                'recommendations' => [],
+                'model_info' => [
+                    'name' => 'fallback-local-rubric',
+                    'temperature' => 0,
+                    'assessment_approach' => 'rubric_fallback'
                 ],
+                'criteria' => $computed,
+                'artifact_preview' => [ 'session_id' => $artifact['session_id'] ?? null ],
+            ];
+
+            $session->update([
+                'score' => $totalScore,
+                'max_score' => $maxScore,
+                'assessor_payload' => $artifact,
+                'assessor_output' => $fallbackOutput,
                 'assessed_at' => now(),
                 'assessor_model' => 'unavailable',
-                'rubric_version' => null,
+                'rubric_version' => $config['rubric_version'] ?? null,
             ]);
 
             return $session;
@@ -71,15 +92,38 @@ class AiAssessorService
         $assessorOutput = $this->getAiSessionAssessment($artifact, $session);
 
         if (isset($assessorOutput['error'])) {
-            // AI assessment failed - return error state
+            // Fallback if AI returned error
+            $config = config('osce_scoring');
+            $computed = $this->computeScores($session, $config);
+            $totalScore = array_sum(array_column($computed, 'score'));
+            $maxScore = array_sum(array_column($computed, 'max'));
+
+            $fallbackOutput = [
+                'assessment_type' => 'session_assessment',
+                'strengths' => [],
+                'areas_for_improvement' => [],
+                'clinical_reasoning_analysis' => 'AI error. This is a rubric-based fallback summary computed locally.',
+                'safety_concerns' => [],
+                'overall_feedback' => 'AI error. Baseline rubric applied using configured criteria and available session data.',
+                'score_justification' => 'Scores computed locally via configured rubric. No AI narrative available.',
+                'recommendations' => [],
+                'model_info' => [
+                    'name' => $this->model,
+                    'temperature' => 0,
+                    'assessment_approach' => 'rubric_fallback'
+                ],
+                'criteria' => $computed,
+                'ai_error' => $assessorOutput,
+            ];
+
             $session->update([
-                'score' => null,
-                'max_score' => null,
+                'score' => $totalScore,
+                'max_score' => $maxScore,
                 'assessor_payload' => $artifact,
-                'assessor_output' => $assessorOutput,
+                'assessor_output' => $fallbackOutput,
                 'assessed_at' => now(),
                 'assessor_model' => $this->model,
-                'rubric_version' => null, // No rubric dependency
+                'rubric_version' => $config['rubric_version'] ?? null,
             ]);
 
             return $session;
@@ -920,10 +964,15 @@ INVESTIGATIONS (0-20 points): Analyze detailed_analysis.tests data
 - Reference specific test orders with costs and timing
 - Example scoring: 0-8 = poor test selection, 9-12 = adequate, 13-16 = good, 17-20 = excellent
 
-CLINICAL REASONING & DIAGNOSIS (0-20 points): Analyze overall clinical reasoning from transcript and actions
-- Score based on: logical thinking, differential diagnosis consideration, integration of findings, diagnostic accuracy
-- Use conversation flow and clinical decision patterns
-- Example scoring: 0-8 = no reasoning, 9-12 = basic, 13-16 = good, 17-20 = excellent
+CLINICAL REASONING (0-10 points): Analyze reasoning quality from transcript and actions
+- Score based on: hypothesis generation, prioritization, integration of cues, justification of actions
+- Use conversation flow, ordered tests rationale, and decision patterns for evidence
+- Example scoring: 0-3 = minimal/no reasoning, 4-6 = basic, 7-8 = good, 9-10 = excellent
+
+DIAGNOSIS (0-10 points): Analyze diagnostic thinking and accuracy
+- Score based on: accurate working diagnosis, appropriate differentials, use of evidence for confirmation/exclusion
+- Use transcript and investigations/exam findings for evidence
+- Example scoring: 0-3 = inaccurate/unsafe, 4-6 = partially correct, 7-8 = good, 9-10 = excellent
 
 MANAGEMENT PLAN (0-15 points): Analyze management discussion in transcript and clinical actions
 - Score based on: appropriate treatment plans, safety considerations, follow-up, therapeutic reasoning
@@ -979,12 +1028,22 @@ Return JSON matching this exact schema:
       "areas_for_improvement": string[]
     },
     {
-      "area": "Clinical Reasoning & Diagnosis",
+      "area": "Clinical Reasoning",
+      "key": "clinical_reasoning",
+      "score": number, // 0-10 - YOU MUST ASSIGN BASED ON EVIDENCE  
+      "max_score": 10,
+      "justification": string, // COMPREHENSIVE analysis of reasoning process with specific evidence
+      "citations": string[], // Refs to reasoning patterns in messages and actions
+      "strengths": string[],
+      "areas_for_improvement": string[]
+    },
+    {
+      "area": "Diagnosis",
       "key": "diagnosis",
-      "score": number, // 0-20 - YOU MUST ASSIGN BASED ON EVIDENCE  
-      "max_score": 20,
-      "justification": string, // COMPREHENSIVE analysis of reasoning process and diagnostic thinking
-      "citations": string[], // Refs to reasoning patterns in messages
+      "score": number, // 0-10 - YOU MUST ASSIGN BASED ON EVIDENCE  
+      "max_score": 10,
+      "justification": string, // COMPREHENSIVE analysis of diagnostic thinking and accuracy
+      "citations": string[], // Refs to key evidence used to confirm/deny diagnoses
       "strengths": string[],
       "areas_for_improvement": string[]
     },
@@ -1441,5 +1500,34 @@ PROMPT;
         return ! empty($this->apiKey);
     }
 
+}
+
+
+    private function categorizeQuestionType(string $text): string
+    {
+        $text = strtolower($text);
+        
+        if (preg_match('/\b(what|how|when|where|which|why)\b/', $text)) {
+            return 'Open-ended';
+        }
+        
+        if (preg_match('/\b(is|are|do|does|did|can|could|would|will|have|has)\b.*\?/', $text)) {
+            return 'Closed-ended';
+        }
+        
+        if (preg_match('/\b(tell me|describe|explain|can you)\b/', $text)) {
+            return 'Exploratory';
+        }
+        
+        if (preg_match('/\b(pain|hurt|feel|symptom|problem|issue)\b/', $text)) {
+            return 'Symptom-focused';
+        }
+        
+        if (preg_match('/\b(history|family|medication|allergy|smoke|drink)\b/', $text)) {
+            return 'History-taking';
+        }
+        
+        return 'General';
+    }
 }
 

@@ -49,6 +49,7 @@ class OsceSession extends Model
     protected $casts = [
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
+        'rationalization_completed_at' => 'datetime',
         'assessed_at' => 'datetime',
         'time_extended' => 'integer',
         'responses' => 'array',
@@ -279,5 +280,18 @@ class OsceSession extends Model
         if ($this->is_expired && $this->status === 'in_progress') {
             $this->markAsCompleted();
         }
+    }
+
+    /**
+     * Single source of truth for "rationalization complete" gating.
+     *
+     * In this project, the OSCE rationalization step is considered complete
+     * when the session itself has been completed (status === 'completed').
+     * This accessor is used by controllers/middleware to guard access to
+     * viewing assessment results and any subsequent scoring views.
+     */
+    public function getIsRationalizationCompleteAttribute(): bool
+    {
+        return (bool) $this->rationalization_completed_at;
     }
 }
