@@ -221,7 +221,10 @@ const isRubricAssessment = computed(() => {
 const clinicalReasoningArea = computed(() => {
     if (!isDetailedAreasAssessment.value) return null;
     const areas = props.assessment?.output?.clinical_areas || [];
-    return areas.find((a: any) => a.key === 'diagnosis' || /reason/i.test(a.area));
+    return (
+        areas.find((a: any) => a.key === 'clinical_reasoning') ||
+        areas.find((a: any) => a.key === 'diagnosis' || /reason/i.test(a.area))
+    );
 });
 
 const handleReassess = async () => {
@@ -606,12 +609,17 @@ const criteriaLabels: Record<string, string> = {
                 <div v-if="isAssessed && assessment" class="space-y-6">
                     <!-- Overall Score Card -->
                     <Card>
-                        <CardHeader>
-                            <CardTitle class="flex items-center space-x-2">
-                                <Award class="h-5 w-5" />
-                                <span>Overall Performance</span>
-                            </CardTitle>
-                        </CardHeader>
+<CardHeader>
+    <CardTitle class="flex items-center space-x-2">
+        <Award class="h-5 w-5" />
+        <span>Overall Performance</span>
+    </CardTitle>
+    <div class="ml-auto">
+        <Button variant="outline" size="sm" @click="() => document.getElementById('clinical-reasoning')?.scrollIntoView({ behavior: 'smooth' })">
+            Go to Clinical Reasoning
+        </Button>
+    </div>
+</CardHeader>
                         <CardContent>
                             <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                                 <div class="text-center">
@@ -724,7 +732,7 @@ const criteriaLabels: Record<string, string> = {
                 </Card>
 
                 <!-- Clinical Reasoning (Dedicated Section) -->
-                <Card v-if="isDetailedAreasAssessment && clinicalReasoningArea">
+                <Card v-if="isDetailedAreasAssessment && clinicalReasoningArea" id="clinical-reasoning">
                     <CardHeader>
                         <CardTitle class="flex items-center space-x-2">
                             <Zap class="h-5 w-5" />
