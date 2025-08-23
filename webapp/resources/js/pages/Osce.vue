@@ -46,6 +46,7 @@ interface OsceSession {
     status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
     started_at: string | null;
     completed_at: string | null;
+    rationalization_completed_at?: string | null;
     score: number | null;
     max_score: number | null;
     responses: any;
@@ -203,10 +204,27 @@ const getStatusIcon = (status: string) => {
 };
 
 // Guard: can this session be continued from the dashboard?
-const canContinue = (s: OsceSession) => {
-    const seconds = s.remaining_seconds ?? 0;
-    const timeOk = seconds > 0 && s.time_status !== 'expired';
-    return s.status === 'in_progress' && timeOk;
+const canContinue = (s: OsceSession) => s.status === 'in_progress' && s.time_status !== 'expired';
+
+// Derive server-truth flags with safe fallbacks for live updates
+const canViewResults = (s: OsceSession) => {
+    // Prefer server-provided boolean if present
+    const provided = (s as any).canViewResults as boolean | undefined;
+    if (typeof provided === 'boolean') return provided;
+    // Fallback: allow when rationalization completed
+    return !!s.rationalization_completed_at;
+};
+
+const canProceedToScoring = (s: OsceSession) => {
+    const provided = (s as any).canProceedToScoring as boolean | undefined;
+    if (typeof provided === 'boolean') return provided;
+    return canViewResults(s);
+};
+
+const canRationalize = (s: OsceSession) => {
+    const provided = (s as any).canRationalize as boolean | undefined;
+    if (typeof provided === 'boolean') return provided;
+    return s.status === 'completed' && !canViewResults(s);
 };
 
 const isStartingSession = ref<number | null>(null);
@@ -407,31 +425,39 @@ onBeforeUnmount(() => {
                                         <span v-else class="text-gray-500">-</span>
                                     </TableCell>
                                     <TableCell>
-                                        <Button
-                                            v-if="canContinue(session)"
-                                            variant="outline"
-                                            size="sm"
-                                            @click="router.visit(`/osce/chat/${session.id}`)"
-                                        >
-                                            Continue
-                                        </Button>
-                                        <Button
-                                            v-else-if="session.status === 'in_progress' && (session.remaining_seconds ?? 0) <= 0"
-                                            variant="outline"
-                                            size="sm"
-                                            disabled
-                                        >
-                                            Time Up
-                                        </Button>
-                                        <Button 
-                                            v-else-if="session.status === 'completed'" 
-                                            variant="ghost" 
-                                            size="sm"
-                                            @click="router.visit(`/osce/results/${session.id}`)"
-                                        >
-                                            View Results
-                                        </Button>
-                                        <span v-else class="text-sm text-gray-500">-</span>
+                                        <div class="flex flex-col gap-1">
+                                            <div class="flex items-center gap-2">
+                                                <Button
+                                                    v-if="canContinue(session)"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    @click="router.visit(`/osce/chat/${session.id}`)"
+                                                >
+                                                    Continue
+                                                </Button>
+
+                                                <Button
+                                                    v-if="canRationalize(session)"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    @click="router.visit(`/osce/rationalization/${session.id}`)"
+                                                >
+                                                    Rasionalisasi
+                                                </Button>
+
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm"
+                                                    :disabled="!canViewResults(session)"
+                                                    @click="router.visit(`/osce/results/${session.id}`)"
+                                                >
+                                                    View Results
+                                                </Button>
+                                            </div>
+                                            <p v-if="!canViewResults(session) && session.status === 'completed'" class="text-xs text-muted-foreground">
+                                                Selesaikan rasionalisasi terlebih dahulu.
+                                            </p>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             </TableBody>

@@ -28,6 +28,9 @@ interface Session {
     completed_at?: string;
     duration_minutes: number;
     time_extended?: number;
+    clinical_reasoning_score?: number;
+    total_test_cost?: number;
+    evaluation_feedback?: string[];
     case: {
         id: number;
         title: string;
@@ -212,6 +215,16 @@ const isSessionAssessment = computed(() => {
 // Check if this is the legacy rubric format
 const isRubricAssessment = computed(() => {
     return props.assessment?.output?.criteria && Array.isArray(props.assessment.output.criteria);
+});
+
+// Extract the AI's "Clinical Reasoning" area when using detailed areas
+const clinicalReasoningArea = computed(() => {
+    if (!isDetailedAreasAssessment.value) return null;
+    const areas = props.assessment?.output?.clinical_areas || [];
+    return (
+        areas.find((a: any) => a.key === 'clinical_reasoning') ||
+        areas.find((a: any) => a.key === 'diagnosis' || /reason/i.test(a.area))
+    );
 });
 
 const handleReassess = async () => {
@@ -596,12 +609,17 @@ const criteriaLabels: Record<string, string> = {
                 <div v-if="isAssessed && assessment" class="space-y-6">
                     <!-- Overall Score Card -->
                     <Card>
-                        <CardHeader>
-                            <CardTitle class="flex items-center space-x-2">
-                                <Award class="h-5 w-5" />
-                                <span>Overall Performance</span>
-                            </CardTitle>
-                        </CardHeader>
+<CardHeader>
+    <CardTitle class="flex items-center space-x-2">
+        <Award class="h-5 w-5" />
+        <span>Overall Performance</span>
+    </CardTitle>
+    <div class="ml-auto">
+        <Button variant="outline" size="sm" @click="() => document.getElementById('clinical-reasoning')?.scrollIntoView({ behavior: 'smooth' })">
+            Go to Clinical Reasoning
+        </Button>
+    </div>
+</CardHeader>
                         <CardContent>
                             <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                                 <div class="text-center">
@@ -638,8 +656,8 @@ const criteriaLabels: Record<string, string> = {
                         </CardContent>
                     </Card>
 
-                    <!-- Detailed Clinical Areas Assessment -->
-                    <Card v-if="isDetailedAreasAssessment">
+                <!-- Detailed Clinical Areas Assessment -->
+                <Card v-if="isDetailedAreasAssessment">
                         <CardHeader>
                             <CardTitle class="flex items-center space-x-2">
                                 <FileText class="h-5 w-5" />
@@ -711,7 +729,51 @@ const criteriaLabels: Record<string, string> = {
                                 </div>
                             </div>
                         </CardContent>
-                    </Card>
+                </Card>
+
+                <!-- Clinical Reasoning (Dedicated Section) -->
+                <Card v-if="isDetailedAreasAssessment && clinicalReasoningArea" id="clinical-reasoning">
+                    <CardHeader>
+                        <CardTitle class="flex items-center space-x-2">
+                            <Zap class="h-5 w-5" />
+                            <span>Clinical Reasoning</span>
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div class="text-sm text-muted-foreground">AI Clinical Reasoning Score</div>
+                            <Badge :variant="getScoreBadgeVariant(clinicalReasoningArea.score, clinicalReasoningArea.max_score)">
+                                {{ clinicalReasoningArea.score }}/{{ clinicalReasoningArea.max_score }}
+                            </Badge>
+                        </div>
+
+                        <div>
+                            <h4 class="font-semibold mb-2">AI Commentary</h4>
+                            <div class="bg-muted p-3 rounded-md text-sm whitespace-pre-line">
+                                {{ clinicalReasoningArea.justification }}
+                            </div>
+                        </div>
+
+                        <div v-if="session?.clinical_reasoning_score || (session?.evaluation_feedback && session.evaluation_feedback.length)">
+                            <h4 class="font-semibold mb-2">Rationalization Contributions</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="text-center">
+                                    <div class="text-2xl font-bold">{{ session?.clinical_reasoning_score ?? 0 }}</div>
+                                    <div class="text-xs text-muted-foreground">Reasoning Score (orders)</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-2xl font-bold">{{ session?.total_test_cost ?? 0 }}</div>
+                                    <div class="text-xs text-muted-foreground">Total Test Cost</div>
+                                </div>
+                            </div>
+                            <div v-if="session?.evaluation_feedback && session.evaluation_feedback.length > 0" class="mt-3">
+                                <ul class="list-disc pl-5 text-sm space-y-1">
+                                    <li v-for="(f, idx) in session.evaluation_feedback" :key="idx">{{ f }}</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
 
                     <!-- Session-based Assessment -->
                     <Card v-else-if="isSessionAssessment">
