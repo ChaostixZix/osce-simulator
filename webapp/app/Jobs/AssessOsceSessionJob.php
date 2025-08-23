@@ -25,24 +25,26 @@ class AssessOsceSessionJob implements ShouldQueue
     public function handle(): void
     {
         $startTime = microtime(true);
-        
+
         try {
             $session = OsceSession::find($this->sessionId);
-            
-            if (!$session) {
+
+            if (! $session) {
                 Log::warning('AssessOsceSessionJob: Session not found', [
-                    'session_id' => $this->sessionId
+                    'session_id' => $this->sessionId,
                 ]);
+
                 return;
             }
 
             // Only assess completed or expired sessions
-            if ($session->status !== 'completed' && !$session->is_expired) {
+            if ($session->status !== 'completed' && ! $session->is_expired) {
                 Log::info('AssessOsceSessionJob: Session not ready for assessment', [
                     'session_id' => $this->sessionId,
                     'status' => $session->status,
-                    'is_expired' => $session->is_expired
+                    'is_expired' => $session->is_expired,
                 ]);
+
                 return;
             }
 
@@ -52,11 +54,12 @@ class AssessOsceSessionJob implements ShouldQueue
             }
 
             // Skip if already assessed unless forced
-            if ($session->assessed_at && !$this->force) {
+            if ($session->assessed_at && ! $this->force) {
                 Log::info('AssessOsceSessionJob: Session already assessed', [
                     'session_id' => $this->sessionId,
-                    'assessed_at' => $session->assessed_at->toISOString()
+                    'assessed_at' => $session->assessed_at->toISOString(),
                 ]);
+
                 return;
             }
 
@@ -64,28 +67,28 @@ class AssessOsceSessionJob implements ShouldQueue
             $assessorService->assess($session, $this->force);
 
             $duration = microtime(true) - $startTime;
-            
+
             Log::info('AssessOsceSessionJob: Assessment completed', [
                 'session_id' => $this->sessionId,
                 'duration_seconds' => round($duration, 2),
                 'score' => $session->fresh()->score,
-                'max_score' => $session->fresh()->max_score
+                'max_score' => $session->fresh()->max_score,
             ]);
 
         } catch (\Exception $e) {
             $duration = microtime(true) - $startTime;
-            
+
             Log::error('AssessOsceSessionJob: Assessment failed', [
                 'session_id' => $this->sessionId,
                 'duration_seconds' => round($duration, 2),
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            
+
             throw $e;
         }
     }
-    
+
     /**
      * Get the tags that should be assigned to the job.
      *
@@ -93,6 +96,6 @@ class AssessOsceSessionJob implements ShouldQueue
      */
     public function tags(): array
     {
-        return ['assessment', 'osce-session:' . $this->sessionId];
+        return ['assessment', 'osce-session:'.$this->sessionId];
     }
 }

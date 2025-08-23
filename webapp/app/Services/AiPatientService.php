@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 class AiPatientService
 {
     private string $apiKey;
+
     private string $baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
     public function __construct()
@@ -22,20 +23,20 @@ class AiPatientService
         try {
             $osceCase = $session->osceCase;
             $patientContext = $this->buildPatientContext($osceCase, $session, $chatHistory);
-            
+
             $prompt = $this->buildPrompt($userMessage, $patientContext, $chatHistory);
-            
+
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json',
-            ])->post($this->baseUrl . '?key=' . $this->apiKey, [
+            ])->post($this->baseUrl.'?key='.$this->apiKey, [
                 'contents' => [
                     [
                         'parts' => [
                             [
-                                'text' => $prompt
-                            ]
-                        ]
-                    ]
+                                'text' => $prompt,
+                            ],
+                        ],
+                    ],
                 ],
                 'generationConfig' => [
                     'temperature' => 0.7,
@@ -46,31 +47,32 @@ class AiPatientService
                 'safetySettings' => [
                     [
                         'category' => 'HARM_CATEGORY_HARASSMENT',
-                        'threshold' => 'BLOCK_MEDIUM_AND_ABOVE'
+                        'threshold' => 'BLOCK_MEDIUM_AND_ABOVE',
                     ],
                     [
                         'category' => 'HARM_CATEGORY_HATE_SPEECH',
-                        'threshold' => 'BLOCK_MEDIUM_AND_ABOVE'
+                        'threshold' => 'BLOCK_MEDIUM_AND_ABOVE',
                     ],
                     [
                         'category' => 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-                        'threshold' => 'BLOCK_MEDIUM_AND_ABOVE'
+                        'threshold' => 'BLOCK_MEDIUM_AND_ABOVE',
                     ],
                     [
                         'category' => 'HARM_CATEGORY_DANGEROUS_CONTENT',
-                        'threshold' => 'BLOCK_MEDIUM_AND_ABOVE'
-                    ]
-                ]
+                        'threshold' => 'BLOCK_MEDIUM_AND_ABOVE',
+                    ],
+                ],
             ]);
 
             if ($response->successful()) {
                 $data = $response->json();
+
                 return $data['candidates'][0]['content']['parts'][0]['text'] ?? 'I am not feeling well today.';
             }
 
             Log::error('Gemini API error', [
                 'status' => $response->status(),
-                'response' => $response->body()
+                'response' => $response->body(),
             ]);
 
             return $this->getFallbackResponse($userMessage, $patientContext);
@@ -78,7 +80,7 @@ class AiPatientService
         } catch (\Exception $e) {
             Log::error('AI Patient Service error', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return $this->getFallbackResponse($userMessage, $patientContext ?? []);
@@ -88,38 +90,38 @@ class AiPatientService
     private function buildPatientContext(OsceCase $osceCase, OsceSession $session, array $chatHistory): array
     {
         $context = $osceCase->getAiPatientContext();
-        
+
         // Add session-specific context
         $context['session_duration'] = $session->started_at ? now()->diffInMinutes($session->started_at) : 0;
         $context['chat_history_length'] = count($chatHistory);
-        
+
         return $context;
     }
 
     private function buildPrompt(string $userMessage, array $patientContext, array $chatHistory): string
     {
-        $prompt = "You are an AI patient in a medical OSCE (Objective Structured Clinical Examination) training session. ";
+        $prompt = 'You are an AI patient in a medical OSCE (Objective Structured Clinical Examination) training session. ';
         $prompt .= "Respond as the patient would in a realistic medical consultation.\n\n";
-        
+
         // Add patient profile and context
-        if (!empty($patientContext['profile'])) {
+        if (! empty($patientContext['profile'])) {
             $prompt .= "Patient Profile: {$patientContext['profile']}\n\n";
         }
-        
-        if (!empty($patientContext['symptoms'])) {
-            $prompt .= "Current Symptoms: " . implode(', ', $patientContext['symptoms']) . "\n\n";
+
+        if (! empty($patientContext['symptoms'])) {
+            $prompt .= 'Current Symptoms: '.implode(', ', $patientContext['symptoms'])."\n\n";
         }
-        
-        if (!empty($patientContext['vitals'])) {
-            $prompt .= "Vital Signs: " . json_encode($patientContext['vitals']) . "\n\n";
+
+        if (! empty($patientContext['vitals'])) {
+            $prompt .= 'Vital Signs: '.json_encode($patientContext['vitals'])."\n\n";
         }
-        
-        if (!empty($patientContext['instructions'])) {
+
+        if (! empty($patientContext['instructions'])) {
             $prompt .= "Behavioral Instructions: {$patientContext['instructions']}\n\n";
         }
-        
+
         // Add recent chat context (last 5 messages)
-        if (!empty($chatHistory)) {
+        if (! empty($chatHistory)) {
             $prompt .= "Recent Conversation:\n";
             $recentMessages = array_slice($chatHistory, -5);
             foreach ($recentMessages as $message) {
@@ -128,10 +130,10 @@ class AiPatientService
             }
             $prompt .= "\n";
         }
-        
+
         $prompt .= "Doctor's Question: {$userMessage}\n\n";
-        $prompt .= "Patient Response (be realistic, medical, and in character):";
-        
+        $prompt .= 'Patient Response (be realistic, medical, and in character):';
+
         return $prompt;
     }
 
@@ -158,6 +160,6 @@ class AiPatientService
 
     public function isConfigured(): bool
     {
-        return !empty($this->apiKey);
+        return ! empty($this->apiKey);
     }
 }

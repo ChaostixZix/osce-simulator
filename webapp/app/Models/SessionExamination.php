@@ -12,12 +12,12 @@ class SessionExamination extends Model
         'examination_category',
         'examination_type',
         'findings',
-        'performed_at'
+        'performed_at',
     ];
 
     protected $casts = [
         'findings' => 'array',
-        'performed_at' => 'datetime'
+        'performed_at' => 'datetime',
     ];
 
     public function osceSession(): BelongsTo
@@ -30,6 +30,7 @@ class SessionExamination extends Model
         if (is_array($this->findings)) {
             return implode(', ', $this->findings);
         }
+
         return $this->findings ?? '';
     }
 }

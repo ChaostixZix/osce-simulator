@@ -36,9 +36,7 @@ class ClinicalReasoningAnalyzer
             'required_ordered' => count($requiredOrdered),
             'required_total' => count($required),
             'appropriate_ordered' => count($appropriateOrdered),
-            'missed_critical' => array_values(array_diff($required, $ordered))
+            'missed_critical' => array_values(array_diff($required, $ordered)),
         ];
     }
 }
-
-

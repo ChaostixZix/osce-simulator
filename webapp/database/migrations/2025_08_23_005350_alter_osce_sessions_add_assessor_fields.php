@@ -17,12 +17,12 @@ return new class extends Migration
             $table->timestamp('assessed_at')->nullable();
             $table->string('assessor_model')->nullable();
             $table->string('rubric_version')->nullable();
-            
+
             // Ensure score and max_score exist (add if missing)
-            if (!Schema::hasColumn('osce_sessions', 'score')) {
+            if (! Schema::hasColumn('osce_sessions', 'score')) {
                 $table->integer('score')->nullable();
             }
-            if (!Schema::hasColumn('osce_sessions', 'max_score')) {
+            if (! Schema::hasColumn('osce_sessions', 'max_score')) {
                 $table->integer('max_score')->nullable();
             }
         });
@@ -39,7 +39,7 @@ return new class extends Migration
                 'assessor_output',
                 'assessed_at',
                 'assessor_model',
-                'rubric_version'
+                'rubric_version',
             ]);
         });
     }
