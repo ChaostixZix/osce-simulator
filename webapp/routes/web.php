@@ -51,7 +51,15 @@ Route::middleware([
 	// OSCE Assessment routes
 	Route::post('api/osce/sessions/{session}/assess', [OsceAssessmentController::class, 'assess'])->name('osce.assess');
 	Route::get('api/osce/sessions/{session}/results', [OsceAssessmentController::class, 'results'])->name('osce.results');
-	Route::get('osce/results/{session}', [OsceAssessmentController::class, 'show'])->name('osce.results.show');
+	Route::get('osce/results/{session}', [App\Http\Controllers\OsceController::class, 'showResults'])->name('osce.results.show');
+	
+	// OSCE Rationalization routes
+	Route::get('osce/rationalization/{session}', [App\Http\Controllers\RationalizationController::class, 'show'])->name('rationalization.show');
+	Route::post('api/rationalization/cards/{card}/answer', [App\Http\Controllers\RationalizationController::class, 'answerCard'])->name('rationalization.answer-card');
+	Route::post('api/rationalization/{rationalization}/diagnoses', [App\Http\Controllers\RationalizationController::class, 'submitDiagnoses'])->name('rationalization.submit-diagnoses');
+	Route::post('api/rationalization/{rationalization}/care-plan', [App\Http\Controllers\RationalizationController::class, 'submitCarePlan'])->name('rationalization.submit-care-plan');
+	Route::post('api/rationalization/{rationalization}/complete', [App\Http\Controllers\RationalizationController::class, 'complete'])->name('rationalization.complete');
+	Route::get('api/rationalization/{rationalization}/progress', [App\Http\Controllers\RationalizationController::class, 'progress'])->name('rationalization.progress');
 	
 	// MCQ routes
 	Route::get('mcq', [App\Http\Controllers\MCQController::class, 'index'])->name('mcq.index');

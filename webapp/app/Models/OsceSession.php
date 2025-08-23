@@ -88,6 +88,11 @@ class OsceSession extends Model
         return $this->hasMany(SessionExamination::class, 'osce_session_id')->orderBy('performed_at', 'desc');
     }
 
+    public function rationalization(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(OsceSessionRationalization::class);
+    }
+
     public function getLabResults(): \Illuminate\Database\Eloquent\Collection
     {
         return $this->orderedTests()->where('test_type', 'lab')->get();
