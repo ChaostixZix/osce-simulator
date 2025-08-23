@@ -14,6 +14,7 @@ use App\Http\Controllers\SoapNoteController;
 use App\Http\Controllers\SoapPageController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\OsceAssessmentController;
+use App\Http\Controllers\OsceRationalizationController;
 
 Route::get('/', [LandingController::class, 'index'])->name('home');
 
@@ -54,6 +55,10 @@ Route::middleware([
 	Route::get('osce/results/{session}', [OsceAssessmentController::class, 'show'])->name('osce.results.show');
 	// Optional scoring alias: follows the same gating as results
 	Route::get('osce/scoring/{session}', [OsceAssessmentController::class, 'show'])->name('osce.scoring.show');
+
+	// OSCE Rationalization (post-session reflection)
+	Route::get('osce/rationalization/{session}', [OsceRationalizationController::class, 'show'])->name('osce.rationalization.show');
+	Route::post('api/osce/sessions/{session}/rationalization/complete', [OsceRationalizationController::class, 'complete'])->name('osce.rationalization.complete');
 	
 	// MCQ routes
 	Route::get('mcq', [App\Http\Controllers\MCQController::class, 'index'])->name('mcq.index');

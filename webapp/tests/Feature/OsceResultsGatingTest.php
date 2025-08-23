@@ -27,15 +27,15 @@ test('blocks results before rationalization completion', function () {
     $this->actingAs($user);
 
     $resp = $this->get(route('osce.results.show', $session));
-    $resp->assertRedirect(route('osce.chat', $session));
+    $resp->assertRedirect(route('osce.rationalization.show', $session));
 });
 
 test('allows results after rationalization completion', function () {
     [$user, $case, $session] = makeUserSession('completed');
+    $session->update(['rationalization_completed_at' => now()]);
 
     $this->actingAs($user);
 
     $resp = $this->get(route('osce.results.show', $session));
     $resp->assertOk();
 });
-

@@ -123,7 +123,7 @@ class OsceAssessmentController extends Controller
         // Source of truth: $session->is_rationalization_complete
         if (!$session->is_rationalization_complete) {
             return redirect()
-                ->route('osce.chat', $session)
+                ->route('osce.rationalization.show', $session)
                 ->with('warning', 'Selesaikan rasionalisasi terlebih dahulu.');
         }
 
