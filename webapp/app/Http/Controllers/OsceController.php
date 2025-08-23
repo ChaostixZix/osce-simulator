@@ -7,6 +7,7 @@ use App\Models\OsceSession;
 use App\Models\SessionExamination;
 use App\Models\SessionOrderedTest;
 use App\Services\RationalizationService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -36,7 +37,7 @@ class OsceController extends Controller
         ]);
     }
 
-    public function showChat(OsceSession $session): Response
+    public function showChat(OsceSession $session): Response|RedirectResponse
     {
         $user = auth()->user();
 
