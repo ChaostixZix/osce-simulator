@@ -12,8 +12,8 @@ use App\Http\Controllers\SoapCommentController;
 use App\Http\Controllers\SoapNoteController;
 use App\Http\Controllers\SoapPageController;
 
-use App\Http\Controllers\PatientController;
-use App\Http\Controllers\OsceAssessmentController;
+// use App\Http\Controllers\PatientController;
+// use App\Http\Controllers\OsceAssessmentController;
 use App\Http\Controllers\OsceRationalizationController;
 
 
