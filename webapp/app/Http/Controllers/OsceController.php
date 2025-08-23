@@ -31,8 +31,8 @@ class OsceController extends Controller
                 // Server-truth booleans to drive UI button states
                 return array_merge($s->toArray(), [
                     'canViewResults' => (bool) $s->is_rationalization_complete,
-                    // Scoring step follows the same completion requirement for now
                     'canProceedToScoring' => (bool) $s->is_rationalization_complete,
+                    'canRationalize' => $s->status === 'completed' && !$s->is_rationalization_complete,
                 ]);
             });
         

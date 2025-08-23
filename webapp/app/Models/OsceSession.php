@@ -49,6 +49,7 @@ class OsceSession extends Model
     protected $casts = [
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
+        'rationalization_completed_at' => 'datetime',
         'assessed_at' => 'datetime',
         'time_extended' => 'integer',
         'responses' => 'array',
@@ -283,6 +284,6 @@ class OsceSession extends Model
      */
     public function getIsRationalizationCompleteAttribute(): bool
     {
-        return $this->status === 'completed';
+        return (bool) $this->rationalization_completed_at;
     }
 }
