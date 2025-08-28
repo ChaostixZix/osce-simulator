@@ -391,7 +391,7 @@ class AiAssessorService
         return $scores;
     }
 
-    private function computeCriterionScore(array $criterion, OsceSession $session, $case, array $config): int
+    public function computeCriterionScore(array $criterion, OsceSession $session, $case, array $config): int
     {
         $key = $criterion['key'];
         $max = $criterion['max'];
