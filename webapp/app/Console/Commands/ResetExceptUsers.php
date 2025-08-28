@@ -73,10 +73,9 @@ class ResetExceptUsers extends Command
 
             // Get available seeders
             $seeders = [
-                'OsceCaseSeeder',
                 'MedicalTestSeeder',
-                'ForumSeeder',
-                'MCQSeeder'
+                'OsceCaseSeeder',
+                'ComprehensiveMedicalTestSeeder',
             ];
 
             foreach ($seeders as $seeder) {
