@@ -1,134 +1,89 @@
 # Web-Based OSCE Training Platform
 
-A modern web application for Objective Structured Clinical Examination (OSCE) training, featuring an AI-powered patient simulator, a community forum, and knowledge assessment tools.
-Built with **Laravel** and **Vue 3** via [Inertia](https://inertiajs.com), it provides a comprehensive platform for medical learners.
+A modern web application for Objective Structured Clinical Examination (OSCE) training, featuring AI-powered patient simulation, community forums, and assessment tools. Built with **Laravel 12** and **Vue 3** via [Inertia.js](https://inertiajs.com).
 
 ## 🚀 Quick Start
 
-1. **Enter the webapp directory**
+1. **Navigate to webapp directory**
    ```bash
    cd webapp
    ```
-2. **Install PHP & JavaScript dependencies**
+
+2. **Install dependencies**
    ```bash
    composer install
    npm install
    ```
-3. **Configure environment**
+
+3. **Setup environment**
    ```bash
    cp .env.example .env
    php artisan key:generate
    ```
-   Set your AI credentials in `.env`:
+   
+   Configure your AI credentials in `.env`:
    ```env
    GEMINI_API_KEY=your_gemini_api_key
    GEMINI_MODEL=gemini-1.5-flash
    ```
-4. **Prepare the database**
+
+4. **Initialize database**
    ```bash
    php artisan migrate
-   php artisan db:seed --class=OsceCaseSeeder # optional sample cases
+   php artisan db:seed --class=OsceCaseSeeder  # Optional sample data
    ```
-5. **Build assets & start the server**
+
+5. **Start development server**
    ```bash
-   npm run build   # or: npm run dev
-   php artisan serve
+   npm run dev        # Development with hot reload
+   php artisan serve  # In another terminal
    ```
 
 Visit `http://localhost:8000` to access the application.
 
 ## 🏥 Features
 
-- **AI Patient Simulation**: Engage in context-aware conversations with an AI patient powered by Google's Gemini.
-- **OSCE Case Library**: Access a range of clinical cases with structured objectives and multiple difficulty levels.
-- **Community Forum**: Discuss cases, share knowledge, and collaborate with other learners.
-- **MCQ Assessment**: Test your knowledge with a multiple-choice question section.
-- **Session Tracking**: Monitor your progress and performance across different cases.
-- **Secure Authentication**: Ensures private and isolated training sessions for each user.
+- **AI Patient Simulation** - Interactive conversations with AI patients powered by Google Gemini
+- **OSCE Case Library** - Clinical cases with structured objectives and difficulty levels
+- **Community Forum** - Discussion platform for cases and knowledge sharing
+- **SOAP Notes** - Electronic health record documentation
+- **MCQ Assessment** - Multiple-choice question testing system
+- **Session Tracking** - Progress monitoring and performance analytics
+
+## 🛠 Technology Stack
+
+- **Backend**: Laravel 12 (PHP 8.2+)
+- **Frontend**: Vue 3 + TypeScript + Inertia.js 2.0
+- **Styling**: Tailwind CSS v4 + shadcn-vue components
+- **Testing**: Pest + PHPUnit
+- **Database**: PostgreSQL (production) / SQLite (development)
 
 ## 🧱 Project Structure
 
+The main application is located in the `webapp/` directory following standard Laravel conventions:
+
 ```
 webapp/
-├── app/                      # Laravel backend code
-│   ├── Http/
-│   │   ├── Controllers/      # Application controllers
-│   │   └── Middleware/
-│   ├── Models/               # Eloquent models
-│   └── Providers/
-├── config/                   # Configuration files
-├── database/
-│   ├── factories/
-│   ├── migrations/
-│   └── seeders/
-├── public/                   # Publicly accessible assets
-├── resources/
-│   ├── css/                  # Compiled CSS
-│   ├── js/                   # Vue components and scripts
-│   │   ├── Components/       # Reusable Vue components
-│   │   ├── Layouts/          # Application layouts
-│   │   └── Pages/            # Inertia page components
-│   └── views/                # Blade views
-├── routes/                   # Web & API routes
-└── tests/                    # PHPUnit tests
-```
-
-### Models
-
-The application's core data structures are defined using Eloquent models:
-
-- **`User`**: Manages user data and authentication.
-- **`OsceCase`**: Represents a clinical case scenario.
-- **`OsceSession`**: Tracks a user's progress through a case.
-- **`OsceChatMessage`**: Stores messages from the AI patient chat.
-- **`MedicalTest`**: Defines available medical tests.
-- **`SessionOrderedTest`**: Logs tests ordered during a session.
-- **`SessionExamination`**: Records examinations performed.
-- **`Post`**: Represents a forum post.
-- **`Comment`**: A comment on a forum post.
-- **`PostInteraction`**: Tracks user engagement (e.g., likes).
-- **`Notification`**: Manages user notifications.
-- **`Patient`**: Represents a patient entity for SOAP notes.
-- **`SoapNote`**: A SOAP note associated with a patient.
-- **`SoapAttachment`**: File attachments for SOAP notes.
-- **`SoapComment`**: Comments on SOAP notes.
-- **`McqTest`**: A multiple-choice question test.
-- **`McqQuestion`**: A single question within a test.
-- **`McqOption`**: An answer option for an MCQ question.
-
-### Controllers
-
-Controllers handle the application's logic and route requests:
-
-- **`LandingController`**: Manages the public-facing landing page.
-- **`DashboardController`**: Handles the main user dashboard.
-- **`OsceController`**: Core logic for OSCE sessions.
-- **`OsceChatController`**: Manages the AI chat functionality.
-- **`MedicalTestController`**: API for medical test data.
-- **`PostController`**: CRUD operations for forum posts.
-- **`CommentController`**: Manages comments on posts.
-- **`MCQController`**: Handles the MCQ assessment feature.
-- **`PatientController`**: Manages patient records.
-- **`SoapBoardController`**, **`SoapPageController`**, **`SoapNoteController`**: Manage the SOAP notes feature.
-- **`Settings/ProfileController`**: Manages user profile settings.
+├── app/                    # Laravel application logic
+│   ├── Models/            # Eloquent models (User, OsceCase, Post, etc.)
+│   └── Http/Controllers/  # Request handlers
+├── resources/js/          # Vue 3 frontend
+│   ├── Pages/            # Inertia page components
+│   ├── Components/       # Reusable Vue components
+│   └── Layouts/          # Application layouts
+├── database/             # Migrations, seeders, factories
+├── routes/               # Application routes
+└── tests/                # Test suites
 ```
 
 ## 🧪 Testing
 
-Run the test suite from the `webapp` directory:
-
 ```bash
-composer test
+cd webapp
+composer test              # Run PHP tests
+npm run lint              # Lint frontend code
 ```
-
-## 📦 Legacy CLI (Archived)
-
-The original Node.js CLI prototype and an earlier PHP experiment have been
-archived under `legacy/cli-prototype/`. They are no longer maintained. The
-Laravel + Vue app in `webapp/` is the active project.
-
-If you need to explore the prototype, see `legacy/cli-prototype/README.md`.
 
 ## 📄 License
 
-Released under the MIT License.
+MIT License
