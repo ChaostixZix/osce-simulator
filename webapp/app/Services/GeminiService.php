@@ -59,7 +59,7 @@ class GeminiService
         ];
 
         try {
-            $response = Http::timeout(30)
+            $response = Http::timeout(60)  // Increased timeout for complex assessments
                 ->withHeaders([
                     'Content-Type' => 'application/json',
                 ])
@@ -328,7 +328,7 @@ class GeminiService
         ];
 
         try {
-            $response = Http::timeout(10)
+            $response = Http::timeout(60)  // Increased timeout for connection testing
                 ->withHeaders(['Content-Type' => 'application/json'])
                 ->post("{$this->baseUrl}/{$this->model}:generateContent?key={$this->apiKey}", $requestBody);
 
