@@ -46,6 +46,7 @@ Route::middleware([
 	
 	// OSCE Assessment routes
 	Route::post('api/osce/sessions/{session}/assess', [OsceAssessmentController::class, 'assess'])->name('osce.assess');
+	Route::get('api/osce/sessions/{session}/status', [OsceAssessmentController::class, 'status'])->name('osce.status');
 	Route::get('api/osce/sessions/{session}/results', [OsceAssessmentController::class, 'results'])->name('osce.results');
 	Route::get('osce/results/{session}', [OsceAssessmentController::class, 'show'])->name('osce.results.show');
 	// Optional scoring alias: follows the same gating as results
