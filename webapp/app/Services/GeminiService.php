@@ -52,9 +52,9 @@ class GeminiService
                 'temperature' => 0.1, // Low temperature for medical accuracy
                 'topP' => 0.8,
                 'maxOutputTokens' => 2048,
-                // Temporarily remove response schema to test grounding
-                // 'responseMimeType' => 'application/json',
-                // 'responseSchema' => $this->getEvaluationSchema(),
+                // Enforce structured JSON to reduce fallback incidents
+                'responseMimeType' => 'application/json',
+                'responseSchema' => $this->getEvaluationSchema(),
             ],
         ];
 

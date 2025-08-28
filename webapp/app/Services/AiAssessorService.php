@@ -664,7 +664,10 @@ class AiAssessorService
                 'temperature' => 0.1,
                 'topK' => 1,
                 'topP' => 1,
-                'maxOutputTokens' => 3000,
+                'maxOutputTokens' => 8000,
+                // Enforce JSON output to prevent schema/parse failures
+                'responseMimeType' => 'application/json',
+                'responseSchema' => $this->getSessionAssessmentSchema(),
             ],
         ]);
 
@@ -738,7 +741,9 @@ class AiAssessorService
                 'temperature' => 0,
                 'topK' => 1,
                 'topP' => 1,
-                'maxOutputTokens' => 2000,
+                'maxOutputTokens' => 4000,
+                // Enforce JSON output to prevent schema/parse failures
+                'responseMimeType' => 'application/json',
             ],
         ]);
 
@@ -812,7 +817,9 @@ class AiAssessorService
                 'temperature' => 0,
                 'topK' => 1,
                 'topP' => 1,
-                'maxOutputTokens' => 1500,
+                'maxOutputTokens' => 3000,
+                // Enforce JSON output to prevent schema/parse failures
+                'responseMimeType' => 'application/json',
             ],
         ]);
 
@@ -852,6 +859,67 @@ class AiAssessorService
         }
 
         return $decoded;
+    }
+
+    /**
+     * JSON schema for detailed clinical areas session assessment.
+     * Keeps validation aligned with validateSessionAssessmentSchema.
+     */
+    private function getSessionAssessmentSchema(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'total_score' => ['type' => 'number'],
+                'max_possible_score' => ['type' => 'number'],
+                'assessment_type' => ['type' => 'string'],
+                'clinical_areas' => [
+                    'type' => 'array',
+                    'items' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'area' => ['type' => 'string'],
+                            'key' => ['type' => 'string'],
+                            'score' => ['type' => 'number'],
+                            'max_score' => ['type' => 'number'],
+                            'justification' => ['type' => 'string'],
+                            'citations' => [
+                                'type' => 'array',
+                                'items' => ['type' => 'string']
+                            ],
+                            'strengths' => [
+                                'type' => 'array',
+                                'items' => ['type' => 'string']
+                            ],
+                            'areas_for_improvement' => [
+                                'type' => 'array',
+                                'items' => ['type' => 'string']
+                            ],
+                        ],
+                        'required' => ['area','key','score','max_score','justification','citations','strengths','areas_for_improvement']
+                    ],
+                ],
+                'overall_feedback' => ['type' => 'string'],
+                'safety_concerns' => [
+                    'type' => 'array',
+                    'items' => ['type' => 'string']
+                ],
+                'recommendations' => [
+                    'type' => 'array',
+                    'items' => ['type' => 'string']
+                ],
+                'model_info' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'name' => ['type' => 'string'],
+                        'temperature' => ['type' => 'number'],
+                        'assessment_approach' => ['type' => 'string']
+                    ],
+                    'required' => ['name']
+                ],
+            ],
+            'required' => ['total_score','max_possible_score','assessment_type','clinical_areas','overall_feedback','safety_concerns','recommendations','model_info'],
+        ];
     }
 
     private function repairJsonResponse(string $text, array $artifact, array $computedScores, array $config): ?array
@@ -1527,4 +1595,3 @@ PROMPT;
         return 'General';
     }
 }
-
