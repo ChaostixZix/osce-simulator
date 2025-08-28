@@ -180,11 +180,14 @@ class AiAssessorService
 
         // Get examinations
         $examinations = $session->examinations->map(function ($exam) {
+            $findings = is_string($exam->findings) ? json_decode($exam->findings, true) : $exam->findings;
+            $findingText = $findings['description'] ?? $exam->findings ?? 'No findings recorded';
+            
             return [
                 'id' => $exam->id,
                 'examination_type' => $exam->examination_type,
-                'body_part' => $exam->body_part,
-                'finding' => $exam->finding,
+                'body_part' => $exam->examination_category ?? 'general', // Use examination_category as body_part
+                'finding' => $findingText,
                 'performed_at' => $exam->performed_at->toISOString(),
             ];
         })->toArray();
@@ -648,9 +651,10 @@ class AiAssessorService
     {
         $prompt = $this->buildSessionScoringPrompt($artifact, $session);
         
-        $response = Http::withHeaders([
-            'Content-Type' => 'application/json',
-        ])->post($this->baseUrl . '/' . $this->model . ':generateContent?key=' . $this->apiKey, [
+        $response = Http::timeout(120) // Increased timeout for complex session assessments
+            ->withHeaders([
+                'Content-Type' => 'application/json',
+            ])->post($this->baseUrl . '/' . $this->model . ':generateContent?key=' . $this->apiKey, [
             'contents' => [
                 [
                     'parts' => [
@@ -725,9 +729,10 @@ class AiAssessorService
     {
         $prompt = $this->buildScoringPrompt($artifact, $config);
         
-        $response = Http::withHeaders([
-            'Content-Type' => 'application/json',
-        ])->post($this->baseUrl . '/' . $this->model . ':generateContent?key=' . $this->apiKey, [
+        $response = Http::timeout(120) // Increased timeout for complex scoring assessments
+            ->withHeaders([
+                'Content-Type' => 'application/json',
+            ])->post($this->baseUrl . '/' . $this->model . ':generateContent?key=' . $this->apiKey, [
             'contents' => [
                 [
                     'parts' => [
@@ -801,9 +806,10 @@ class AiAssessorService
     {
         $prompt = $this->buildAssessmentPrompt($artifact, $computedScores, $config);
 
-        $response = Http::withHeaders([
-            'Content-Type' => 'application/json',
-        ])->post($this->baseUrl.'/'.$this->model.':generateContent?key='.$this->apiKey, [
+        $response = Http::timeout(120) // Increased timeout for complex assessments
+            ->withHeaders([
+                'Content-Type' => 'application/json',
+            ])->post($this->baseUrl.'/'.$this->model.':generateContent?key='.$this->apiKey, [
             'contents' => [
                 [
                     'parts' => [
@@ -1590,6 +1596,49 @@ PROMPT;
 
         if (preg_match('/\b(history|family|medication|allergy|smoke|drink)\b/', $text)) {
             return 'History-taking';
+        }
+
+        return 'General';
+    }
+
+    private function categorizeBodySystem(string $examinationType, ?string $bodyPart = null): string
+    {
+        $type = strtolower($examinationType . ' ' . ($bodyPart ?? ''));
+
+        if (preg_match('/\b(cardiovascular|cardiac|heart|pulse|murmur|rhythm)\b/', $type)) {
+            return 'Cardiovascular';
+        }
+
+        if (preg_match('/\b(respiratory|lung|chest|breathing|auscultation)\b/', $type)) {
+            return 'Respiratory';
+        }
+
+        if (preg_match('/\b(abdominal|abdomen|gastro|bowel|liver|spleen)\b/', $type)) {
+            return 'Gastrointestinal';
+        }
+
+        if (preg_match('/\b(neurological|neuro|reflex|motor|sensory|cranial)\b/', $type)) {
+            return 'Neurological';
+        }
+
+        if (preg_match('/\b(musculoskeletal|joint|bone|muscle|orthopedic)\b/', $type)) {
+            return 'Musculoskeletal';
+        }
+
+        if (preg_match('/\b(skin|dermatological|rash|lesion)\b/', $type)) {
+            return 'Dermatological';
+        }
+
+        if (preg_match('/\b(vital|signs|temperature|blood pressure|bp)\b/', $type)) {
+            return 'Vital Signs';
+        }
+
+        if (preg_match('/\b(head|neck|eye|ear|nose|throat|ent)\b/', $type)) {
+            return 'Head and Neck';
+        }
+
+        if (preg_match('/\b(peripheral|extremity|limb|arm|leg)\b/', $type)) {
+            return 'Peripheral';
         }
 
         return 'General';
