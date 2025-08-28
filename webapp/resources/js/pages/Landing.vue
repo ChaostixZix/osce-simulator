@@ -90,9 +90,7 @@ const prevPortfolio = () => {
                         <Link :href="route('dashboard')">
                             <Button size="lg">Go to Dashboard</Button>
                         </Link>
-                        <Link href="/forum">
-                            <Button variant="outline" size="lg">Open Forum</Button>
-                        </Link>
+                        
                         <Link href="/osce">
                             <Button variant="ghost" size="lg">Try OSCE Training</Button>
                         </Link>

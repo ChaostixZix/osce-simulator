@@ -25,12 +25,9 @@ class DatabaseSeeder extends Seeder
 
         // Seed initial app data
         $this->call([
-            ForumSeeder::class,
             MedicalTestSeeder::class,
             OsceCaseSeeder::class,
             ComprehensiveMedicalTestSeeder::class,
-            McqTestSeeder::class,
-            PatientSoapSeeder::class,
         ]);
     }
 }
