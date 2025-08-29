@@ -1,33 +1,19 @@
 import React, { useState } from 'react';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Button } from '@vibe-kanban/ui-kit';
 
 export default function Osce({ cases = [], userSessions = [], user }) {
   const [startingId, setStartingId] = useState(null);
+  const { post } = useForm({});
 
-  const startSession = async (osce_case_id) => {
-    try {
-      setStartingId(osce_case_id);
-      const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-      const res = await fetch('/api/osce/sessions/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': csrf ?? '' },
-        credentials: 'same-origin',
-        body: JSON.stringify({ osce_case_id })
-      });
-      const data = await res.json();
-      if (res.ok && data?.session?.id) {
-        router.visit(`/osce/chat/${data.session.id}`);
-      } else if (!res.ok && data?.session?.id) {
-        // If an active session already exists, redirect to it
-        router.visit(`/osce/chat/${data.session.id}`);
-      }
-    } catch (e) {
-      console.error('Failed to start session', e);
-    } finally {
-      setStartingId(null);
-    }
+  const startSession = (osce_case_id) => {
+    setStartingId(osce_case_id);
+    post('/osce/sessions/start', {
+      data: { osce_case_id },
+      preserveScroll: true,
+      onFinish: () => setStartingId(null),
+    });
   };
 
   const breadcrumbs = [{ title: 'OSCE', href: '/osce' }];

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 
 export default function OsceResults({ session, user }) {
@@ -38,11 +38,7 @@ export default function OsceResults({ session, user }) {
           <div className="flex gap-2">
             <button
               className="px-4 py-2 border"
-              onClick={async () => {
-                const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-                const res = await fetch(`/api/osce/sessions/${session.id}/assess`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': csrf ?? '' }, credentials: 'same-origin', body: JSON.stringify({ force: true }) });
-                if (res.ok) alert('Assessment started');
-              }}
+              onClick={() => router.post(`/osce/sessions/${session.id}/assess/trigger`, { force: true }, { preserveScroll: true })}
             >
               Re/Assess Session
             </button>
