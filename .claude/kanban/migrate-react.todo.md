@@ -45,3 +45,32 @@ Notes & Tips
 - Keep PRs small (per route or feature) to speed reviews.
 - Use Inertia partial reloads for infinite scroll and updates.
 - Keep Gemini calls server-side only; React pages consume existing JSON/Inertia props.
+
+---
+
+Progress Summary (this pass)
+- Completed Phases 0–4 with React pages for: `Landing`, `Dashboard`, `Osce`, `OsceChat`, `OsceResult`, `OsceResults`, `OsceRationalization`, `settings/Appearance`, and `settings/Profile`.
+- Vite aliases updated: `@` → `resources/js`, `@vibe-kanban/ui-kit` → local shim at `resources/js/lib/ui-kit`.
+- UI Kit shim: basic `Button.jsx` and design tokens at `resources/js/lib/ui-kit/styles/tokens.css`; tokens imported from `resources/css/app.css`.
+- Removed legacy Vue backups: `resources/js/pages-vue-backup`, `app.ts.vue-backup`, `ssr.ts.vue-backup`, and `layouts/AppLayout.vue`.
+- Pruned Vue deps from `webapp/package.json`; React + Tailwind + Inertia React retained.
+- Built successfully (`npm run build`); verified no Vue chunks in `public/build`.
+
+Next Dev Context / What to Verify
+- Run once in `webapp/`:
+  - `npm install` (refresh lock), then `npm prune && npm dedupe`.
+  - `php artisan migrate --force` (SQLite dev DB; ensure `database/database.sqlite` exists).
+  - `composer dev` and visit routes: `/`, `/dashboard`, `/osce`, `/osce/chat/{id}`, `/osce/rationalization/{id}`, `/osce/results/{id}`, `/settings/profile`, `/settings/appearance`.
+  - Watch browser console for errors; confirm Inertia resolves React pages; verify chat send, session start, assess trigger, and status polling hit existing controllers.
+- Run tests: `composer test`.
+
+Known Caveats / Follow-ups
+- Residual Vue components still live under `resources/js/components/**` (not used by React pages). Remove only after confirming no route references them.
+- `tsconfig.json` still includes Vue JSX settings and `.vue` globs; safe to leave now, but consider React-focused cleanup later.
+- Local UI Kit shim should be replaced with the real Vibe UI KIT package when available; then point the alias to the package and remove the shim.
+- Security: repository contains `webapp/.env` with live-looking values; rotate sensitive keys and rely on local `.env` only (do not commit secrets); ensure `.env.example` is updated instead.
+
+Nice-to-haves (post-verify)
+- Replace minimal UI with real Vibe UI KIT components across OSCE pages (cards, tables, inputs).
+- Add a small shared relative-time helper and basic loading states.
+- Add feature tests for assessment gating and rationalization flow.
