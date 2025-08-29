@@ -3,7 +3,7 @@
 @import 'tw-animate-css';
 
 /* Import Vibe Kanban UI Kit tokens */
-@import '@vibe-kanban/ui-kit/styles';
+@import '@vibe-kanban/ui-kit/styles/tokens.css';
 
 /* Removed Novel Vue styles during React migration */
 
