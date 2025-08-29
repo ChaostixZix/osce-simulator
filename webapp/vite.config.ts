@@ -11,8 +11,9 @@ export default defineConfig(({ mode }) => {
     return {
     resolve: {
         alias: {
-            '@vibe-kanban/ui-kit': path.resolve(__dirname, '../../vk-0abb-do-screens/src'),
-            '@vibe-kanban/ui-kit/styles': path.resolve(__dirname, '../../vk-0abb-do-screens/src/styles/tokens.css'),
+            '@': path.resolve(__dirname, 'resources/js'),
+            '@vibe-kanban/ui-kit': path.resolve(__dirname, 'resources/js/lib/ui-kit'),
+            '@vibe-kanban/ui-kit/styles': path.resolve(__dirname, 'resources/js/lib/ui-kit/styles/tokens.css'),
         },
     },
     server: {
