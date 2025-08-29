@@ -1,6 +1,6 @@
-# AI Development Rules and Guidelines
+# Gemini Integration — Dev Rules & Setup (Vue → React Migration)
 
-This document consolidates the key rules and guidelines for AI-assisted development in this Laravel + Inertia.js + Vue.js project.
+This document consolidates rules and setup for Gemini usage in this Laravel + Inertia SPA. We are migrating the frontend from Vue to React using the Vibe UI KIT (see PR #62). Backend Gemini services and APIs remain unchanged; React pages call the same Laravel endpoints.
 
 ## Core Architecture & Development Principles
 
@@ -23,12 +23,14 @@ This document consolidates the key rules and guidelines for AI-assisted developm
   - Leverage `Inertia.visit()` for navigation
   - Use `router.visit()` with proper options for form submissions
   - Check todos to ensure Inertia architecture is used first before considering alternatives
+  - For new UI, prefer React + Inertia with Vibe UI KIT; legacy Vue pages remain until migrated.
 
 ## Technology Stack & Versions
 - **PHP** - 8.2.29
 - **Laravel Framework** - v12
 - **Inertia Laravel** - v2
-- **Vue.js** - v3  
+- **Vue.js** - v3 (legacy)
+- **React** - In progress (Vibe UI KIT)
 - **Tailwind CSS** - v4
 - **Pest** - v3
 - **Laravel Pint** - v1
@@ -36,12 +38,31 @@ This document consolidates the key rules and guidelines for AI-assisted developm
 ## Development Workflow
 
 ### Component & Page Management
-- **ShadCN Vue is already installed** - Don't reinstall it. Install specific components only when needed
-- **New Page Creation Process:**
-  1. Create Vue page in `Resources/js/Pages/`
-  2. Add page to AppSidebar.vue navigation
-  3. Create corresponding Laravel Controller
-  4. Add routes in web.php with proper Inertia responses
+- React (preferred for new work): Use Inertia React + Vibe UI KIT components; keep Tailwind styles consistent.
+- Vue (legacy): shadcn-vue remains; only migrate when converting an entire page.
+- New Page Creation Process:
+  1. Create React page in `resources/js/Pages/` (or feature subfolder) using Inertia React.
+  2. Add navigation entry in the appropriate layout/sidebar.
+  3. Create/adjust Laravel Controller to return Inertia response.
+  4. Add routes in `web.php`.
+
+## Gemini Configuration (env)
+
+Set in `webapp/.env` (see `.env.example`):
+
+```
+GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_MODEL=gemini-1.5-flash
+GEMINI_TIMEOUT=30                 # seconds (optional)
+GEMINI_RATE_LIMIT=60              # requests/minute (optional)
+GEMINI_MAX_CONCURRENT=5           # in-flight requests (optional)
+GEMINI_FALLBACK_ENABLED=true      # allow degraded results on parse issues (optional)
+```
+
+Notes
+- `config/services.php` and `config/gemini.php` both read `GEMINI_MODEL`. Default differs by file; set the env var explicitly to avoid mismatch.
+- Never commit real keys. Keep `.env.example` updated only with placeholders.
+- Dev DB defaults to SQLite; long-running Gemini work should run via the queue worker (dev script starts one).
 
 ### Error Handling
 - Use Browser Logs (Laravel Boost MCP Tools) to check latest errors
@@ -76,11 +97,10 @@ This document consolidates the key rules and guidelines for AI-assisted developm
 
 ## Frontend Rules
 
-### Vue + Inertia
-- Vue components must have single root element
-- Use `router.visit()` or `<Link>` for navigation
-- Use `router.post()` for form handling, not regular forms
-- Minimize web reloading - follow SPA principles
+### Inertia (Vue legacy + React new)
+- Use `<Link>`/`router.visit()` for navigation.
+- Use Inertia forms or `router.post/put/delete` for mutations.
+- Avoid raw fetch calls from pages; go through controllers and services.
 
 ### Tailwind CSS v4
 - Use Tailwind v4 syntax: `@import "tailwindcss"` not `@tailwind` directives
@@ -144,3 +164,34 @@ When creating AI prompts for implementation tasks:
 - Modify existing rules when better examples exist
 - Remove outdated patterns and update references
 - Cross-reference related rules for consistency
+
+## Where Gemini Is Used (code references)
+
+- `app/Services/AiPatientService.php`: AI patient chat responses (Gemini 1.5 flash endpoint).
+- `app/Services/GeminiService.php`: Core Gemini client with web search grounding and parsing.
+- `app/Services/AiAssessorService.php`: Session scoring and assessment via Gemini.
+- `app/Services/AreaAssessor.php`: Area-specific clinical assessments via Gemini.
+- `app/Services/RationalizationEvaluationService.php`: Post-session rationalization using Gemini.
+- `app/Services/ResultReducer.php`: Bundles model metadata into results (reads configured model).
+- `app/Http/Controllers/OsceAssessmentController.php`: Exposes assess/status/results endpoints (uses configured model).
+
+## API Endpoints (Gemini-backed)
+
+- `POST /api/osce/sessions/{session}/assess` → runs assessment (queue-backed for long tasks).
+- `GET  /api/osce/sessions/{session}/status` → assessment status.
+- `GET  /api/osce/sessions/{session}/results` → assessment results view/data.
+- OSCE Chat endpoints: `POST /api/osce/chat/start`, `POST /api/osce/chat/message`, `GET /api/osce/chat/history/{session}`.
+
+## Troubleshooting
+
+- 401/403 from Gemini: verify `GEMINI_API_KEY` and that the key supports the selected `GEMINI_MODEL`.
+- Timeouts: raise `GEMINI_TIMEOUT` or run via queues to prevent request timeouts.
+- Rate limiting: tune `GEMINI_RATE_LIMIT` and `GEMINI_MAX_CONCURRENT` to your key limits.
+- Parsing errors: `GEMINI_FALLBACK_ENABLED=true` allows structured fallback; check logs for raw content.
+- Tests failing due to missing API key: tests can set `config(['services.gemini.api_key' => null])` to disable real calls (see tests under `webapp/tests/Feature/*Assessment*Test.php`).
+
+## Migration Note (PR #62)
+
+- React UI migration does not change Gemini configuration or routes.
+- Continue calling Laravel endpoints from React (Inertia) pages; no direct client-side Gemini calls.
+- Keep all Gemini work in services/controllers; do not embed API keys in frontend code.
