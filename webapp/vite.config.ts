@@ -1,6 +1,7 @@
-import vue from '@vitejs/plugin-vue';
+import react from '@vitejs/plugin-react';
 import laravel from 'laravel-vite-plugin';
 import tailwindcss from '@tailwindcss/vite';
+import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 
 export default defineConfig(({ mode }) => {
@@ -8,6 +9,12 @@ export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, process.cwd(), '');
 
     return {
+    resolve: {
+        alias: {
+            '@vibe-kanban/ui-kit': path.resolve(__dirname, '../../vk-0abb-do-screens/src'),
+            '@vibe-kanban/ui-kit/styles': path.resolve(__dirname, '../../vk-0abb-do-screens/src/styles/tokens.css'),
+        },
+    },
     server: {
         // Listen on all interfaces but do NOT browse to 0.0.0.0
         host: '0.0.0.0',
@@ -31,20 +38,13 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [
         laravel({
-            input: ['resources/js/app.ts'],
+            input: ['resources/js/app.jsx'],
             ssr: 'resources/js/ssr.ts',
             // Limit refresh paths to app sources to avoid vendor
             refresh: ['resources/views/**', 'resources/js/**', 'routes/**', 'app/**', 'config/**'],
         }),
         tailwindcss(),
-        vue({
-            template: {
-                transformAssetUrls: {
-                    base: null,
-                    includeAbsolute: false,
-                },
-            },
-        }),
+        react(),
     ],
     };
 });
