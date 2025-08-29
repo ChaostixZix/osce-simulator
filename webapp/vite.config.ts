@@ -26,9 +26,9 @@ export default defineConfig(({ mode }) => {
         // Public origin used in the generated public/hot file and client imports
                 origin:
             env.VITE_DEV_SERVER_URL ||
-            `http://${env.VITE_HMR_HOST || 'localhost'}:${env.VITE_HMR_CLIENT_PORT || env.VITE_DEV_PORT || 5173}`,
+            `http://${env.VITE_HMR_HOST || 'dev.bintangputra.my.id'}:${env.VITE_HMR_CLIENT_PORT || env.VITE_DEV_PORT || 5173}`,
         hmr: {
-            host: env.VITE_HMR_HOST || 'localhost',
+            host: env.VITE_HMR_HOST || '0.0.0.0',
             clientPort: Number(env.VITE_HMR_CLIENT_PORT || env.VITE_DEV_PORT || 5173),
         },
         watch: {
