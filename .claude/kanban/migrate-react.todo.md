@@ -79,12 +79,22 @@ Routing/Interaction TODO (Inertia-first)
     - OsceResults.jsx: assess trigger via `route('osce.assess.trigger', session.id)`; back link and breadcrumb use `route('osce')`.
     - OsceRationalization.jsx: completion via `route('osce.rationalization.complete', session.id)` and breadcrumb `route('osce')`.
     - Dashboard.jsx: OSCE navigation uses `route('osce')`.
+    - Landing.jsx: dashboard/login links use `route('dashboard')` and `route('login')`.
+    - Settings/Profile.jsx: update via `route('profile.update')`; breadcrumbs use `route('profile.edit')`.
+    - Settings/Appearance.jsx: breadcrumbs use `route('profile.edit')` and `route('appearance')`.
+    - OsceChat.jsx: breadcrumbs use Ziggy; chat history/message fetch URLs built via `route('osce.chat.history', id)` and `route('osce.chat.message')`.
   3) Confirm middleware group: `osce.sessions.start` should be in the same `auth` group as related OSCE routes; verify `php artisan route:list` shows it, and adjust if missing.
   4) If 404 persists:
      - Clear route cache: `php artisan route:clear` during dev.
      - Verify POST path and method in Network tab match route.
      - Ensure CSRF is present (Inertia handles this automatically).
-  5) Consider keeping an API and a web (Inertia) endpoint pair for actions that need JSON vs navigation; document which one the page uses.
+ 5) Consider keeping an API and a web (Inertia) endpoint pair for actions that need JSON vs navigation; document which one the page uses.
+
+Backend additions to support Ziggy
+- Named OSCE chat API routes in `routes/web.php`:
+  - `api/osce/chat/start` → `osce.chat.start`
+  - `api/osce/chat/message` → `osce.chat.message`
+  - `api/osce/chat/history/{session}` → `osce.chat.history`
 
 Feature Migration Checklist (parity with legacy Vue)
 - OSCE Index/Board (React): case listing, start session CTA, recent sessions state (done; validate UX polish).

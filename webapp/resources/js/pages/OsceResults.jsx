@@ -45,7 +45,7 @@ export default function OsceResults({ session, user }) {
             <button
               className="px-4 py-2 border"
               onClick={async () => {
-                const res = await fetch(`/api/osce/sessions/${session.id}/status`);
+                const res = await fetch(route('osce.status', session.id));
                 const data = await res.json();
                 alert(`Status: ${data.status} (${data.progress ?? 0}%)`);
               }}

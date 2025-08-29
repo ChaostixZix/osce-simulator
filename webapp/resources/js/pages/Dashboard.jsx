@@ -7,7 +7,7 @@ export default function Dashboard({ stats, welcome }) {
     const breadcrumbs = [
         {
             title: 'Dashboard',
-            href: '/dashboard',
+            href: route('dashboard'),
         },
     ];
 
@@ -111,7 +111,7 @@ export default function Dashboard({ stats, welcome }) {
                                 <span className="text-xs text-muted-foreground">Practice clinical skills</span>
                             </button>
                             <div className="flex items-center">
-                                <Button onClick={() => router.visit('/settings/appearance')} variant="outline">UI Kit Check</Button>
+                                <Button onClick={() => router.visit(route('appearance'))} variant="outline">UI Kit Check</Button>
                             </div>
                         </div>
                     </div>

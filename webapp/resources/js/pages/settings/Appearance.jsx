@@ -4,8 +4,8 @@ import AppLayout from '@/Layouts/AppLayout';
 
 export default function Appearance() {
   const breadcrumbs = [
-    { title: 'Settings', href: '/settings' },
-    { title: 'Appearance', href: '/settings/appearance' },
+    { title: 'Settings', href: route('profile.edit') },
+    { title: 'Appearance', href: route('appearance') },
   ];
 
   return (
@@ -20,4 +20,3 @@ export default function Appearance() {
     </>
   );
 }
-
