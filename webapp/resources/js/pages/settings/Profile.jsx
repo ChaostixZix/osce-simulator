@@ -7,12 +7,12 @@ export default function Profile({ auth, status }) {
 
   const submit = (e) => {
     e.preventDefault();
-    patch('/settings/profile');
+    patch(route('profile.update'));
   };
 
   const breadcrumbs = [
-    { title: 'Settings', href: '/settings' },
-    { title: 'Profile', href: '/settings/profile' },
+    { title: 'Settings', href: route('profile.edit') },
+    { title: 'Profile', href: route('profile.edit') },
   ];
 
   return (
@@ -31,4 +31,3 @@ export default function Profile({ auth, status }) {
     </>
   );
 }
-

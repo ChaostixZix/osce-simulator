@@ -4,7 +4,7 @@ import AppLayout from '@/Layouts/AppLayout';
 
 export default function OsceResult({ session, isAssessed = true, canReassess = false, assessmentData = null, error = null }) {
   const breadcrumbs = [
-    { title: 'OSCE', href: '/osce' },
+    { title: 'OSCE', href: route('osce') },
     { title: 'Result', href: '#' },
   ];
 
@@ -40,10 +40,9 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
         )}
 
         <div className="mt-4">
-          <Link href="/osce" className="text-sm text-primary">Back to OSCE</Link>
+          <Link href={route('osce')} className="text-sm text-primary">Back to OSCE</Link>
         </div>
       </AppLayout>
     </>
   );
 }
-

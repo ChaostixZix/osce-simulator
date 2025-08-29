@@ -39,6 +39,7 @@ Verification Checklist
 - [x] No Vue runtime present in prod build (`dist` contains no `vue` chunks). (Verified via Vite build)
 - [ ] `composer dev` starts server, queue, logs, and Vite without failures. (Manual check)
 - [x] UI components are from Vibe UI KIT; Tailwind styles pass visual smoke check. (Using shimmed `@vibe-kanban/ui-kit` Button)
+- [x] React pages use Ziggy `route()` for OSCE navigations/mutations (no hard-coded paths for start, assess trigger, OSCE links).
 - [ ] PHP tests pass: `composer test`. (Pending run)
 
 Notes & Tips
@@ -57,12 +58,11 @@ Progress Summary (this pass)
 - Built successfully (`npm run build`); verified no Vue chunks in `public/build`.
 - Ran `npm prune && npm dedupe` and confirmed zero vulnerabilities; ensured `database/database.sqlite` exists; checked routes via `php artisan route:list`.
 
-Encountered Issue (deferred)
-- Posting to `POST /osce/sessions/start` returned 404 in browser. We intentionally did not fix now. Likely causes to verify next:
-  - Route registration/location (behind `auth` middleware, path mismatch, or `route:list` cache).
-  - Form method/URL mismatch (Inertia posting to wrong path or host, missing Ziggy route helper usage).
-  - Server URL/HMR origin interplay (`APP_URL` vs `VITE_DEV_SERVER_URL`).
-  - Route cache stale — `php artisan route:clear` may be required during dev.
+Issue Resolved — OSCE Session Start 404
+- Cause: The React page used `useForm().post(url, { data })`, which does not send the provided `data` payload. This resulted in invalid submissions and confusion during debugging; in some environments, the POST was misrouted, surfacing as a 404.
+- Fix: Switched to Inertia `router.post('/osce/sessions/start', { osce_case_id }, { preserveScroll })` in `resources/js/pages/Osce.jsx`. This sends the payload correctly and follows the server redirect to `osce.chat`.
+- File change: `webapp/resources/js/pages/Osce.jsx` — replaced `useForm` call with `router.post`.
+- Follow-ups: Consider using Ziggy's `route('osce.sessions.start')` helper later for resilience against path changes.
 
 Next Dev Context / What to Verify
 - Run once in `webapp/`:
@@ -73,14 +73,28 @@ Next Dev Context / What to Verify
 - Run tests: `composer test`.
 
 Routing/Interaction TODO (Inertia-first)
-1) Replace any remaining `fetch` with `router.post/put/delete` or `useForm` (OsceChat send can remain JSON if we keep local stream UX, otherwise switch to Inertia with partial reload props).
-2) Use Ziggy route helpers where appropriate (e.g., `route('osce.sessions.start')`) to avoid hard-coded paths.
-3) Confirm middleware group: `osce.sessions.start` should be in the same `auth` group as related OSCE routes; verify `php artisan route:list` shows it, and adjust if missing.
-4) If 404 persists:
-   - Clear route cache: `php artisan route:clear` during dev.
-   - Verify POST path and method in Network tab match route.
-   - Ensure CSRF is present (Inertia handles this automatically).
-5) Consider keeping an API and a web (Inertia) endpoint pair for actions that need JSON vs navigation; document which one the page uses.
+1) Replace any remaining `fetch` with `router.post/put/delete` or `useForm` (OsceChat send can remain JSON if we keep local stream UX, otherwise switch to Inertia with partial reload props). — Done for session start: switched to `router.post(route('osce.sessions.start'), { osce_case_id })`.
+ 2) Standardize Ziggy usage — DONE for OSCE flows and dashboard:
+    - Osce.jsx: start session via `route('osce.sessions.start')`; Links to `osce.chat`, `osce.rationalization.show`, `osce.results.show`; dashboard link uses `route('dashboard')`.
+    - OsceResults.jsx: assess trigger via `route('osce.assess.trigger', session.id)`; back link and breadcrumb use `route('osce')`.
+    - OsceRationalization.jsx: completion via `route('osce.rationalization.complete', session.id)` and breadcrumb `route('osce')`.
+    - Dashboard.jsx: OSCE navigation uses `route('osce')`.
+    - Landing.jsx: dashboard/login links use `route('dashboard')` and `route('login')`.
+    - Settings/Profile.jsx: update via `route('profile.update')`; breadcrumbs use `route('profile.edit')`.
+    - Settings/Appearance.jsx: breadcrumbs use `route('profile.edit')` and `route('appearance')`.
+    - OsceChat.jsx: breadcrumbs use Ziggy; chat history/message fetch URLs built via `route('osce.chat.history', id)` and `route('osce.chat.message')`.
+  3) Confirm middleware group: `osce.sessions.start` should be in the same `auth` group as related OSCE routes; verify `php artisan route:list` shows it, and adjust if missing.
+  4) If 404 persists:
+     - Clear route cache: `php artisan route:clear` during dev.
+     - Verify POST path and method in Network tab match route.
+     - Ensure CSRF is present (Inertia handles this automatically).
+ 5) Consider keeping an API and a web (Inertia) endpoint pair for actions that need JSON vs navigation; document which one the page uses.
+
+Backend additions to support Ziggy
+- Named OSCE chat API routes in `routes/web.php`:
+  - `api/osce/chat/start` → `osce.chat.start`
+  - `api/osce/chat/message` → `osce.chat.message`
+  - `api/osce/chat/history/{session}` → `osce.chat.history`
 
 Feature Migration Checklist (parity with legacy Vue)
 - OSCE Index/Board (React): case listing, start session CTA, recent sessions state (done; validate UX polish).
@@ -98,9 +112,10 @@ Documentation/Quality TODO
 - Ensure CLAUDE.md and AGENTS.md reflect Inertia-first rule (done) and keep examples up-to-date.
 - Update webapp/README.md to mention Inertia React usage patterns and Inertia endpoints vs API endpoints.
 - Add a short “routing gotchas” note: route cache, Ziggy, HMR origin, CSRF.
+- Updated prompt to codify Ziggy usage for all navigations/mutations; avoid hard-coded paths.
 
 Acceptance checks to close migration
-- `router.post('/osce/sessions/start')` successfully redirects to `/osce/chat/{id}` for a selected case (no 404).
+- [x] `router.post('/osce/sessions/start')` successfully redirects to `/osce/chat/{id}` for a selected case (no 404).
 - All OSCE actions available in Vue are now available in React with equivalent behavior.
 - No direct fetch/axios for navigation or form submissions on migrated pages.
 
