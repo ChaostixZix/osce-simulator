@@ -9,14 +9,19 @@ export default function Osce({ cases = [], userSessions = [], user }) {
   const startSession = async (osce_case_id) => {
     try {
       setStartingId(osce_case_id);
+      const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
       const res = await fetch('/api/osce/sessions/start', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': csrf ?? '' },
+        credentials: 'same-origin',
         body: JSON.stringify({ osce_case_id })
       });
       const data = await res.json();
-      if (res.ok && data?.session_id) {
-        router.visit(`/osce/chat/${data.session_id}`);
+      if (res.ok && data?.session?.id) {
+        router.visit(`/osce/chat/${data.session.id}`);
+      } else if (!res.ok && data?.session?.id) {
+        // If an active session already exists, redirect to it
+        router.visit(`/osce/chat/${data.session.id}`);
       }
     } catch (e) {
       console.error('Failed to start session', e);
@@ -85,4 +90,3 @@ export default function Osce({ cases = [], userSessions = [], user }) {
     </>
   );
 }
-

@@ -29,9 +29,11 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
     if (!input.trim()) return;
     setSending(true);
     try {
+      const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
       const res = await fetch('/api/osce/chat/message', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': csrf ?? '' },
+        credentials: 'same-origin',
         body: JSON.stringify({ session_id: session.id, message: input })
       });
       const data = await res.json();
@@ -81,4 +83,3 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
     </>
   );
 }
-
