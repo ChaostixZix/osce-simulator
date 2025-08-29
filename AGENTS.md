@@ -31,6 +31,34 @@
 - React (new): components/pages in `webapp/resources/` follow PascalCase filenames. Use Vibe UI KIT components where applicable.
 - Lint/format (webapp): `npm run lint`, `npm run format`, `npm run format:check`. Keep imports ordered and Tailwind classes tidy.
 
+## Inertia Interaction Rules (React)
+- Use `@inertiajs/react` exclusively for SPA interactions:
+  - Navigations: `<Link>` and `router.visit(url, options)`.
+  - Mutations: `useForm` or `router.post/put/patch/delete` — avoid raw `fetch`/`axios`.
+  - Partial reload: `router.reload({ only: ['propA','propB'], preserveScroll: true })`.
+  - Forms: prefer `useForm` for automatic CSRF, errors, progress, and state.
+- Only call plain JSON endpoints with `fetch` if you are streaming or rendering raw JSON without Inertia navigation; otherwise, stick to Inertia.
+- Do not manually add CSRF headers when using Inertia — it is handled for you.
+- For uploads: use `useForm` with `transform((data) => formData)`.
+- Keep Vue and React isolated per page; do not mix adapters.
+
+Example (useForm):
+```jsx
+import { useForm, Link, router } from '@inertiajs/react'
+
+const { data, setData, post, processing, errors } = useForm({ osce_case_id: caseId })
+const start = () => post('/api/osce/sessions/start', {
+  preserveScroll: true,
+  onSuccess: (page) => router.visit(`/osce/chat/${page.props?.session?.id ?? ''}`)
+})
+```
+
+Example (router.post):
+```jsx
+import { router } from '@inertiajs/react'
+router.post(`/api/osce/sessions/${sessionId}/assess`, { force: true }, { preserveScroll: true })
+```
+
 ## Testing Guidelines
 - Webapp: place tests in `webapp/tests/Unit` or `webapp/tests/Feature` as `*Test.php`. Run with `composer test`.
 - CLI: tests in `test/` as `*.test.js` (Vitest). Prefer small, isolated units.
