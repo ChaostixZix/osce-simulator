@@ -1,16 +1,15 @@
 import React, { useState } from 'react';
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Button } from '@vibe-kanban/ui-kit';
 
 export default function Osce({ cases = [], userSessions = [], user }) {
   const [startingId, setStartingId] = useState(null);
-  const { post } = useForm({});
 
   const startSession = (osce_case_id) => {
     setStartingId(osce_case_id);
-    post('/osce/sessions/start', {
-      data: { osce_case_id },
+    // Use Inertia router.post with payload to avoid 404/method mismatch
+    router.post('/osce/sessions/start', { osce_case_id }, {
       preserveScroll: true,
       onFinish: () => setStartingId(null),
     });

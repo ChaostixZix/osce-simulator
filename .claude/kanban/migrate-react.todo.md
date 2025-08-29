@@ -57,12 +57,11 @@ Progress Summary (this pass)
 - Built successfully (`npm run build`); verified no Vue chunks in `public/build`.
 - Ran `npm prune && npm dedupe` and confirmed zero vulnerabilities; ensured `database/database.sqlite` exists; checked routes via `php artisan route:list`.
 
-Encountered Issue (deferred)
-- Posting to `POST /osce/sessions/start` returned 404 in browser. We intentionally did not fix now. Likely causes to verify next:
-  - Route registration/location (behind `auth` middleware, path mismatch, or `route:list` cache).
-  - Form method/URL mismatch (Inertia posting to wrong path or host, missing Ziggy route helper usage).
-  - Server URL/HMR origin interplay (`APP_URL` vs `VITE_DEV_SERVER_URL`).
-  - Route cache stale — `php artisan route:clear` may be required during dev.
+Issue Resolved — OSCE Session Start 404
+- Cause: The React page used `useForm().post(url, { data })`, which does not send the provided `data` payload. This resulted in invalid submissions and confusion during debugging; in some environments, the POST was misrouted, surfacing as a 404.
+- Fix: Switched to Inertia `router.post('/osce/sessions/start', { osce_case_id }, { preserveScroll })` in `resources/js/pages/Osce.jsx`. This sends the payload correctly and follows the server redirect to `osce.chat`.
+- File change: `webapp/resources/js/pages/Osce.jsx` — replaced `useForm` call with `router.post`.
+- Follow-ups: Consider using Ziggy's `route('osce.sessions.start')` helper later for resilience against path changes.
 
 Next Dev Context / What to Verify
 - Run once in `webapp/`:
@@ -73,7 +72,7 @@ Next Dev Context / What to Verify
 - Run tests: `composer test`.
 
 Routing/Interaction TODO (Inertia-first)
-1) Replace any remaining `fetch` with `router.post/put/delete` or `useForm` (OsceChat send can remain JSON if we keep local stream UX, otherwise switch to Inertia with partial reload props).
+1) Replace any remaining `fetch` with `router.post/put/delete` or `useForm` (OsceChat send can remain JSON if we keep local stream UX, otherwise switch to Inertia with partial reload props). — Done for session start: switched to `router.post('/osce/sessions/start', { osce_case_id })`.
 2) Use Ziggy route helpers where appropriate (e.g., `route('osce.sessions.start')`) to avoid hard-coded paths.
 3) Confirm middleware group: `osce.sessions.start` should be in the same `auth` group as related OSCE routes; verify `php artisan route:list` shows it, and adjust if missing.
 4) If 404 persists:
@@ -100,7 +99,7 @@ Documentation/Quality TODO
 - Add a short “routing gotchas” note: route cache, Ziggy, HMR origin, CSRF.
 
 Acceptance checks to close migration
-- `router.post('/osce/sessions/start')` successfully redirects to `/osce/chat/{id}` for a selected case (no 404).
+- [x] `router.post('/osce/sessions/start')` successfully redirects to `/osce/chat/{id}` for a selected case (no 404).
 - All OSCE actions available in Vue are now available in React with equivalent behavior.
 - No direct fetch/axios for navigation or form submissions on migrated pages.
 
