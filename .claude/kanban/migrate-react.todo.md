@@ -57,6 +57,13 @@ Progress Summary (this pass)
 - Built successfully (`npm run build`); verified no Vue chunks in `public/build`.
 - Ran `npm prune && npm dedupe` and confirmed zero vulnerabilities; ensured `database/database.sqlite` exists; checked routes via `php artisan route:list`.
 
+Encountered Issue (deferred)
+- Posting to `POST /osce/sessions/start` returned 404 in browser. We intentionally did not fix now. Likely causes to verify next:
+  - Route registration/location (behind `auth` middleware, path mismatch, or `route:list` cache).
+  - Form method/URL mismatch (Inertia posting to wrong path or host, missing Ziggy route helper usage).
+  - Server URL/HMR origin interplay (`APP_URL` vs `VITE_DEV_SERVER_URL`).
+  - Route cache stale — `php artisan route:clear` may be required during dev.
+
 Next Dev Context / What to Verify
 - Run once in `webapp/`:
   - `npm install` (refresh lock), then `npm prune && npm dedupe`.
@@ -64,6 +71,38 @@ Next Dev Context / What to Verify
   - `composer dev` and visit routes: `/`, `/dashboard`, `/osce`, `/osce/chat/{id}`, `/osce/rationalization/{id}`, `/osce/results/{id}`, `/settings/profile`, `/settings/appearance`.
   - Watch browser console for errors; confirm Inertia resolves React pages; verify chat send, session start, assess trigger, and status polling hit existing controllers.
 - Run tests: `composer test`.
+
+Routing/Interaction TODO (Inertia-first)
+1) Replace any remaining `fetch` with `router.post/put/delete` or `useForm` (OsceChat send can remain JSON if we keep local stream UX, otherwise switch to Inertia with partial reload props).
+2) Use Ziggy route helpers where appropriate (e.g., `route('osce.sessions.start')`) to avoid hard-coded paths.
+3) Confirm middleware group: `osce.sessions.start` should be in the same `auth` group as related OSCE routes; verify `php artisan route:list` shows it, and adjust if missing.
+4) If 404 persists:
+   - Clear route cache: `php artisan route:clear` during dev.
+   - Verify POST path and method in Network tab match route.
+   - Ensure CSRF is present (Inertia handles this automatically).
+5) Consider keeping an API and a web (Inertia) endpoint pair for actions that need JSON vs navigation; document which one the page uses.
+
+Feature Migration Checklist (parity with legacy Vue)
+- OSCE Index/Board (React): case listing, start session CTA, recent sessions state (done; validate UX polish).
+- OSCE Chat (React):
+  - Message send/receive (basic done via JSON; decide if migrate to Inertia partial reload).
+  - Examination catalog UI, actions, and display of findings.
+  - Order tests flow (POST `api/osce/order-tests`), feedback and costs.
+  - Timer controls with server polling (`api/osce/sessions/{id}/timer`), auto-complete on expire.
+- Rationalization (React): display summary + complete action (done; expand UI/notes if existed in Vue).
+- Assessment (React): assess trigger (done via Inertia), status polling (JSON ok), results view (done basic; expand area cards and justification display).
+- Settings (React): Profile (done basic), Appearance (done basic).
+- Remove/replace remaining Vue components used by any active routes (audit `resources/js/components/**` usages with ripgrep and routes/controllers).
+
+Documentation/Quality TODO
+- Ensure CLAUDE.md and AGENTS.md reflect Inertia-first rule (done) and keep examples up-to-date.
+- Update webapp/README.md to mention Inertia React usage patterns and Inertia endpoints vs API endpoints.
+- Add a short “routing gotchas” note: route cache, Ziggy, HMR origin, CSRF.
+
+Acceptance checks to close migration
+- `router.post('/osce/sessions/start')` successfully redirects to `/osce/chat/{id}` for a selected case (no 404).
+- All OSCE actions available in Vue are now available in React with equivalent behavior.
+- No direct fetch/axios for navigation or form submissions on migrated pages.
 
 Known Caveats / Follow-ups
 - Residual Vue components still live under `resources/js/components/**` (not used by React pages). Remove only after confirming no route references them.
