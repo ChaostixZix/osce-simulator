@@ -8,6 +8,7 @@ Scope
 - Keep backend routes, controllers, jobs, and services as-is; only adjust Inertia responses if page component paths change.
 - Maintain Tailwind v4 styling; replace shadcn-vue with Vibe UI KIT React components.
 - Ensure dev workflow remains `composer dev` / `npm run dev` with Vite HMR.
+ - Migrate all legacy Vue functionality to React: every previously working Vue page, component, and OSCE feature (chat, timers, examinations, test ordering, rationalization, assessment views, settings) must be ported to React + Inertia with behavior parity.
 
 Out of Scope
 - Backend data models, migrations, and queue behaviors.
@@ -48,6 +49,7 @@ Acceptance Criteria
 4) `vite.config.ts` only requires React plugin for migrated build; SSR stays disabled.
 5) No Vue runtime errors in console on migrated routes; Vue-only deps can be removed in cleanup.
 6) Dev scripts and `composer dev` continue to run Laravel, queues, logs, and Vite smoothly.
+ 7) Legacy Vue OSCE features are fully migrated and verified (chat flow, ordering APIs, timer gating, rationalization gating, assessment trigger/status/result pages, settings pages).
 
 Phased Migration (High-Level)
 - Phase 0 — Prep: Confirm React boot, align Vite alias, baseline layout.
@@ -66,4 +68,3 @@ Quick Commands
 - Dev: `composer dev` (Laravel, queue, logs, Vite)
 - Frontend: `npm run dev` / `npm run build`
 - Tests: `composer test`
-

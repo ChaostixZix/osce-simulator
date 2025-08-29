@@ -20,6 +20,7 @@ Route::middleware([
 	Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 	
 	Route::get('osce', [App\Http\Controllers\OsceController::class, 'index'])->name('osce');
+	Route::post('osce/sessions/start', [App\Http\Controllers\OsceController::class, 'startSessionInertia'])->name('osce.sessions.start');
 	Route::get('osce/chat/{session}', [App\Http\Controllers\OsceController::class, 'showChat'])->name('osce.chat');
 	Route::get('api/osce/cases', [App\Http\Controllers\OsceController::class, 'getCases']);
 	Route::get('api/osce/sessions', [App\Http\Controllers\OsceController::class, 'getUserSessions']);
@@ -46,6 +47,8 @@ Route::middleware([
 	
 	// OSCE Assessment routes
 	Route::post('api/osce/sessions/{session}/assess', [OsceAssessmentController::class, 'assess'])->name('osce.assess');
+	// Inertia-friendly trigger that redirects back
+	Route::post('osce/sessions/{session}/assess/trigger', [OsceAssessmentController::class, 'assessInertia'])->name('osce.assess.trigger');
 	Route::get('api/osce/sessions/{session}/status', [OsceAssessmentController::class, 'status'])->name('osce.status');
 	Route::get('api/osce/sessions/{session}/results', [OsceAssessmentController::class, 'results'])->name('osce.results');
 	Route::get('osce/results/{session}', [OsceAssessmentController::class, 'show'])->name('osce.results.show');

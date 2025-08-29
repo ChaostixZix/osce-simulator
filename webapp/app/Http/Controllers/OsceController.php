@@ -157,6 +157,36 @@ class OsceController extends Controller
         ]);
     }
 
+    public function startSessionInertia(Request $request)
+    {
+        $request->validate([
+            'osce_case_id' => 'required|exists:osce_cases,id',
+        ]);
+
+        $user = auth()->user();
+
+        $existingSession = OsceSession::where('user_id', $user->id)
+            ->where('osce_case_id', $request->osce_case_id)
+            ->where('status', 'in_progress')
+            ->first();
+
+        if ($existingSession) {
+            return redirect()->route('osce.chat', $existingSession);
+        }
+
+        $session = OsceSession::create([
+            'user_id' => $user->id,
+            'osce_case_id' => $request->osce_case_id,
+            'status' => 'pending',
+        ]);
+
+        $session->started_at = now();
+        $session->status = 'in_progress';
+        $session->save();
+
+        return redirect()->route('osce.chat', $session);
+    }
+
     /**
      * Return the authoritative timer state for a session.
      *
