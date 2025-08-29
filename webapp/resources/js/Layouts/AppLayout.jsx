@@ -1,27 +1,36 @@
 import React from 'react';
 import Breadcrumbs from '@/components/react/Breadcrumbs';
-// import { Card, CardContent, CardHeader, CardTitle } from '@vibe-kanban/ui-kit';
 
 export default function AppLayout({ children, breadcrumbs = [] }) {
     return (
-        <div className="min-h-screen bg-background text-foreground">
-            {/* Simple header */}
-            <header className="border-b border-border bg-card">
+        <div className="relative min-h-screen bg-neutral-950 text-neutral-200 font-mono">
+            {/* subtle grid background */}
+            <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 opacity-[0.07]"
+                style={{
+                    backgroundImage:
+                        "repeating-linear-gradient(0deg, transparent, transparent 23px, #22c55e22 24px), repeating-linear-gradient(90deg, transparent, transparent 23px, #22c55e22 24px)",
+                }}
+            />
+
+            {/* header */}
+            <header className="relative border-b border-neutral-800/80 bg-neutral-950/60 backdrop-blur supports-[backdrop-filter]:bg-neutral-950/40">
                 <div className="max-w-7xl mx-auto px-4 py-4">
-                    <h1 className="text-xl font-semibold">OSCE Application</h1>
+                    <h1 className="text-xl tracking-tight text-emerald-400 lowercase">▌ osce interface ▐</h1>
                 </div>
             </header>
 
-            {/* Breadcrumbs if provided */}
+            {/* breadcrumbs */}
             {breadcrumbs.length > 0 && (
-                <div className="max-w-7xl mx-auto px-4 py-2">
+                <div className="relative max-w-7xl mx-auto px-4 py-2">
                     <Breadcrumbs items={breadcrumbs} />
                 </div>
             )}
 
-            {/* Main content */}
-            <main className="max-w-7xl mx-auto px-4 py-6">
-                <div className="bg-card text-card-foreground border p-6"> {/* Square corners */}
+            {/* main content */}
+            <main className="relative max-w-7xl mx-auto px-4 py-6">
+                <div className="border border-neutral-800 bg-neutral-900/50 p-6">
                     {children}
                 </div>
             </main>
