@@ -36,7 +36,7 @@ Phase 5 — Cleanup & Deps
 
 Verification Checklist
 - [ ] All routes in `webapp/routes/web.php` render React pages without console errors. (Dev verification needed)
-- [ ] No Vue runtime present in prod build (`dist` contains no `vue` chunks). (Requires build)
+- [x] No Vue runtime present in prod build (`dist` contains no `vue` chunks). (Verified via Vite build)
 - [ ] `composer dev` starts server, queue, logs, and Vite without failures. (Manual check)
 - [x] UI components are from Vibe UI KIT; Tailwind styles pass visual smoke check. (Using shimmed `@vibe-kanban/ui-kit` Button)
 - [ ] PHP tests pass: `composer test`. (Pending run)
