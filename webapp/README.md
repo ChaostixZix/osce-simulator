@@ -1,20 +1,24 @@
-# Laravel + Vue Starter Kit
+# Laravel + Inertia Frontend (Vue → React Migration)
 
 ## Introduction
 
-Our Vue starter kit provides a robust, modern starting point for building Laravel applications with a Vue frontend using [Inertia](https://inertiajs.com).
+We are migrating the frontend from Vue 3 to React using Inertia and the Vibe UI KIT. During this transition, existing pages continue to use Vue via Inertia, while new and refactored screens are implemented in React (Inertia React + Vite).
 
-Inertia allows you to build modern, single-page Vue applications using classic server-side routing and controllers. This lets you enjoy the frontend power of Vue combined with the incredible backend productivity of Laravel and lightning-fast Vite compilation.
-
-This Vue starter kit utilizes Vue 3 and the Composition API, TypeScript, Tailwind, and the [shadcn-vue](https://www.shadcn-vue.com) component library.
+For legacy Vue pages, we still use the Composition API, TypeScript, Tailwind, and the [shadcn-vue](https://www.shadcn-vue.com) component library. For new React pages, prefer Vibe UI KIT components and keep styling consistent with Tailwind.
 
 ## Official Documentation
 
-Documentation for all Laravel starter kits can be found on the [Laravel website](https://laravel.com/docs/starter-kits).
+- Laravel: https://laravel.com/docs
+- Inertia.js: https://inertiajs.com
+- React adapter: https://inertiajs.com/client-side-setup (React)
+- Vue adapter: https://inertiajs.com/client-side-setup (Vue)
 
 ## Contributing
 
-Thank you for considering contributing to our starter kit! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+When adding or changing UI:
+- Prefer React + Inertia for new features (Vibe UI KIT components).
+- Keep Vue pages stable; migrate incrementally, page-by-page.
+- Do not mix Vue and React within the same page.
 
 ## Code of Conduct
 
@@ -22,4 +26,4 @@ In order to ensure that the Laravel community is welcoming to all, please review
 
 ## License
 
-The Laravel + Vue starter kit is open-sourced software licensed under the MIT license.
+MIT License

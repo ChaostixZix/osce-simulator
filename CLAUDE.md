@@ -2,33 +2,35 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+Migration notice: The frontend is being migrated from Vue 3 to React using Inertia (React adapter) and the Vibe UI KIT. Legacy pages remain in Vue during the transition. Prefer React for new features; keep Vue pages stable until migrated.
+
 ## Project Overview
 
-This is a Laravel project with a Vue.js frontend using Inertia.js. The main application code is located in the `webapp` directory. It uses TypeScript, Tailwind CSS, and shadcn-vue for UI components.
+This is a Laravel project with an Inertia-powered SPA frontend. The main application code is located in the `webapp` directory. We currently have a mix of Vue (legacy) and React (new) pages. Styling uses Tailwind; UI components are shadcn-vue for legacy and Vibe UI KIT for new React pages.
 
 ## Technology Stack
 
 - **Backend**: Laravel
-- **Frontend**: Vue.js with Inertia.js
+- **Frontend**: Inertia SPA — Vue (legacy), React (in progress) with Vibe UI KIT
 - **Styling**: Tailwind CSS
-- **UI Components**: shadcn-vue
+- **UI Components**: shadcn-vue (legacy), Vibe UI KIT (React)
 - **Language**: TypeScript (frontend), PHP (backend)
 
 ## Common Commands
 
 All commands should be run from the `webapp` directory.
 
-- **`npm run dev`**: Starts the Vite development server for frontend assets.
-- **`npm run build`**: Compiles and bundles frontend assets for production.
-- **`npm run lint`**: Lints the codebase using ESLint and attempts to fix issues.
-- **`npm run format`**: Formats the code using Prettier.
-- **`npm run format:check`**: Checks the formatting without writing changes.
-- **`composer install`**: Installs PHP dependencies.
-- **`php artisan test`**: Runs the PHPUnit tests.
+- `npm run dev`: Starts the Vite development server for frontend assets.
+- `npm run build`: Compiles and bundles frontend assets for production.
+- `npm run lint`: Lints the codebase using ESLint and attempts to fix issues.
+- `npm run format`: Formats the code using Prettier.
+- `npm run format:check`: Checks the formatting without writing changes.
+- `composer install`: Installs PHP dependencies.
+- `php artisan test`: Runs the PHPUnit tests.
 
 ## Architecture
 
-The application follows a standard Laravel structure with Vue.js and Inertia for the frontend.
+The application follows a standard Laravel structure with Inertia for the frontend. Use React + Inertia for new work; Vue + Inertia remains for legacy pages until migrated.
 
 ### Models
 
@@ -99,17 +101,17 @@ alwaysApply: true
   - Use `Inertia.get()`, `Inertia.post()`, `Inertia.put()`, `Inertia.delete()` instead of regular APIs
   - Leverage `Inertia.visit()` for navigation
   - Use `router.visit()` with proper options for form submissions
-  - Always check todos to ensure Inertia architecture is used first before considering alternatives
+  - For new work, prefer the React adapter and Vibe UI KIT; for existing Vue pages, stay within the current Vue structure until migrated.
 
 ## **Component & Page Management**
 
-- **ShadCN Vue is already installed** - Don't reinstall it. Always use existing shadcn components whenever possible. If asked to install a new component, install only that specific component.
+- **Vibe UI KIT (React) is the default for new UI**. shadcn-vue is installed for legacy Vue pages — do not rework unless migrating the page fully to React.
 
 - **New Page Creation Process:**
-  1. Create Vue page in Resources/js/Pages/
-  2. Add page to AppSidebar.vue navigation
-  3. Create corresponding Laravel Controller
-  4. Add routes in web.php with proper Inertia responses
+  1. Create React page in `resources/js/Pages/` (or relevant feature dir) using Inertia React.
+  2. Add navigation entry to the appropriate layout/sidebar.
+  3. Create corresponding Laravel Controller.
+  4. Add routes in `web.php` with proper Inertia responses.
 
 - **Error Handling:**
   - Use Browser Logs (Laravel Boost MCP Tools) to check latest errors
@@ -829,5 +831,4 @@ Use this when asking for a detailed prompt to fix or modify an existing feature.
 -   Replace all placeholders like `{{Feature Name}}` with specific details about the task.
 -   Provide the *actual code* for the "Current Implementation" to give the AI full context.
 -   Be as explicit as possible in the "Specified Approach & Required Changes" section.
-
 

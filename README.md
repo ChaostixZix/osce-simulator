@@ -1,6 +1,8 @@
 # Web-Based OSCE Training Platform
 
-A modern web application for Objective Structured Clinical Examination (OSCE) training, featuring AI-powered patient simulation, community forums, and assessment tools. Built with **Laravel 12** and **Vue 3** via [Inertia.js](https://inertiajs.com).
+A modern web application for Objective Structured Clinical Examination (OSCE) training, featuring AI-powered patient simulation, community forums, and assessment tools.
+
+Migration notice: We are actively migrating the frontend from Vue 3 to React using the Vibe UI KIT. The app currently runs with Vue via Inertia in many areas while new/updated screens are being implemented in React (Inertia React + Vite). Expect mixed frontend stacks during this transition.
 
 ## 🚀 Quick Start
 
@@ -41,6 +43,10 @@ A modern web application for Objective Structured Clinical Examination (OSCE) tr
 
 Visit `http://localhost:8000` to access the application.
 
+Notes during React migration
+- New UI should use React with Inertia React and Vite; legacy pages remain in Vue until migrated.
+- Component library: Vibe UI KIT (React). For legacy Vue pages, shadcn-vue remains in place.
+
 ## 🏥 Features
 
 - **AI Patient Simulation** - Interactive conversations with AI patients powered by Google Gemini
@@ -53,8 +59,8 @@ Visit `http://localhost:8000` to access the application.
 ## 🛠 Technology Stack
 
 - **Backend**: Laravel 12 (PHP 8.2+)
-- **Frontend**: Vue 3 + TypeScript + Inertia.js 2.0
-- **Styling**: Tailwind CSS v4 + shadcn-vue components
+- **Frontend**: Vue 3 + Inertia (current), React + Inertia (in progress) using Vibe UI KIT
+- **Styling**: Tailwind CSS v4; shadcn-vue (legacy), Vibe UI KIT (React)
 - **Testing**: Pest + PHPUnit
 - **Database**: PostgreSQL (production) / SQLite (development)
 
