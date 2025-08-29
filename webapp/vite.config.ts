@@ -39,7 +39,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
         laravel({
             input: ['resources/js/app.jsx'],
-            ssr: 'resources/js/ssr.ts',
+            // ssr: 'resources/js/ssr.ts', // Disabled for React migration
             // Limit refresh paths to app sources to avoid vendor
             refresh: ['resources/views/**', 'resources/js/**', 'routes/**', 'app/**', 'config/**'],
         }),
