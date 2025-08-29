@@ -3,10 +3,9 @@
 @import 'tw-animate-css';
 
 /* Import Vibe Kanban UI Kit tokens */
-/* @import '@vibe-kanban/ui-kit/styles'; */
+@import '@vibe-kanban/ui-kit/styles';
 
-/* Novel Vue styles */
-@import 'novel-vue/dist/style.css';
+/* Removed Novel Vue styles during React migration */
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
