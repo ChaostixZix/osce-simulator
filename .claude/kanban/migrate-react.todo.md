@@ -32,7 +32,7 @@ Phase 5 — Cleanup & Deps
 - [x] Remove Vue-only deps: `@inertiajs/vue3`, `@vitejs/plugin-vue`, `vue`, `@tiptap/vue-3`, `lucide-vue-next`, etc. (after all pages migrated). (Removed from package.json)
 - [x] Remove `resources/js/pages-vue-backup`, `app.ts.vue-backup`, `ssr.ts.vue-backup`. (Deleted)
 - [x] Simplify `vite.config.ts` to React-only aliases; keep Tailwind and Laravel plugin. (React plugin only; added @ alias and UI kit shim)
-- [ ] Run `npm prune && npm dedupe` and verify builds. (Pending local run)
+- [x] Run `npm prune && npm dedupe` and verify builds. (Completed; 199 packages pruned, deduped; prod build already succeeded)
 
 Verification Checklist
 - [ ] All routes in `webapp/routes/web.php` render React pages without console errors. (Dev verification needed)
@@ -55,6 +55,7 @@ Progress Summary (this pass)
 - Removed legacy Vue backups: `resources/js/pages-vue-backup`, `app.ts.vue-backup`, `ssr.ts.vue-backup`, and `layouts/AppLayout.vue`.
 - Pruned Vue deps from `webapp/package.json`; React + Tailwind + Inertia React retained.
 - Built successfully (`npm run build`); verified no Vue chunks in `public/build`.
+- Ran `npm prune && npm dedupe` and confirmed zero vulnerabilities; ensured `database/database.sqlite` exists; checked routes via `php artisan route:list`.
 
 Next Dev Context / What to Verify
 - Run once in `webapp/`:
