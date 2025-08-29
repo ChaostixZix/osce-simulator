@@ -39,7 +39,8 @@ export default function OsceResults({ session, user }) {
             <button
               className="px-4 py-2 border"
               onClick={async () => {
-                const res = await fetch(`/api/osce/sessions/${session.id}/assess`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ force: true }) });
+                const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                const res = await fetch(`/api/osce/sessions/${session.id}/assess`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': csrf ?? '' }, credentials: 'same-origin', body: JSON.stringify({ force: true }) });
                 if (res.ok) alert('Assessment started');
               }}
             >
