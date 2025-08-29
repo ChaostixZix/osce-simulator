@@ -15,7 +15,7 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
   useEffect(() => {
     const loadHistory = async () => {
       try {
-        const res = await fetch(`/api/osce/chat/history/${session.id}`);
+        const res = await fetch(route('osce.chat.history', session.id));
         const data = await res.json();
         if (Array.isArray(data)) setMessages(data);
       } catch (e) {
@@ -30,7 +30,7 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
     setSending(true);
     try {
       const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-      const res = await fetch('/api/osce/chat/message', {
+      const res = await fetch(route('osce.chat.message'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': csrf ?? '' },
         credentials: 'same-origin',
