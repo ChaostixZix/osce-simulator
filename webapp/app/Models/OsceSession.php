@@ -22,6 +22,7 @@ class OsceSession extends Model
         'user_id',
         'osce_case_id',
         'status',
+        'started_at',
         'completed_at',
         'score',
         'max_score',

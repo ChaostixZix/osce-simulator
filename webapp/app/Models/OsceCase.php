@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class OsceCase extends Model
 {
+    use HasFactory;
     protected $fillable = [
         'title',
         'description',
@@ -33,6 +35,9 @@ class OsceCase extends Model
         'setting_limitations',
         'case_budget',
         'test_results_templates',
+        'expected_anamnesis_questions',
+        'red_flags',
+        'common_differentials',
     ];
 
     protected $casts = [
@@ -50,6 +55,9 @@ class OsceCase extends Model
         'required_tests' => 'array',
         'setting_limitations' => 'array',
         'test_results_templates' => 'array',
+        'expected_anamnesis_questions' => 'array',
+        'red_flags' => 'array',
+        'common_differentials' => 'array',
     ];
 
     public function sessions(): HasMany
