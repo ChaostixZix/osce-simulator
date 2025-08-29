@@ -37,6 +37,10 @@ Route::middleware([
 	// OSCE Examination routes (legacy ordering replaced by clinical reasoning system)
 	Route::post('osce/order-procedure', [App\Http\Controllers\OsceController::class, 'orderProcedure'])->name('osce.order-procedure');
 	Route::post('osce/perform-examination', [App\Http\Controllers\OsceController::class, 'performExamination'])->name('osce.perform-examination');
+	
+	// JSON API variants for React (no redirects)
+	Route::post('api/osce/examinations', [App\Http\Controllers\OsceController::class, 'performExaminationJson']);
+	Route::post('api/osce/procedures', [App\Http\Controllers\OsceController::class, 'orderProcedureJson']);
 
 	// Clinical reasoning ordering API
 	Route::post('api/osce/order-tests', [App\Http\Controllers\OsceController::class, 'orderTests']);
@@ -58,6 +62,13 @@ Route::middleware([
 	// OSCE Rationalization (post-session reflection)
 	Route::get('osce/rationalization/{session}', [OsceRationalizationController::class, 'show'])->name('osce.rationalization.show');
 	Route::post('api/osce/sessions/{session}/rationalization/complete', [OsceRationalizationController::class, 'complete'])->name('osce.rationalization.complete');
+	
+	// Rationalization workflow routes
+	Route::post('rationalization/cards/{card}/answer', [App\Http\Controllers\RationalizationController::class, 'answerCard'])->name('rationalization.answer-card');
+	Route::post('rationalization/{rationalization}/diagnoses', [App\Http\Controllers\RationalizationController::class, 'submitDiagnoses'])->name('rationalization.submit-diagnoses');
+	Route::post('rationalization/{rationalization}/care-plan', [App\Http\Controllers\RationalizationController::class, 'submitCarePlan'])->name('rationalization.submit-care-plan');
+	Route::get('rationalization/{rationalization}/progress', [App\Http\Controllers\RationalizationController::class, 'progress'])->name('rationalization.progress');
+	Route::post('rationalization/{rationalization}/complete', [App\Http\Controllers\RationalizationController::class, 'complete'])->name('rationalization.complete');
 	
     // Removed MCQ, Forum, and SOAP routes
 

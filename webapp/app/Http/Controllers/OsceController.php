@@ -620,6 +620,140 @@ class OsceController extends Controller
         }
     }
 
+    /**
+     * JSON variant of performExamination for React
+     */
+    public function performExaminationJson(Request $request)
+    {
+        $request->validate([
+            'session_id' => 'required|exists:osce_sessions,id',
+            'examinations' => 'required|array',
+            'examinations.*.category' => 'required|string',
+            'examinations.*.type' => 'required|string',
+        ]);
+
+        try {
+            $session = OsceSession::with('osceCase')
+                ->where('id', $request->session_id)
+                ->where('user_id', auth()->id())
+                ->firstOrFail();
+
+            // Check if session is active
+            if (! $session->isActive()) {
+                if ($session->is_expired) {
+                    $session->markAsCompleted();
+                }
+
+                return response()->json(['error' => 'Session is not active', 'time_status' => $session->time_status], 400);
+            }
+
+            $examFindings = $session->osceCase->physical_exam_findings ?? [];
+            $createdExaminations = [];
+            $createdCount = 0;
+
+            foreach ($request->examinations as $exam) {
+                $category = $exam['category'];
+                $type = $exam['type'];
+
+                // Check if examination already performed
+                $existingExam = SessionExamination::where('osce_session_id', $session->id)
+                    ->where('examination_category', $category)
+                    ->where('examination_type', $type)
+                    ->first();
+
+                if ($existingExam) {
+                    continue; // Skip already performed examinations
+                }
+
+                // Get findings from template or use safe default
+                $findings = $examFindings[$category][$type] ?? ['No significant findings'];
+
+                // Create examination record
+                $examination = SessionExamination::create([
+                    'osce_session_id' => $session->id,
+                    'examination_category' => $category,
+                    'examination_type' => $type,
+                    'findings' => $findings,
+                    'performed_at' => now(),
+                ]);
+
+                $createdExaminations[] = $examination;
+                $createdCount++;
+            }
+
+            if ($createdCount === 0) {
+                return response()->json(['error' => 'All selected examinations have already been performed'], 400);
+            }
+
+            return response()->json([
+                'message' => 'Examinations performed successfully',
+                'examinations' => $createdExaminations,
+                'session' => $session->fresh(['osceCase', 'orderedTests', 'examinations']),
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to perform examination'], 500);
+        }
+    }
+
+    /**
+     * JSON variant of orderProcedure for React
+     */
+    public function orderProcedureJson(Request $request)
+    {
+        $request->validate([
+            'session_id' => 'required|exists:osce_sessions,id',
+            'procedure_name' => 'required|string',
+        ]);
+
+        try {
+            $session = OsceSession::with('osceCase')
+                ->where('id', $request->session_id)
+                ->where('user_id', auth()->id())
+                ->firstOrFail();
+
+            // Check if session is active
+            if (! $session->isActive()) {
+                if ($session->is_expired) {
+                    $session->markAsCompleted();
+                }
+
+                return response()->json(['error' => 'Session is not active', 'time_status' => $session->time_status], 400);
+            }
+
+            // Check if procedure already ordered
+            $existingProcedure = SessionOrderedTest::where('osce_session_id', $session->id)
+                ->where('test_type', 'procedure')
+                ->where('test_name', $request->procedure_name)
+                ->first();
+
+            if ($existingProcedure) {
+                return response()->json(['error' => 'Procedure already ordered'], 400);
+            }
+
+            // Results are generated asynchronously in the new system; store placeholder
+            $results = ['status' => 'pending'];
+
+            // Create ordered procedure record
+            $procedure = SessionOrderedTest::create([
+                'osce_session_id' => $session->id,
+                'test_type' => 'procedure',
+                'test_name' => $request->procedure_name,
+                'results' => $results,
+                'ordered_at' => now(),
+            ]);
+
+            return response()->json([
+                'message' => 'Procedure ordered successfully',
+                'procedure' => $procedure,
+                'session' => $session->fresh(['osceCase', 'orderedTests', 'examinations']),
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to order procedure'], 500);
+        }
+    }
+
     public function extendSession(OsceSession $session, Request $request)
     {
         $user = auth()->user();

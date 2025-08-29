@@ -52,7 +52,7 @@ class RationalizationController extends Controller
             'evaluations',
         ]);
 
-        return Inertia::render('Rationalization/Show', [
+        return Inertia::render('Rationalization', [
             'session' => $session->load('osceCase'),
             'rationalization' => $rationalization,
             'progress' => $this->rationalizationService->getCompletionProgress($rationalization),
