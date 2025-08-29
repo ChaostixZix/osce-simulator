@@ -1,14 +1,14 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- Primary app: `webapp/` (Laravel + Vue via Inertia). Key dirs: `app/`, `resources/`, `routes/`, `database/`, `public/`, `tests/`.
+- Primary app: `webapp/` (Laravel + Inertia; Vue today, React in migration). Key dirs: `app/`, `resources/`, `routes/`, `database/`, `public/`, `tests/`.
 - Legacy CLI: repository root (Node.js ESM). Entry: `app.js`; helpers: `utils/`; sample data: `cases/`; tests: `test/`.
 - Docs & config: `README.md`, `INTEGRATION_TESTS_SUMMARY.md`, `webapp/GEMINI.md`, `.env.example` (root and `webapp/`). Never commit real secrets.
 
 ## Architecture Overview
-- Layers: Backend (Laravel), Frontend (Vue via Inertia), Data (MySQL/SQLite via Eloquent), and a legacy Node CLI.
+- Layers: Backend (Laravel), Frontend (Inertia SPA — Vue currently, React migration in progress using Vibe UI KIT), Data (MySQL/SQLite via Eloquent), and a legacy Node CLI.
 - Backend: routes in `webapp/routes/web.php` and `webapp/routes/api.php`; controllers in `webapp/app/Http/Controllers`; models in `webapp/app/Models`; jobs/listeners in `webapp/app/Jobs` and `webapp/app/Listeners`.
-- Frontend: Vue pages/components under `webapp/resources/`; assets built with Vite; served through Inertia responses.
+- Frontend: Inertia pages/components under `webapp/resources/`. Legacy pages are Vue; new/refactored pages use React with Vibe UI KIT. Assets built with Vite; served through Inertia responses.
 - Data: migrations in `webapp/database/migrations`; seeders in `webapp/database/seeders`.
 - CLI: independent from the webapp; reads `cases/` and uses `utils/`. Keep it decoupled from Laravel code.
 - Request flow: Browser → Laravel route → Controller returns Inertia view → Vue page mounts. API calls hit `routes/api.php` and return JSON.
@@ -19,14 +19,16 @@
 - Run app: `composer dev` — Laravel, queue, logs, and Vite concurrently. Alt: `php artisan serve` and `npm run dev`.
 - DB: `php artisan migrate` (optionally `--seed`).
 - Webapp tests: `composer test` (Pest/PHPUnit).
-- Frontend build: `npm run dev` (Vite) / `npm run build` (prod).
+- Frontend build: `npm run dev` (Vite) / `npm run build` (prod). For React pages, ensure Inertia React is installed; Vue pages continue to work unchanged.
 - CLI run: `npm start` or `npm run dev`.
 - CLI tests: `npm test` / `npm run test:watch` (Vitest).
 - Utilities: `npm run validate-cases` (check `cases/`), `npm run health` (env sanity check).
 
 ## Coding Style & Naming Conventions
 - PHP: PSR‑12; follow Laravel conventions for Controllers, models, migrations, and routes. Classes use PascalCase.
-- JS/TS: 2‑space indent, ESM modules. Variables/functions camelCase; classes PascalCase. Vue components in `webapp/resources/` use PascalCase filenames.
+- JS/TS: 2‑space indent, ESM modules. Variables/functions camelCase; classes PascalCase.
+- Vue (legacy): components in `webapp/resources/` follow PascalCase filenames.
+- React (new): components/pages in `webapp/resources/` follow PascalCase filenames. Use Vibe UI KIT components where applicable.
 - Lint/format (webapp): `npm run lint`, `npm run format`, `npm run format:check`. Keep imports ordered and Tailwind classes tidy.
 
 ## Testing Guidelines
@@ -45,6 +47,7 @@
 ## Agent Role & Prompt-First Workflow
 
 - Primary role: General coding and problem‑solving in this repo (implement, refactor, debug, test). Prompt building is an opt‑in macro.
+- Frontend direction: Prefer React + Inertia for new work; keep Vue pages stable until migrated. Do not mix Vue and React within a single page.
 - Vibe Kanban: For new‑function work using prompts, create exactly three tasks (Diagnosis, Implementation, Testing) and keep artifacts in sync. Task titles and objective actions must be elaborative, detailed prompts (not short labels).
 - Shared slug: Define a single kebab‑case `<feature-slug>` in Diagnosis and reuse across all agents/files.
 - Filenames (store under `.claude/kanban/`):
@@ -491,3 +494,10 @@ How to use this template
 - Replace placeholders like `{{Module Name}}`, `{{module-path}}`, `{{PrimaryEntity}}`, `{{Record}}`, and `{{form-fields-list}}` with your domain terms.
 - Pick sensible defaults: `{{autosave-interval-seconds}}` (e.g., 10), `{{max-attachment-mb}}` (e.g., 5), and compute `{{max-attachment-kb}} = {{max-attachment-mb}} * 1024`.
 - Keep the module isolated unless integration is explicitly required.
+
+## Vibe Kanban Scripts (project: osce)
+
+- Setup script (osce): Installs deps, creates `webapp/database/database.sqlite`, then runs `php artisan migrate:fresh --force --seed`.
+  - Recommended additions: copy `.env.example` to `.env` if missing, set `DB_CONNECTION=sqlite` and `DB_DATABASE=database/database.sqlite`, run `php artisan key:generate`, and consider `php artisan storage:link`.
+- Dev script (osce): Runs Laravel server, queue listener, logs (pail), and Vite.
+  - Recommended hardening: fall back gracefully if `pail` is not installed; prefer `queue:work --tries=1` for production-like behavior; keep the same port (`8001`) documented.
