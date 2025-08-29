@@ -4,12 +4,12 @@ import AppLayout from '@/Layouts/AppLayout';
 
 export default function OsceRationalization({ session }) {
   const breadcrumbs = [
-    { title: 'OSCE', href: '/osce' },
+    { title: 'OSCE', href: route('osce') },
     { title: 'Rationalization', href: '#' },
   ];
 
   const complete = () => {
-    router.post(`/api/osce/sessions/${session.id}/rationalization/complete`);
+    router.post(route('osce.rationalization.complete', session.id));
   };
 
   return (
@@ -25,4 +25,3 @@ export default function OsceRationalization({ session }) {
     </>
   );
 }
-

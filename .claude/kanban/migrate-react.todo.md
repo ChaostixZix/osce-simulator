@@ -39,6 +39,7 @@ Verification Checklist
 - [x] No Vue runtime present in prod build (`dist` contains no `vue` chunks). (Verified via Vite build)
 - [ ] `composer dev` starts server, queue, logs, and Vite without failures. (Manual check)
 - [x] UI components are from Vibe UI KIT; Tailwind styles pass visual smoke check. (Using shimmed `@vibe-kanban/ui-kit` Button)
+- [x] React pages use Ziggy `route()` for OSCE navigations/mutations (no hard-coded paths for start, assess trigger, OSCE links).
 - [ ] PHP tests pass: `composer test`. (Pending run)
 
 Notes & Tips
@@ -72,14 +73,18 @@ Next Dev Context / What to Verify
 - Run tests: `composer test`.
 
 Routing/Interaction TODO (Inertia-first)
-1) Replace any remaining `fetch` with `router.post/put/delete` or `useForm` (OsceChat send can remain JSON if we keep local stream UX, otherwise switch to Inertia with partial reload props). — Done for session start: switched to `router.post('/osce/sessions/start', { osce_case_id })`.
-2) Use Ziggy route helpers where appropriate (e.g., `route('osce.sessions.start')`) to avoid hard-coded paths.
-3) Confirm middleware group: `osce.sessions.start` should be in the same `auth` group as related OSCE routes; verify `php artisan route:list` shows it, and adjust if missing.
-4) If 404 persists:
-   - Clear route cache: `php artisan route:clear` during dev.
-   - Verify POST path and method in Network tab match route.
-   - Ensure CSRF is present (Inertia handles this automatically).
-5) Consider keeping an API and a web (Inertia) endpoint pair for actions that need JSON vs navigation; document which one the page uses.
+1) Replace any remaining `fetch` with `router.post/put/delete` or `useForm` (OsceChat send can remain JSON if we keep local stream UX, otherwise switch to Inertia with partial reload props). — Done for session start: switched to `router.post(route('osce.sessions.start'), { osce_case_id })`.
+ 2) Standardize Ziggy usage — DONE for OSCE flows and dashboard:
+    - Osce.jsx: start session via `route('osce.sessions.start')`; Links to `osce.chat`, `osce.rationalization.show`, `osce.results.show`; dashboard link uses `route('dashboard')`.
+    - OsceResults.jsx: assess trigger via `route('osce.assess.trigger', session.id)`; back link and breadcrumb use `route('osce')`.
+    - OsceRationalization.jsx: completion via `route('osce.rationalization.complete', session.id)` and breadcrumb `route('osce')`.
+    - Dashboard.jsx: OSCE navigation uses `route('osce')`.
+  3) Confirm middleware group: `osce.sessions.start` should be in the same `auth` group as related OSCE routes; verify `php artisan route:list` shows it, and adjust if missing.
+  4) If 404 persists:
+     - Clear route cache: `php artisan route:clear` during dev.
+     - Verify POST path and method in Network tab match route.
+     - Ensure CSRF is present (Inertia handles this automatically).
+  5) Consider keeping an API and a web (Inertia) endpoint pair for actions that need JSON vs navigation; document which one the page uses.
 
 Feature Migration Checklist (parity with legacy Vue)
 - OSCE Index/Board (React): case listing, start session CTA, recent sessions state (done; validate UX polish).
@@ -97,6 +102,7 @@ Documentation/Quality TODO
 - Ensure CLAUDE.md and AGENTS.md reflect Inertia-first rule (done) and keep examples up-to-date.
 - Update webapp/README.md to mention Inertia React usage patterns and Inertia endpoints vs API endpoints.
 - Add a short “routing gotchas” note: route cache, Ziggy, HMR origin, CSRF.
+- Updated prompt to codify Ziggy usage for all navigations/mutations; avoid hard-coded paths.
 
 Acceptance checks to close migration
 - [x] `router.post('/osce/sessions/start')` successfully redirects to `/osce/chat/{id}` for a selected case (no 404).

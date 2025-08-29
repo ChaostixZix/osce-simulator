@@ -4,7 +4,7 @@ import AppLayout from '@/Layouts/AppLayout';
 
 export default function OsceResults({ session, user }) {
   const breadcrumbs = [
-    { title: 'OSCE', href: '/osce' },
+    { title: 'OSCE', href: route('osce') },
     { title: 'Results', href: '#' },
   ];
 
@@ -38,7 +38,7 @@ export default function OsceResults({ session, user }) {
           <div className="flex gap-2">
             <button
               className="px-4 py-2 border"
-              onClick={() => router.post(`/osce/sessions/${session.id}/assess/trigger`, { force: true }, { preserveScroll: true })}
+              onClick={() => router.post(route('osce.assess.trigger', session.id), { force: true }, { preserveScroll: true })}
             >
               Re/Assess Session
             </button>
@@ -55,7 +55,7 @@ export default function OsceResults({ session, user }) {
           </div>
 
           <div>
-            <Link href="/osce" className="text-sm text-primary">Back to OSCE</Link>
+            <Link href={route('osce')} className="text-sm text-primary">Back to OSCE</Link>
           </div>
         </div>
       </AppLayout>
