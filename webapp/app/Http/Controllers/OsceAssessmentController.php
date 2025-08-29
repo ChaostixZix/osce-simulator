@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\AiAssessorOrchestrator;
 use App\Jobs\AssessOsceSessionJob;
+use App\Models\AiAssessmentRun;
 use App\Models\OsceSession;
 use App\Services\AiAssessorService;
 use Illuminate\Http\Request;
@@ -53,21 +55,85 @@ class OsceAssessmentController extends Controller
             ]);
         }
 
-        // For development, run synchronously; for production, use queue
-        if (app()->environment('local')) {
-            $assessorService = app(AiAssessorService::class);
-            $assessorService->assess($session, $force);
-            $session->refresh();
-        } else {
-            AssessOsceSessionJob::dispatch($session->id, $force);
+        // Check if there's already a running assessment
+        $existingRun = AiAssessmentRun::where('osce_session_id', $session->id)
+            ->where('status', 'in_progress')
+            ->first();
+
+        if ($existingRun && !$force) {
+            return response()->json([
+                'message' => 'Assessment already in progress',
+                'run_id' => $existingRun->id,
+                'status' => 'in_progress',
+                'progress' => $existingRun->progress_percentage,
+            ]);
         }
 
+        // Dispatch the new orchestrator job
+        AiAssessorOrchestrator::dispatch($session->id, $force);
+        
+        // Get the latest assessment run
+        $assessmentRun = AiAssessmentRun::where('osce_session_id', $session->id)
+            ->latest()
+            ->first();
+
         return response()->json([
-            'message' => 'Assessment '.(app()->environment('local') ? 'completed' : 'queued'),
+            'message' => 'Assessment started',
             'session_id' => $session->id,
-            'score' => $session->score,
-            'max_score' => $session->max_score,
-            'assessed_at' => $session->assessed_at?->toISOString(),
+            'run_id' => $assessmentRun->id ?? null,
+            'status' => 'in_progress',
+        ]);
+    }
+
+    /**
+     * Get assessment status/progress for polling
+     */
+    public function status(OsceSession $session)
+    {
+        // Authorization: only session owner
+        if ($session->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized to view assessment status');
+        }
+
+        $assessmentRun = AiAssessmentRun::where('osce_session_id', $session->id)
+            ->latest()
+            ->with('areaResults')
+            ->first();
+
+        if (!$assessmentRun) {
+            return response()->json([
+                'status' => 'not_started',
+                'message' => 'No assessment run found',
+            ]);
+        }
+
+        $areaResults = $assessmentRun->areaResults->map(function ($result) {
+            return [
+                'area' => $result->area_display_name,
+                'key' => $result->clinical_area,
+                'status' => $result->status,
+                'badge_color' => $result->badge_color,
+                'badge_text' => $result->badge_text,
+                'score' => $result->score,
+                'max_score' => $result->max_score,
+                'was_repaired' => $result->was_repaired,
+                'attempts' => $result->attempts,
+            ];
+        });
+
+        return response()->json([
+            'run_id' => $assessmentRun->id,
+            'status' => $assessmentRun->status,
+            'progress' => $assessmentRun->progress_percentage,
+            'total_score' => $assessmentRun->total_score,
+            'max_possible_score' => $assessmentRun->max_possible_score,
+            'has_fallbacks' => $assessmentRun->has_fallbacks,
+            'completed_areas' => $assessmentRun->completed_areas,
+            'total_areas' => $assessmentRun->total_areas,
+            'area_results' => $areaResults,
+            'started_at' => $assessmentRun->started_at?->toISOString(),
+            'completed_at' => $assessmentRun->completed_at?->toISOString(),
+            'error_message' => $assessmentRun->error_message,
         ]);
     }
 
@@ -90,13 +156,38 @@ class OsceAssessmentController extends Controller
             ], 403);
         }
 
-        if (!$session->assessed_at) {
+        // Check if there's a completed assessment run
+        $assessmentRun = AiAssessmentRun::where('osce_session_id', $session->id)
+            ->where('status', 'completed')
+            ->latest()
+            ->first();
 
+        if (!$assessmentRun && !$session->assessed_at) {
             return response()->json([
                 'error' => 'Session has not been assessed yet',
             ], 404);
         }
 
+        // If we have a new assessment run, use that data
+        if ($assessmentRun) {
+            return response()->json([
+                'session_id' => $session->id,
+                'run_id' => $assessmentRun->id,
+                'score' => $assessmentRun->total_score,
+                'max_score' => $assessmentRun->max_possible_score,
+                'assessed_at' => $assessmentRun->completed_at->toISOString(),
+                'assessor_model' => config('services.gemini.model', 'gemini-2.5-flash'),
+                'assessment_type' => 'detailed_clinical_areas_assessment',
+                'assessor_output' => $assessmentRun->final_result,
+                'case_title' => $session->osceCase->title ?? 'Unknown Case',
+                'user_name' => $session->user->name ?? 'Unknown User',
+                'completed_at' => $session->completed_at?->toISOString(),
+                'has_fallbacks' => $assessmentRun->has_fallbacks,
+                'telemetry' => $assessmentRun->telemetry,
+            ]);
+        }
+
+        // Fallback to legacy assessment data
         return response()->json([
             'session_id' => $session->id,
             'score' => $session->score,
@@ -132,8 +223,15 @@ class OsceAssessmentController extends Controller
         // Load necessary relationships
         $session->load(['osceCase', 'user']);
 
-        // Check if assessed
-        if (! $session->assessed_at) {
+        // Check for new assessment run first
+        $assessmentRun = AiAssessmentRun::where('osce_session_id', $session->id)
+            ->where('status', 'completed')
+            ->latest()
+            ->with('areaResults')
+            ->first();
+
+        // Check if assessed (either new or legacy)
+        if (!$assessmentRun && !$session->assessed_at) {
             return Inertia::render('OsceResult', [
                 'session' => [
                     'id' => $session->id,
@@ -175,15 +273,52 @@ class OsceAssessmentController extends Controller
         }
 
         // Prepare assessment data for frontend
-        $assessmentData = [
-            'score' => $session->score,
-            'max_score' => $session->max_score,
-            'percentage' => $session->max_score > 0 ? round(($session->score / $session->max_score) * 100, 1) : 0,
-            'assessed_at' => $session->assessed_at->toISOString(),
-            'assessor_model' => $session->assessor_model,
-            'assessment_type' => $session->assessor_output['assessment_type'] ?? 'session_assessment',
-            'output' => $session->assessor_output,
-        ];
+        if ($assessmentRun) {
+            // Use new assessment run data
+            $areaResults = $assessmentRun->areaResults->map(function ($result) {
+                return [
+                    'area' => $result->area_display_name,
+                    'key' => $result->clinical_area,
+                    'status' => $result->status,
+                    'badge_color' => $result->badge_color,
+                    'badge_text' => $result->badge_text,
+                    'score' => $result->score,
+                    'max_score' => $result->max_score,
+                    'justification' => $result->justification,
+                    'was_repaired' => $result->was_repaired,
+                    'attempts' => $result->attempts,
+                ];
+            });
+
+            $assessmentData = [
+                'run_id' => $assessmentRun->id,
+                'score' => $assessmentRun->total_score,
+                'max_score' => $assessmentRun->max_possible_score,
+                'percentage' => $assessmentRun->max_possible_score > 0 ? 
+                    round(($assessmentRun->total_score / $assessmentRun->max_possible_score) * 100, 1) : 0,
+                'assessed_at' => $assessmentRun->completed_at->toISOString(),
+                'assessor_model' => config('services.gemini.model', 'gemini-2.5-flash'),
+                'assessment_type' => 'detailed_clinical_areas_assessment',
+                'output' => $assessmentRun->final_result,
+                'has_fallbacks' => $assessmentRun->has_fallbacks,
+                'area_results' => $areaResults,
+                'telemetry' => $assessmentRun->telemetry,
+                'processing_time' => $assessmentRun->completed_at->diffInSeconds($assessmentRun->started_at),
+            ];
+        } else {
+            // Use legacy assessment data
+            $assessmentData = [
+                'score' => $session->score,
+                'max_score' => $session->max_score,
+                'percentage' => $session->max_score > 0 ? round(($session->score / $session->max_score) * 100, 1) : 0,
+                'assessed_at' => $session->assessed_at->toISOString(),
+                'assessor_model' => $session->assessor_model,
+                'assessment_type' => $session->assessor_output['assessment_type'] ?? 'session_assessment',
+                'output' => $session->assessor_output,
+                'has_fallbacks' => false,
+                'is_legacy' => true,
+            ];
+        }
 
         return Inertia::render('OsceResult', [
             'session' => [
