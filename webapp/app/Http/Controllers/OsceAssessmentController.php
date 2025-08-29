@@ -86,6 +86,16 @@ class OsceAssessmentController extends Controller
     }
 
     /**
+     * Inertia-friendly trigger that redirects back instead of returning JSON.
+     */
+    public function assessInertia(Request $request, OsceSession $session)
+    {
+        // Reuse the same validation/authorization and dispatch logic
+        $this->assess($request, $session);
+        return back()->with('info', 'Assessment started');
+    }
+
+    /**
      * Get assessment status/progress for polling
      */
     public function status(OsceSession $session)

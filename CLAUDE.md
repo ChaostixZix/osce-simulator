@@ -85,11 +85,25 @@ Route files are located in `webapp/routes`.
   - Capture API integration details and configurations
   - Record testing patterns and best practices
 
-- **Always use Inertia.js Architecture whenever possible:**
-  - Use `Inertia.get()`, `Inertia.post()`, `Inertia.put()`, `Inertia.delete()` instead of regular APIs
-  - Leverage `Inertia.visit()` for navigation
-  - Use `router.visit()` with proper options for form submissions
-  - For new work, prefer the React adapter and Vibe UI KIT; for existing Vue pages, stay within the current Vue structure until migrated.
+- **Always use Inertia React router/useForm for client interactions (no raw fetch):**
+  - For navigations: use `<Link>` or `router.visit(url, opts)` from `@inertiajs/react`.
+  - For mutations (POST/PUT/PATCH/DELETE): use `router.post/put/patch/delete` or `useForm` — do not use `fetch`/`axios` directly.
+  - CSRF is automatically handled by Inertia; avoid manual CSRF header plumbing.
+  - Only call plain JSON APIs directly when rendering JSON on-screen without navigation. Prefer `router.reload({ only: [...] })` for partial reloads.
+  - Example (useForm):
+    ```jsx
+    import { useForm, router } from '@inertiajs/react'
+    const { data, setData, post, processing, reset } = useForm({ osce_case_id: id })
+    const start = () => post('/api/osce/sessions/start', { onSuccess: () => router.visit(`/osce/chat/${route().params.id}`) })
+    ```
+  - Example (router.post):
+    ```jsx
+    import { router } from '@inertiajs/react'
+    router.post(`/api/osce/sessions/${sessionId}/assess`, { force: true }, { preserveScroll: true })
+    ```
+  - For file uploads use `useForm` with `transform` to send `FormData`.
+
+- **Inertia first:** For new work, prefer the React adapter + Vibe UI KIT; keep legacy Vue pages stable until migrated.
 
 ## **Component & Page Management**
 

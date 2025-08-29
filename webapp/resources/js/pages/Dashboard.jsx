@@ -1,6 +1,7 @@
 import React from 'react';
 import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
+import { Button } from '@vibe-kanban/ui-kit';
 
 export default function Dashboard({ stats, welcome }) {
     const breadcrumbs = [
@@ -109,6 +110,9 @@ export default function Dashboard({ stats, welcome }) {
                                 <span className="font-medium">Start OSCE</span>
                                 <span className="text-xs text-muted-foreground">Practice clinical skills</span>
                             </button>
+                            <div className="flex items-center">
+                                <Button onClick={() => router.visit('/settings/appearance')} variant="outline">UI Kit Check</Button>
+                            </div>
                         </div>
                     </div>
                 </div>
