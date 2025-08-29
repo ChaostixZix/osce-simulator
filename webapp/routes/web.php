@@ -29,10 +29,10 @@ Route::middleware([
 	Route::post('api/osce/sessions/{session}/complete', [App\Http\Controllers\OsceController::class, 'completeSession']);
 	Route::post('api/osce/sessions/{session}/extend', [App\Http\Controllers\OsceController::class, 'extendSession']);
 	
-	// OSCE Chat routes
-	Route::post('api/osce/chat/start', [App\Http\Controllers\OsceChatController::class, 'startChat']);
-	Route::post('api/osce/chat/message', [App\Http\Controllers\OsceChatController::class, 'sendMessage']);
-	Route::get('api/osce/chat/history/{session}', [App\Http\Controllers\OsceChatController::class, 'getChatHistory']);
+	// OSCE Chat routes (named for Ziggy)
+	Route::post('api/osce/chat/start', [App\Http\Controllers\OsceChatController::class, 'startChat'])->name('osce.chat.start');
+	Route::post('api/osce/chat/message', [App\Http\Controllers\OsceChatController::class, 'sendMessage'])->name('osce.chat.message');
+	Route::get('api/osce/chat/history/{session}', [App\Http\Controllers\OsceChatController::class, 'getChatHistory'])->name('osce.chat.history');
 	
 	// OSCE Examination routes (legacy ordering replaced by clinical reasoning system)
 	Route::post('osce/order-procedure', [App\Http\Controllers\OsceController::class, 'orderProcedure'])->name('osce.order-procedure');

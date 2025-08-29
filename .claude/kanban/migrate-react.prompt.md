@@ -31,7 +31,8 @@ Key Files & References
 - Inertia controllers: under `webapp/app/Http/Controllers/*` (e.g., `OsceController`, `OsceAssessmentController`, `LandingController`, `DashboardController`)
 
 Constraints
-- Use Inertia React (`@inertiajs/react`) for navigation and forms; avoid raw fetch.
+- Use Inertia React (`@inertiajs/react`) for navigation and forms; avoid raw fetch for navigations/mutations.
+- Use Ziggy for routes: build all SPA URLs with `route(name, params)` (provided by `@routes` in `app.blade.php`); avoid hard-coded paths in React pages.
 - Use Vibe UI KIT React components; keep Tailwind classes tidy.
 - Do not mix Vue and React within a page. Full-page swaps only.
 - Keep ports consistent: Laravel 8001, Vite 5173 (configurable via `.env`).
@@ -46,6 +47,7 @@ Acceptance Criteria
 1) App boots via React entry (`resources/js/app.jsx`) and all targeted pages render using React components.
 2) Navigation, forms, and state behave the same as legacy pages with Inertia React.
 3) New UI uses Vibe UI KIT components; Tailwind styles consistent; no shadcn-vue usage on migrated pages.
+4) React pages use Ziggy `route()` for URL generation (no hard-coded paths for migrated flows).
 4) `vite.config.ts` only requires React plugin for migrated build; SSR stays disabled.
 5) No Vue runtime errors in console on migrated routes; Vue-only deps can be removed in cleanup.
 6) Dev scripts and `composer dev` continue to run Laravel, queues, logs, and Vite smoothly.

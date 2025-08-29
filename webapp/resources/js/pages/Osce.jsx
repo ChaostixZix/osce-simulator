@@ -1,22 +1,21 @@
 import React, { useState } from 'react';
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Button } from '@vibe-kanban/ui-kit';
 
 export default function Osce({ cases = [], userSessions = [], user }) {
   const [startingId, setStartingId] = useState(null);
-  const { post } = useForm({});
 
   const startSession = (osce_case_id) => {
     setStartingId(osce_case_id);
-    post('/osce/sessions/start', {
-      data: { osce_case_id },
+    // Use Ziggy-named route to avoid hard-coded paths
+    router.post(route('osce.sessions.start'), { osce_case_id }, {
       preserveScroll: true,
       onFinish: () => setStartingId(null),
     });
   };
 
-  const breadcrumbs = [{ title: 'OSCE', href: '/osce' }];
+  const breadcrumbs = [{ title: 'OSCE', href: route('osce') }];
 
   return (
     <>
@@ -25,7 +24,7 @@ export default function Osce({ cases = [], userSessions = [], user }) {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">Welcome, {user?.name || 'Student'}</h2>
-            <Link href="/dashboard" className="text-sm text-muted-foreground">Back to Dashboard</Link>
+            <Link href={route('dashboard')} className="text-sm text-muted-foreground">Back to Dashboard</Link>
           </div>
 
           <div>
@@ -57,11 +56,11 @@ export default function Osce({ cases = [], userSessions = [], user }) {
                   </div>
                   <div className="flex gap-2">
                     {s.status !== 'completed' ? (
-                      <Link className="text-sm text-primary" href={`/osce/chat/${s.id}`}>Resume</Link>
+                      <Link className="text-sm text-primary" href={route('osce.chat', s.id)}>Resume</Link>
                     ) : s.canRationalize ? (
-                      <Link className="text-sm text-primary" href={`/osce/rationalization/${s.id}`}>Rationalize</Link>
+                      <Link className="text-sm text-primary" href={route('osce.rationalization.show', s.id)}>Rationalize</Link>
                     ) : s.canViewResults ? (
-                      <Link className="text-sm text-primary" href={`/osce/results/${s.id}`}>View Results</Link>
+                      <Link className="text-sm text-primary" href={route('osce.results.show', s.id)}>View Results</Link>
                     ) : null}
                   </div>
                 </div>
