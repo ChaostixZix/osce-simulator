@@ -16,7 +16,7 @@ export default function Dashboard({ stats, welcome }) {
             title: 'OSCE Cases',
             value: stats?.osce_cases_active || 0,
             emoji: '🩺',
-            route: '/osce',
+            route: route('osce'),
             description: 'Active cases available',
             clickable: true
         },
@@ -30,9 +30,9 @@ export default function Dashboard({ stats, welcome }) {
         }
     ];
 
-    const navigateToRoute = (route, clickable = true) => {
-        if (clickable && route !== '#') {
-            router.visit(route);
+    const navigateToRoute = (href, clickable = true) => {
+        if (clickable && href !== '#') {
+            router.visit(href);
         }
     };
 
@@ -104,7 +104,7 @@ export default function Dashboard({ stats, welcome }) {
                         <div className="grid md:grid-cols-3 gap-4">
                             <button 
                                 className="h-auto p-4 flex flex-col gap-2 hover:bg-primary/10 border border-input bg-background hover:bg-accent hover:text-accent-foreground"
-                                onClick={() => router.visit('/osce')}
+                                onClick={() => router.visit(route('osce'))}
                             >
                                 <span className="text-xl">🩺</span>
                                 <span className="font-medium">Start OSCE</span>

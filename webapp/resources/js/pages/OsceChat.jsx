@@ -8,8 +8,8 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
   const [sending, setSending] = useState(false);
 
   const breadcrumbs = [
-    { title: 'OSCE', href: '/osce' },
-    { title: `Session #${session?.id}`, href: `/osce/chat/${session?.id}` }
+    { title: 'OSCE', href: route('osce') },
+    { title: `Session #${session?.id}`, href: route('osce.chat', session?.id) }
   ];
 
   useEffect(() => {
