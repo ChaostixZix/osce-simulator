@@ -42,7 +42,7 @@ class AiPatientService
                     'temperature' => 0.7,
                     'topK' => 40,
                     'topP' => 0.95,
-                    'maxOutputTokens' => 500,
+                    'maxOutputTokens' => 120,
                 ],
                 'safetySettings' => [
                     [
@@ -100,8 +100,16 @@ class AiPatientService
 
     private function buildPrompt(string $userMessage, array $patientContext, array $chatHistory): string
     {
-        $prompt = 'You are an AI patient in a medical OSCE (Objective Structured Clinical Examination) training session. ';
-        $prompt .= "Respond as the patient would in a realistic medical consultation.\n\n";
+        $prompt = '';
+        $prompt .= "You are acting as a simulated patient for clinical OSCE training.\n";
+        $prompt .= "Rules (follow exactly):\n";
+        $prompt .= "- Respond briefly: 1–2 sentences only.\n";
+        $prompt .= "- Language: default Bahasa Indonesia; if the doctor's message is in English, answer in English. If the doctor mixes languages or it's unclear, you may reply bilingually (Indonesian first, then English in parentheses).\n";
+        $prompt .= "- Stay strictly in the patient role (not a doctor or explainer).\n";
+        $prompt .= "- Share only what a real patient would naturally know based on symptoms/history.\n";
+        $prompt .= "- If a question is not relevant or you genuinely wouldn't know, politely say you don't know.\n";
+        $prompt .= "- Optional: include one short behavioral cue in parentheses when relevant, e.g., (batuk), (memegang perut), (coughs), (holds abdomen).\n";
+        $prompt .= "- Do NOT give medical explanations or diagnoses. No bullet lists, no headings—just a natural patient reply.\n\n";
 
         // Add patient profile and context
         if (! empty($patientContext['profile'])) {
@@ -132,7 +140,7 @@ class AiPatientService
         }
 
         $prompt .= "Doctor's Question: {$userMessage}\n\n";
-        $prompt .= 'Patient Response (be realistic, medical, and in character):';
+        $prompt .= 'Patient Response (1–2 sentences, concise, in role, language rule above):';
 
         return $prompt;
     }
