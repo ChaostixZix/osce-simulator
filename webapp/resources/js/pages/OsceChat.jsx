@@ -20,6 +20,8 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [resultsLoading, setResultsLoading] = useState(false);
   const [orderedTestsView, setOrderedTestsView] = useState(() => (session?.ordered_tests || session?.orderedTests || []));
+  const [nowTick, setNowTick] = useState(Date.now());
+  const refreshGuardRef = useRef(false);
   const messagesRef = useRef(null);
 
   // Order Tests: tabs, categories, available tests
@@ -341,11 +343,13 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
     const ra = t.results_available_at || t.resultsAvailableAt;
     if (!ra) return null;
     try {
-      const now = Date.now();
+      const now = nowTick; // use ticking state to force rerender
       const at = new Date(ra).getTime();
-      const diffMin = Math.max(0, Math.round((at - now) / 60000));
-      if (diffMin === 0) return 'ready any moment';
-      return `${diffMin} min`; 
+      const diffMs = Math.max(0, at - now);
+      const s = Math.floor(diffMs / 1000);
+      const mm = String(Math.floor(s / 60)).padStart(2, '0');
+      const ss = String(s % 60).padStart(2, '0');
+      return s <= 0 ? 'ready any moment' : `${mm}:${ss}`;
     } catch {
       return null;
     }
@@ -357,6 +361,33 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
       setOrderedTestsView(session?.ordered_tests || session?.orderedTests || []);
     }
   }, [showResultsModal, session?.ordered_tests, session?.orderedTests]);
+
+  // While results modal is open, tick every second to update countdowns.
+  useEffect(() => {
+    if (!showResultsModal) return;
+    const id = setInterval(() => setNowTick(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [showResultsModal]);
+
+  // Auto-refresh once when any countdown crosses to zero
+  useEffect(() => {
+    if (!showResultsModal) return;
+    try {
+      const anyPending = (orderedTestsView || []).some(t => {
+        const ra = t.results_available_at || t.resultsAvailableAt;
+        if (!ra || t?.results?.status) return false;
+        const at = new Date(ra).getTime();
+        return (at - nowTick) <= 0;
+      });
+      if (anyPending && !refreshGuardRef.current) {
+        refreshGuardRef.current = true;
+        refreshResults().finally(() => {
+          // allow another auto-refresh after a small delay to avoid spam
+          setTimeout(() => { refreshGuardRef.current = false; }, 3000);
+        });
+      }
+    } catch {}
+  }, [nowTick, showResultsModal, orderedTestsView]);
 
   // Auto-scroll to bottom on new messages or when AI starts/stops typing
   useEffect(() => {
@@ -627,9 +658,19 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
                   <div className="text-xs text-slate-600">Type: {t.test_type || t.testType || '-'}</div>
                   <div className="mt-2 text-sm flex items-center gap-2">
                     <span className="font-medium">Status:</span>
-                    <span>{t.results?.status || 'pending'}</span>
-                    {!t.results?.status && etaText(t) && (
-                      <span className="text-xs text-slate-500">ETA: {etaText(t)}</span>
+                    {!t.results?.status ? (
+                      <span className="inline-flex items-center gap-2 text-slate-600">
+                        <span className="relative inline-flex">
+                          <span className="animate-ping inline-flex h-2 w-2 rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="absolute inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                        </span>
+                        pending
+                        {etaText(t) && (
+                          <span className="ml-2 text-xs text-slate-500">{etaText(t)}</span>
+                        )}
+                      </span>
+                    ) : (
+                      <span>{t.results?.status}</span>
                     )}
                   </div>
                   {t.results?.message && (
