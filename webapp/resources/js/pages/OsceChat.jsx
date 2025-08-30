@@ -9,6 +9,9 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
   const [sending, setSending] = useState(false);
   const [aiTyping, setAiTyping] = useState(false);
   const [timerData, setTimerData] = useState(null);
+  const [localRemaining, setLocalRemaining] = useState(null);
+  const [timerStatus, setTimerStatus] = useState('active');
+  const [timerTicking, setTimerTicking] = useState(false);
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [showExamModal, setShowExamModal] = useState(false);
   const [testSearchQuery, setTestSearchQuery] = useState('');
@@ -20,6 +23,7 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [resultsLoading, setResultsLoading] = useState(false);
   const [orderedTestsView, setOrderedTestsView] = useState(() => (session?.ordered_tests || session?.orderedTests || []));
+  const [hasLoadedResults, setHasLoadedResults] = useState(false);
   const [nowTick, setNowTick] = useState(Date.now());
   const refreshGuardRef = useRef(false);
   const messagesRef = useRef(null);
@@ -63,6 +67,8 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
         const data = await res.json();
         if (!res.ok) throw new Error();
         setTimerData(data);
+        setLocalRemaining(typeof data?.remaining_seconds === 'number' ? data.remaining_seconds : null);
+        setTimerStatus(data?.time_status || 'active');
       } catch (e) {
         console.warn('Failed to load timer');
       }
@@ -73,6 +79,24 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
     const timerInterval = setInterval(loadTimer, 30000);
     return () => clearInterval(timerInterval);
   }, [session?.id]);
+
+  // Local ticking for session timer (per second) to provide smooth countdown between polls
+  useEffect(() => {
+    if (!localRemaining || timerStatus !== 'active') {
+      setTimerTicking(false);
+      return;
+    }
+    setTimerTicking(true);
+    const id = setInterval(() => {
+      setLocalRemaining((prev) => {
+        if (typeof prev !== 'number') return prev;
+        const next = Math.max(0, prev - 1);
+        if (next === 0) setTimerStatus('expired');
+        return next;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [localRemaining, timerStatus]);
 
   const sendMessage = async () => {
     if (!input.trim()) return;
@@ -314,7 +338,9 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
   };
 
   const openResults = () => {
-    setOrderedTestsView(session?.ordered_tests || session?.orderedTests || []);
+    // Only initialize from server session data if we don't already have a cached view
+    const fresh = session?.ordered_tests || session?.orderedTests || [];
+    setOrderedTestsView((prev) => (Array.isArray(prev) && prev.length > 0 ? prev : fresh));
     setShowResultsModal(true);
   };
 
@@ -330,7 +356,9 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
       const data = await res.json();
       if (res.ok) {
         // Prefer ordered_tests from response; fall back to session.orderedTests
-        setOrderedTestsView(data?.ordered_tests || data?.session?.ordered_tests || data?.session?.orderedTests || []);
+        const updated = data?.ordered_tests || data?.session?.ordered_tests || data?.session?.orderedTests || [];
+        setOrderedTestsView(updated);
+        setHasLoadedResults(true);
       }
     } catch (e) {
       console.warn('Failed to refresh results');
@@ -355,11 +383,21 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
     }
   };
 
-  // Keep modal data in sync when session updates while modal is open
+  // Keep modal data in sync when session updates while modal is open, but do not clobber cached loaded results
   useEffect(() => {
-    if (showResultsModal) {
-      setOrderedTestsView(session?.ordered_tests || session?.orderedTests || []);
-    }
+    if (!showResultsModal) return;
+    const fresh = session?.ordered_tests || session?.orderedTests || [];
+    setOrderedTestsView((prev) => {
+      if (!Array.isArray(prev) || prev.length === 0) return fresh;
+      // Merge new items without overwriting existing results data
+      const key = (t) => `${t.id || t.test_id || t.medical_test_id || (t.test_name || t.testName || 'test')}_${t.ordered_at || t.orderedAt || t.created_at || t.createdAt || ''}`;
+      const map = new Map(prev.map((t) => [key(t), t]));
+      for (const t of fresh) {
+        const k = key(t);
+        if (!map.has(k)) map.set(k, t);
+      }
+      return Array.from(map.values());
+    });
   }, [showResultsModal, session?.ordered_tests, session?.orderedTests]);
 
   // While results modal is open, tick every second to update countdowns.
@@ -412,6 +450,37 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
           {/* Left Sidebar */}
           <div className="lg:col-span-1 flex flex-col h-full min-h-0">
             <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+              {/* Session Timer */}
+              <div className="border rounded-lg p-4 space-y-3">
+                <h3 className="font-semibold text-lg">Session Timer</h3>
+                <div className="space-y-2 text-sm">
+                  {(() => {
+                    const total = (timerData?.duration_minutes || session?.osce_case?.duration_minutes || 0) * 60;
+                    const remaining = typeof localRemaining === 'number' ? localRemaining : (timerData?.remaining_seconds ?? null);
+                    const elapsed = typeof remaining === 'number' ? Math.max(0, total - remaining) : null;
+                    const pct = total > 0 && typeof elapsed === 'number' ? Math.min(100, Math.round((elapsed / total) * 1000) / 10) : 0;
+                    const seconds = typeof remaining === 'number' ? Math.max(0, Math.floor(remaining)) : null;
+                    const mm = seconds !== null ? String(Math.floor(seconds / 60)).padStart(2, '0') : '--';
+                    const ss = seconds !== null ? String(seconds % 60).padStart(2, '0') : '--';
+                    const status = timerStatus || timerData?.time_status || session?.time_status || 'active';
+                    const barColor = status === 'completed' ? 'bg-emerald-500' : status === 'expired' ? 'bg-red-500' : 'bg-blue-500';
+                    return (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <div className="text-xs text-slate-600 dark:text-slate-400">Remaining</div>
+                          <div className="text-xs text-slate-600 dark:text-slate-400">{pct}%</div>
+                        </div>
+                        <div className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded overflow-hidden">
+                          <div className={`h-2 ${barColor} transition-all`} style={{ width: `${pct}%` }} />
+                        </div>
+                        <div className="text-sm font-mono">
+                          {mm}:{ss} {status === 'expired' ? '(expired)' : status === 'completed' ? '(completed)' : ''}
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
               {/* Case Overview */}
               <div className="border rounded-lg p-4 space-y-3">
                 <h3 className="font-semibold text-lg">Case Overview</h3>
@@ -645,6 +714,24 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
             </>
           )}
         >
+          {/* Overall progress bar for results readiness */}
+          {(() => {
+            const total = (orderedTestsView || []).length;
+            const ready = (orderedTestsView || []).filter(t => t?.results?.status).length;
+            const pct = total > 0 ? Math.round((ready / total) * 100) : 0;
+            return (
+              <div className="mb-4">
+                <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
+                  <div>Results Ready: {ready}/{total}</div>
+                  <div>{pct}%</div>
+                </div>
+                <div className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded overflow-hidden">
+                  <div className="h-2 bg-emerald-500 transition-all" style={{ width: `${pct}%` }} />
+                </div>
+              </div>
+            );
+          })()}
+
           <div className="max-h-[60vh] overflow-y-auto space-y-4">
             {orderedTestsView.length === 0 ? (
               <div className="text-sm text-slate-500">Belum ada test diorder.</div>
@@ -656,6 +743,39 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
                     <div className="text-xs text-slate-500">{formatDate(t.ordered_at || t.orderedAt || t.created_at || t.createdAt)}</div>
                   </div>
                   <div className="text-xs text-slate-600">Type: {t.test_type || t.testType || '-'}</div>
+                  {/* Per-test progress towards results availability */}
+                  {(() => {
+                    const ra = t.results_available_at || t.resultsAvailableAt;
+                    const orderedAt = t.ordered_at || t.orderedAt || t.created_at || t.createdAt;
+                    const turnaroundMin = t.turnaround_minutes || t.turnaroundMinutes || 0;
+                    let pct = 0;
+                    try {
+                      if (t?.results?.status) {
+                        pct = 100;
+                      } else if (ra) {
+                        const now = nowTick;
+                        const end = new Date(ra).getTime();
+                        const start = orderedAt ? new Date(orderedAt).getTime() : end - turnaroundMin * 60000;
+                        const total = Math.max(1, end - start);
+                        const done = Math.min(total, Math.max(0, now - start));
+                        pct = Math.max(0, Math.min(100, Math.round((done / total) * 100)));
+                      } else if (turnaroundMin && orderedAt) {
+                        const now = nowTick;
+                        const start = new Date(orderedAt).getTime();
+                        const end = start + turnaroundMin * 60000;
+                        const total = Math.max(1, end - start);
+                        const done = Math.min(total, Math.max(0, now - start));
+                        pct = Math.max(0, Math.min(100, Math.round((done / total) * 100)));
+                      }
+                    } catch {}
+                    return (
+                      <div className="mt-2">
+                        <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded overflow-hidden">
+                          <div className={`h-1.5 ${t?.results?.status ? 'bg-emerald-500' : 'bg-blue-500'} transition-all`} style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })()}
                   <div className="mt-2 text-sm flex items-center gap-2">
                     <span className="font-medium">Status:</span>
                     {!t.results?.status ? (
