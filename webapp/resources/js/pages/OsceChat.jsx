@@ -27,6 +27,16 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
   const [nowTick, setNowTick] = useState(Date.now());
   const refreshGuardRef = useRef(false);
   const messagesRef = useRef(null);
+  
+  // Add state for expandable results
+  const [expandedResults, setExpandedResults] = useState({});
+  
+  const toggleResultExpansion = (testId) => {
+    setExpandedResults(prev => ({
+      ...prev,
+      [testId]: !prev[testId]
+    }));
+  };
 
   // Order Tests: tabs, categories, available tests
   const [activeType, setActiveType] = useState('lab'); // 'lab' | 'imaging' | 'procedure' | 'physical_exam'
@@ -756,78 +766,135 @@ const refreshResults = async () => {
             {orderedTestsView.length === 0 ? (
               <div className="text-sm text-slate-500">Belum ada test diorder.</div>
             ) : (
-              orderedTestsView.map((t, idx) => (
-                <div key={idx} className="p-4 border rounded-lg">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="font-mono font-semibold text-sm">{t.test_name || t.testName}</div>
-                    <div className="text-xs text-slate-500">{formatDate(t.ordered_at || t.orderedAt || t.created_at || t.createdAt)}</div>
-                  </div>
-                  <div className="text-xs text-slate-600">Type: {t.test_type || t.testType || '-'}</div>
-                  {/* Per-test progress towards results availability */}
-                  {(() => {
-                    const ra = t.results_available_at || t.resultsAvailableAt;
-                    const orderedAt = t.ordered_at || t.orderedAt || t.created_at || t.createdAt;
-                    const turnaroundMin = t.turnaround_minutes || t.turnaroundMinutes || 0;
-                    let pct = 0;
-                    try {
-                      if (t?.results?.status) {
-                        pct = 100;
-                      } else if (ra) {
-                        const now = nowTick;
-                        const end = new Date(ra).getTime();
-                        const start = orderedAt ? new Date(orderedAt).getTime() : end - turnaroundMin * 60000;
-                        const total = Math.max(1, end - start);
-                        const done = Math.min(total, Math.max(0, now - start));
-                        pct = Math.max(0, Math.min(100, Math.round((done / total) * 100)));
-                      } else if (turnaroundMin && orderedAt) {
-                        const now = nowTick;
-                        const start = new Date(orderedAt).getTime();
-                        const end = start + turnaroundMin * 60000;
-                        const total = Math.max(1, end - start);
-                        const done = Math.min(total, Math.max(0, now - start));
-                        pct = Math.max(0, Math.min(100, Math.round((done / total) * 100)));
-                      }
-                    } catch {}
-                    return (
-                      <div className="mt-2">
-                        <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded overflow-hidden">
-                          <div className={`h-1.5 ${t?.results?.status ? 'bg-emerald-500' : 'bg-blue-500'} transition-all`} style={{ width: `${pct}%` }} />
-                        </div>
-                      </div>
-                    );
-                  })()}
-                  <div className="mt-2 text-sm flex items-center gap-2">
-                    <span className="font-medium">Status:</span>
-                    {!t.results?.status ? (
-                      <span className="inline-flex items-center gap-2 text-slate-600">
-                        <span className="relative inline-flex">
-                          <span className="animate-ping inline-flex h-2 w-2 rounded-full bg-emerald-400 opacity-75"></span>
-                          <span className="absolute inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
-                        </span>
-                        pending
-                        {etaText(t) && (
-                          <span className="ml-2 text-xs text-slate-500">{etaText(t)}</span>
-                        )}
-                      </span>
-                    ) : (
-                      <span>{t.results?.status}</span>
-                    )}
-                  </div>
-                  {t.results?.message && (
-                    <div className="mt-1 text-xs text-slate-600">{t.results.message}</div>
-                  )}
-                  {Array.isArray(t.results?.values) && t.results.values.length > 0 && (
-                    <div className="mt-2">
-                      <div className="text-xs font-medium mb-1">Values:</div>
-                      <ul className="pl-4 list-disc text-xs text-slate-700">
-                        {t.results.values.map((v, i) => (
-                          <li key={i}>{typeof v === 'string' ? v : JSON.stringify(v)}</li>
-                        ))}
-                      </ul>
+              orderedTestsView.map((t, idx) => {
+                const testId = t.id || idx;
+                const isExpanded = expandedResults[testId];
+
+                return (
+                  <div key={testId} className="p-4 border rounded-lg transition-all duration-300">
+                    <div className="flex items-center justify-between">
+                      <div className="font-mono font-semibold text-sm">{t.test_name || t.testName}</div>
+                      <button onClick={() => toggleResultExpansion(testId)} className="text-sm text-blue-500">
+                        {isExpanded ? 'Collapse' : 'Expand'}
+                      </button>
                     </div>
-                  )}
-                </div>
-              ))
+                    <div className="text-xs text-slate-500">{formatDate(t.ordered_at || t.orderedAt)}</div>
+                    
+                    {/* Per-test progress towards results availability */}
+                    {(() => {
+                      const ra = t.results_available_at || t.resultsAvailableAt;
+                      const orderedAt = t.ordered_at || t.orderedAt || t.created_at || t.createdAt;
+                      const turnaroundMin = t.turnaround_minutes || t.turnaroundMinutes || 0;
+                      let pct = 0;
+                      try {
+                        if (t?.results?.status) {
+                          pct = 100;
+                        } else if (ra) {
+                          const now = nowTick;
+                          const end = new Date(ra).getTime();
+                          const start = orderedAt ? new Date(orderedAt).getTime() : end - turnaroundMin * 60000;
+                          const total = Math.max(1, end - start);
+                          const done = Math.min(total, Math.max(0, now - start));
+                          pct = Math.max(0, Math.min(100, Math.round((done / total) * 100)));
+                        } else if (turnaroundMin && orderedAt) {
+                          const now = nowTick;
+                          const start = new Date(orderedAt).getTime();
+                          const end = start + turnaroundMin * 60000;
+                          const total = Math.max(1, end - start);
+                          const done = Math.min(total, Math.max(0, now - start));
+                          pct = Math.max(0, Math.min(100, Math.round((done / total) * 100)));
+                        }
+                      } catch {}
+                      return (
+                        <div className="mt-2">
+                          <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded overflow-hidden">
+                            <div className={`h-1.5 ${t?.results?.status ? 'bg-emerald-500' : 'bg-blue-500'} transition-all`} style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    
+                    <div className="mt-2 text-sm flex items-center gap-2">
+                      <span className="font-medium">Status:</span>
+                      {!t.results?.status ? (
+                        <span className="inline-flex items-center gap-2 text-slate-600">
+                          <span className="relative inline-flex">
+                            <span className="animate-ping inline-flex h-2 w-2 rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="absolute inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                          </span>
+                          pending
+                          {etaText(t) && (
+                            <span className="ml-2 text-xs text-slate-500">{etaText(t)}</span>
+                          )}
+                        </span>
+                      ) : (
+                        <span>{t.results?.status}</span>
+                      )}
+                    </div>
+                    
+                    {/* Expandable Content */}
+                    <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-96 mt-2' : 'max-h-0'}`}>
+                      <div className="pt-2 border-t">
+                        <div className="text-xs text-slate-600">Type: {t.test_type || t.testType || '-'}</div>
+                        
+                        {/* Display message or interpretation */}
+                        {(t.results?.message || t.results?.interpretation) && (
+                          <div className="mt-1 text-sm text-slate-600">
+                            {t.results.message || t.results.interpretation}
+                          </div>
+                        )}
+                        
+                        {/* Display clinical significance if available */}
+                        {t.results?.clinical_significance && (
+                          <div className="mt-2">
+                            <div className="text-xs font-medium mb-1 text-red-600">Clinical Significance:</div>
+                            <p className="text-xs text-red-700 font-medium">{t.results.clinical_significance}</p>
+                          </div>
+                        )}
+                        
+                        {/* Display findings if available */}
+                        {t.results?.findings && typeof t.results.findings === 'object' && (
+                          <div className="mt-2">
+                            <div className="text-xs font-medium mb-1">Findings:</div>
+                            <ul className="pl-4 list-disc text-xs text-slate-700">
+                              {Object.entries(t.results.findings).map(([key, value], i) => (
+                                <li key={i}><span className="font-medium">{key}:</span> {value}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        
+                        {/* Display values array if available (original format) */}
+                        {Array.isArray(t.results?.values) && t.results.values.length > 0 ? (
+                          <div className="mt-2">
+                            <div className="text-xs font-medium mb-1">Values:</div>
+                            <ul className="pl-4 list-disc text-xs text-slate-700">
+                              {t.results.values.map((v, i) => (
+                                <li key={i}>
+                                  {typeof v === 'object' && v.name ? 
+                                    `${v.name}: ${v.value} ${v.unit || ''} ${v.flag ? `(${v.flag})` : ''}` :
+                                    (typeof v === 'string' ? v : JSON.stringify(v))
+                                  }
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : (!t.results?.findings && !t.results?.message && !t.results?.interpretation) && (
+                          <div className="text-xs text-slate-500 mt-2">No detailed results available.</div>
+                        )}
+                        
+                        {/* Display interpretation separately if it wasn't already shown as message */}
+                        {t.results?.interpretation && t.results?.message && t.results.interpretation !== t.results.message && (
+                          <div className="mt-2">
+                            <div className="text-xs font-medium mb-1">Interpretation:</div>
+                            <p className="text-xs text-slate-700">{t.results.interpretation}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
         </Modal>
