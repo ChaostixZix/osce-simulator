@@ -6,10 +6,11 @@ use App\Models\OsceSession;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Http\RedirectResponse;
 
 class OsceRationalizationController extends Controller
 {
-    public function show(OsceSession $session): Response
+    public function show(OsceSession $session): Response|RedirectResponse
     {
         // Authorization: only session owner
         if ($session->user_id !== Auth::id()) {
@@ -57,4 +58,3 @@ class OsceRationalizationController extends Controller
             ->with('success', 'Rasionalisasi selesai. Hasil penilaian tersedia.');
     }
 }
-

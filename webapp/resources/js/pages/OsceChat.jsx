@@ -17,6 +17,9 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
   const [selectedExams, setSelectedExams] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [showResultsModal, setShowResultsModal] = useState(false);
+  const [resultsLoading, setResultsLoading] = useState(false);
+  const [orderedTestsView, setOrderedTestsView] = useState(() => (session?.ordered_tests || session?.orderedTests || []));
   const messagesRef = useRef(null);
 
   const breadcrumbs = [
@@ -222,6 +225,68 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
     ) : null
   ), [aiTyping]);
 
+  const formatDate = (value) => {
+    try {
+      const d = new Date(value);
+      const pad = (n) => String(n).padStart(2, '0');
+      const dd = pad(d.getDate());
+      const mm = pad(d.getMonth() + 1);
+      const yyyy = d.getFullYear();
+      const hh = pad(d.getHours());
+      const min = pad(d.getMinutes());
+      return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+    } catch {
+      return '-';
+    }
+  };
+
+  const openResults = () => {
+    setOrderedTestsView(session?.ordered_tests || session?.orderedTests || []);
+    setShowResultsModal(true);
+  };
+
+  const refreshResults = async () => {
+    try {
+      setResultsLoading(true);
+      const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+      const res = await fetch(`/api/osce/refresh-results/${session.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': csrf ?? '' },
+        credentials: 'same-origin'
+      });
+      const data = await res.json();
+      if (res.ok) {
+        // Prefer ordered_tests from response; fall back to session.orderedTests
+        setOrderedTestsView(data?.ordered_tests || data?.session?.ordered_tests || data?.session?.orderedTests || []);
+      }
+    } catch (e) {
+      console.warn('Failed to refresh results');
+    } finally {
+      setResultsLoading(false);
+    }
+  };
+
+  const etaText = (t) => {
+    const ra = t.results_available_at || t.resultsAvailableAt;
+    if (!ra) return null;
+    try {
+      const now = Date.now();
+      const at = new Date(ra).getTime();
+      const diffMin = Math.max(0, Math.round((at - now) / 60000));
+      if (diffMin === 0) return 'ready any moment';
+      return `${diffMin} min`; 
+    } catch {
+      return null;
+    }
+  };
+
+  // Keep modal data in sync when session updates while modal is open
+  useEffect(() => {
+    if (showResultsModal) {
+      setOrderedTestsView(session?.ordered_tests || session?.orderedTests || []);
+    }
+  }, [showResultsModal, session?.ordered_tests, session?.orderedTests]);
+
   // Auto-scroll to bottom on new messages or when AI starts/stops typing
   useEffect(() => {
     try {
@@ -263,6 +328,47 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
                 <div>Total Cost: ${session?.total_test_cost ?? 0}</div>
                 <div>Tests Ordered: {session?.ordered_tests?.length ?? 0}</div>
                 <div>Exams Done: {session?.examinations?.length ?? 0}</div>
+              </div>
+            </div>
+
+            {/* View Results (Ordered Tests by date) */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <h3 className="font-semibold">View Results</h3>
+              <div className="space-y-2 text-sm">
+                {(session?.ordered_tests || session?.orderedTests || []).length === 0 ? (
+                  <div className="text-slate-500">Belum ada test diorder.</div>
+                ) : (
+                  <ul className="divide-y">
+                    {(session?.ordered_tests || session?.orderedTests || []).map((t, idx) => (
+                      <li key={idx} className="py-2">
+                        <div className="flex flex-col">
+                          <span className="text-xs text-slate-500">
+                            {(() => {
+                              try {
+                                const d = new Date(t.ordered_at || t.orderedAt || t.created_at || t.createdAt);
+                                const pad = (n) => String(n).padStart(2, '0');
+                                const dd = pad(d.getDate());
+                                const mm = pad(d.getMonth() + 1);
+                                const yyyy = d.getFullYear();
+                                const hh = pad(d.getHours());
+                                const min = pad(d.getMinutes());
+                                return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+                              } catch {
+                                return '-';
+                              }
+                            })()}
+                          </span>
+                          <span className="font-medium">{t.test_name || t.testName}</span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="pt-2">
+                  <button onClick={openResults} className="text-sm text-emerald-600 hover:text-emerald-500">
+                    Buka hasil lengkap
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -405,6 +511,68 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
                 </div>
               </div>
             ))}
+          </div>
+        </Modal>
+        
+        {/* Ordered Tests / Results Modal */}
+        <Modal
+          open={showResultsModal}
+          onClose={() => setShowResultsModal(false)}
+          title="Ordered Tests"
+          size="xl"
+          footer={(
+            <>
+              <button 
+                onClick={() => setShowResultsModal(false)} 
+                className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono text-sm tracking-wide transition-all duration-200 border-l-4 border-slate-400 dark:border-slate-500"
+              >
+                CLOSE
+              </button>
+              <div className="flex-1" />
+              <button
+                onClick={refreshResults}
+                disabled={resultsLoading}
+                className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 disabled:from-slate-400 disabled:to-slate-500 text-white font-mono text-sm tracking-wide transition-all duration-200 border-l-4 border-emerald-400 disabled:border-slate-400 shadow-lg shadow-emerald-500/25 disabled:shadow-none"
+              >
+                {resultsLoading ? 'REFRESHING…' : 'REFRESH RESULTS'}
+              </button>
+            </>
+          )}
+        >
+          <div className="max-h-[60vh] overflow-y-auto space-y-4">
+            {orderedTestsView.length === 0 ? (
+              <div className="text-sm text-slate-500">Belum ada test diorder.</div>
+            ) : (
+              orderedTestsView.map((t, idx) => (
+                <div key={idx} className="p-4 border rounded-lg">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="font-mono font-semibold text-sm">{t.test_name || t.testName}</div>
+                    <div className="text-xs text-slate-500">{formatDate(t.ordered_at || t.orderedAt || t.created_at || t.createdAt)}</div>
+                  </div>
+                  <div className="text-xs text-slate-600">Type: {t.test_type || t.testType || '-'}</div>
+                  <div className="mt-2 text-sm flex items-center gap-2">
+                    <span className="font-medium">Status:</span>
+                    <span>{t.results?.status || 'pending'}</span>
+                    {!t.results?.status && etaText(t) && (
+                      <span className="text-xs text-slate-500">ETA: {etaText(t)}</span>
+                    )}
+                  </div>
+                  {t.results?.message && (
+                    <div className="mt-1 text-xs text-slate-600">{t.results.message}</div>
+                  )}
+                  {Array.isArray(t.results?.values) && t.results.values.length > 0 && (
+                    <div className="mt-2">
+                      <div className="text-xs font-medium mb-1">Values:</div>
+                      <ul className="pl-4 list-disc text-xs text-slate-700">
+                        {t.results.values.map((v, i) => (
+                          <li key={i}>{typeof v === 'string' ? v : JSON.stringify(v)}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
           </div>
         </Modal>
 
