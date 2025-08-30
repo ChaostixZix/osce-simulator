@@ -108,6 +108,12 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
     return () => clearInterval(id);
   }, [localRemaining, timerStatus]);
 
+  // Update orderedTestsView when session prop changes (after refresh)
+  useEffect(() => {
+    const freshOrderedTests = session?.ordered_tests || session?.orderedTests || [];
+    setOrderedTestsView(freshOrderedTests);
+  }, [session?.ordered_tests, session?.orderedTests]);
+
   const sendMessage = async () => {
     if (!input.trim()) return;
     setSending(true);
