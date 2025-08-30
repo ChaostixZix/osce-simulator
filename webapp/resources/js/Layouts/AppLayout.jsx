@@ -21,16 +21,14 @@ export default function AppLayout({ children, breadcrumbs = [] }) {
                 </div>
             </header>
 
-            {/* breadcrumbs */}
-            {breadcrumbs.length > 0 && (
-                <div className="relative max-w-7xl mx-auto px-4 py-2">
-                    <Breadcrumbs items={breadcrumbs} />
-                </div>
-            )}
-
             {/* main content */}
             <main className="relative max-w-7xl mx-auto px-4 py-6 flex-1 flex min-h-0">
                 <div className="border border-neutral-800 bg-neutral-900/50 p-6 flex-1 flex flex-col min-h-0">
+                    {breadcrumbs.length > 0 && (
+                        <div className="mb-4">
+                            <Breadcrumbs items={breadcrumbs} />
+                        </div>
+                    )}
                     {/* children can stretch to full height */}
                     <div className="flex-1 min-h-0">{children}</div>
                 </div>

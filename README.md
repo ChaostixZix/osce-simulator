@@ -14,6 +14,10 @@ Notes during React migration
 - **OSCE Case Library** - Clinical cases with structured objectives and difficulty levels
 - **Session Tracking** - Progress monitoring and performance analytics
 
+## 📸 Screenshot
+
+![Application Screenshot](./application-screenshot.png)
+
 ## 🛠 Technology Stack
 
 - **Backend**: Laravel 12 (PHP 8.2+)

@@ -13,7 +13,7 @@ export default function Breadcrumbs({ items = [] }) {
 
   return (
     <nav aria-label="Breadcrumb" className="text-sm text-muted-foreground">
-      <ol className="flex flex-wrap items-center gap-1">
+      <ol className="flex flex-wrap items-center justify-start gap-1">
         {items.map((item, index) => {
           const isLast = index === items.length - 1;
           return (
@@ -21,11 +21,11 @@ export default function Breadcrumbs({ items = [] }) {
               {index > 0 && <li className="px-1 text-muted-foreground/70">/</li>}
               <li>
                 {isLast || !item.href ? (
-                  <span aria-current={isLast ? 'page' : undefined} className={isLast ? 'font-medium text-foreground' : ''}>
+                  <span aria-current={isLast ? 'page' : undefined} className={isLast ? 'font-medium text-neutral-100' : ''}>
                     {item.title}
                   </span>
                 ) : (
-                  <Link href={item.href} className="hover:text-foreground underline-offset-4 hover:underline">
+                  <Link href={item.href} className="hover:text-neutral-100 underline-offset-4 hover:underline">
                     {item.title}
                   </Link>
                 )}
@@ -37,4 +37,3 @@ export default function Breadcrumbs({ items = [] }) {
     </nav>
   );
 }
-

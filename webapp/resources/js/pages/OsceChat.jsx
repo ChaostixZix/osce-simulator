@@ -271,16 +271,22 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
               <button
                 onClick={() => setShowExamModal(true)}
                 disabled={!isSessionActive}
-                className="w-full px-4 py-2 border rounded disabled:opacity-50"
+                className="w-full px-4 py-3 bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 hover:from-emerald-500/20 hover:to-cyan-500/20 border-2 border-emerald-400/30 hover:border-emerald-400/50 disabled:from-slate-300/10 disabled:to-slate-400/10 disabled:border-slate-400/30 text-slate-700 dark:text-slate-300 disabled:text-slate-500 font-mono text-sm tracking-wide transition-all duration-200 disabled:cursor-not-allowed"
+                style={{
+                  clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))'
+                }}
               >
-                Physical Exam
+                PHYSICAL EXAM
               </button>
               <button
                 onClick={() => setShowOrderModal(true)}
                 disabled={!isSessionActive}
-                className="w-full px-4 py-2 border rounded disabled:opacity-50"
+                className="w-full px-4 py-3 bg-gradient-to-r from-blue-500/10 to-purple-500/10 hover:from-blue-500/20 hover:to-purple-500/20 border-2 border-blue-400/30 hover:border-blue-400/50 disabled:from-slate-300/10 disabled:to-slate-400/10 disabled:border-slate-400/30 text-slate-700 dark:text-slate-300 disabled:text-slate-500 font-mono text-sm tracking-wide transition-all duration-200 disabled:cursor-not-allowed"
+                style={{
+                  clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))'
+                }}
               >
-                Order Tests
+                ORDER TESTS
               </button>
             </div>
           </div>
@@ -325,34 +331,74 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
           size="xl"
           footer={(
             <>
-              <button onClick={() => setShowExamModal(false)} className="px-4 py-2 border rounded">Close</button>
+              <button 
+                onClick={() => setShowExamModal(false)} 
+                className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono text-sm tracking-wide transition-all duration-200 border-l-4 border-slate-400 dark:border-slate-500"
+              >
+                CANCEL
+              </button>
               <div className="flex-1" />
               <button
                 onClick={performExaminations}
                 disabled={selectedExams.length === 0 || !isSessionActive}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded disabled:opacity-50"
+                className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 disabled:from-slate-400 disabled:to-slate-500 text-white font-mono text-sm tracking-wide transition-all duration-200 border-l-4 border-emerald-400 disabled:border-slate-400 shadow-lg shadow-emerald-500/25 disabled:shadow-none"
               >
-                Perform {selectedExams.length > 0 ? `${selectedExams.length} Selected` : 'Selected'}
+                PERFORM [{selectedExams.length}] EXAM{selectedExams.length !== 1 ? 'S' : ''}
               </button>
             </>
           )}
         >
-          <div className="space-y-4">
+          <div className="space-y-6">
             {Object.entries(examCatalog).map(([category, types]) => (
-              <div key={category} className="space-y-2">
-                <div className="font-medium capitalize">{category}</div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <div key={category} className="space-y-3">
+                <div className="flex items-center gap-3 pb-2 border-b border-slate-200/30 dark:border-slate-700/50">
+                  <div className="w-1 h-4 bg-gradient-to-b from-cyan-400 to-emerald-400" />
+                  <div className="font-mono font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-widest text-sm">
+                    {category}
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {types.map((type) => {
                     const checked = selectedExams.some(e => e.category === category && e.type === type);
                     return (
-                      <label key={`${category}-${type}`} className="flex items-center gap-2 text-sm border p-2 rounded">
+                      <label 
+                        key={`${category}-${type}`} 
+                        className={`group relative flex items-center gap-3 p-4 cursor-pointer transition-all duration-200 border-l-2 ${
+                          checked 
+                            ? 'bg-gradient-to-r from-emerald-50 to-cyan-50 dark:from-emerald-950/30 dark:to-cyan-950/30 border-emerald-400 shadow-md shadow-emerald-500/10' 
+                            : 'bg-slate-50/50 hover:bg-slate-100/50 dark:bg-slate-900/30 dark:hover:bg-slate-800/50 border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500'
+                        }`}
+                        style={{
+                          clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%)'
+                        }}
+                      >
                         <input
                           type="checkbox"
                           checked={checked}
                           onChange={() => toggleExamSelection(category, type)}
-                          className="rounded"
+                          className="hidden"
                         />
-                        <span className="capitalize">{type.replace('_', ' ')}</span>
+                        <div className={`relative w-4 h-4 border-2 transition-all duration-200 ${
+                          checked 
+                            ? 'bg-emerald-400 border-emerald-400' 
+                            : 'border-slate-400 dark:border-slate-500 group-hover:border-slate-500 dark:group-hover:border-slate-400'
+                        }`} style={{ clipPath: 'polygon(0 0, calc(100% - 2px) 0, 100% 2px, 100% 100%, 2px 100%, 0 calc(100% - 2px))' }}>
+                          {checked && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                        <span className="font-mono text-sm text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+                          {type.replace('_', ' ')}
+                        </span>
+                        {checked && (
+                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                            <div className="w-2 h-2 bg-emerald-400 rounded-full shadow-lg shadow-emerald-400/50 animate-pulse" />
+                          </div>
+                        )}
                       </label>
                     );
                   })}
@@ -363,7 +409,6 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
         </Modal>
 
         {/* Order Tests Modal */}
-        {/* Order Tests Modal (shared) */}
         <Modal
           open={showOrderModal}
           onClose={() => setShowOrderModal(false)}
@@ -371,43 +416,75 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
           size="xl"
           footer={(
             <>
-              <button onClick={() => setShowOrderModal(false)} className="px-4 py-2 border rounded">Cancel</button>
+              <button 
+                onClick={() => setShowOrderModal(false)} 
+                className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono text-sm tracking-wide transition-all duration-200 border-l-4 border-slate-400 dark:border-slate-500"
+              >
+                CANCEL
+              </button>
               <div className="flex-1" />
               <button
                 onClick={submitOrders}
                 disabled={!canSubmitOrders || isSubmitting}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded disabled:opacity-50"
+                className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 disabled:from-slate-400 disabled:to-slate-500 text-white font-mono text-sm tracking-wide transition-all duration-200 border-l-4 border-blue-400 disabled:border-slate-400 shadow-lg shadow-blue-500/25 disabled:shadow-none"
               >
-                {isSubmitting ? 'Ordering...' : `Order ${selectedTests.length} Test${selectedTests.length > 1 ? 's' : ''}`}
+                {isSubmitting ? 'ORDERING...' : `ORDER [${selectedTests.length}] TEST${selectedTests.length !== 1 ? 'S' : ''}`}
               </button>
             </>
           )}
         >
           {/* Search Section */}
-          <div className="mb-4">
-            <input
-              type="text"
-              placeholder="Search tests... (e.g. 'troponin', 'ecg', 'chest x-ray')"
-              value={testSearchQuery}
-              onChange={(e) => setTestSearchQuery(e.target.value)}
-              className="w-full border px-3 py-2 rounded"
-            />
+          <div className="mb-6">
+            <div className="relative">
+              <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
+                <div className="w-2 h-2 bg-blue-400 rounded-full shadow-lg shadow-blue-400/50" />
+              </div>
+              <input
+                type="text"
+                placeholder="SEARCH TESTS // e.g. 'troponin', 'ecg', 'chest x-ray'"
+                value={testSearchQuery}
+                onChange={(e) => setTestSearchQuery(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-slate-900/50 border-2 border-slate-200 dark:border-slate-700 focus:border-blue-400 dark:focus:border-blue-400 pl-10 pr-4 py-3 font-mono text-sm text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 transition-all duration-200"
+                style={{
+                  clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))'
+                }}
+              />
+            </div>
             {searchResults.length > 0 && (
-              <div className="mt-2 space-y-1 max-h-40 overflow-y-auto">
+              <div className="mt-4 space-y-2 max-h-48 overflow-y-auto">
                 {searchResults.map(test => (
-                  <div key={test.id} className="p-2 border rounded flex items-center justify-between">
-                    <div>
-                      <div className="font-medium">{test.name}</div>
-                      <div className="text-xs text-gray-500">{test.category} • {test.type}</div>
-                      <div className="text-xs text-gray-500">${test.cost}</div>
+                  <div 
+                    key={test.id} 
+                    className="group relative p-4 bg-slate-50/50 hover:bg-slate-100/50 dark:bg-slate-900/30 dark:hover:bg-slate-800/50 border-l-2 border-slate-300 dark:border-slate-600 hover:border-blue-400 dark:hover:border-blue-400 transition-all duration-200"
+                    style={{
+                      clipPath: 'polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 0 100%)'
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <div className="font-mono font-semibold text-slate-900 dark:text-slate-100 text-sm uppercase tracking-wide">{test.name}</div>
+                        <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 font-mono">
+                          <span className="px-2 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-xs">{test.category}</span>
+                          <span>•</span>
+                          <span>{test.type}</span>
+                        </div>
+                        <div className="text-xs font-mono text-blue-600 dark:text-blue-400 font-semibold">${test.cost}</div>
+                      </div>
+                      <button
+                        onClick={() => selectTest(test)}
+                        disabled={selectedTests.some(t => t.id === test.id)}
+                        className={`px-4 py-2 font-mono text-xs tracking-wide transition-all duration-200 ${
+                          selectedTests.some(t => t.id === test.id)
+                            ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-l-2 border-emerald-400'
+                            : 'bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-800/50 text-blue-700 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 border-l-2 border-blue-400 hover:border-blue-500'
+                        }`}
+                        style={{
+                          clipPath: 'polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 0 100%)'
+                        }}
+                      >
+                        {selectedTests.some(t => t.id === test.id) ? 'SELECTED' : 'SELECT'}
+                      </button>
                     </div>
-                    <button
-                      onClick={() => selectTest(test)}
-                      disabled={selectedTests.some(t => t.id === test.id)}
-                      className="px-3 py-1 text-sm border rounded disabled:opacity-50"
-                    >
-                      {selectedTests.some(t => t.id === test.id) ? 'Selected' : 'Select'}
-                    </button>
                   </div>
                 ))}
               </div>
@@ -416,67 +493,107 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
 
           {/* Selected Tests */}
           {selectedTests.length > 0 && (
-            <div className="space-y-3">
-              <h4 className="font-medium">Selected Tests ({selectedTests.length})</h4>
-              <div className="space-y-3 max-h-60 overflow-y-auto">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 pb-2 border-b border-slate-200/30 dark:border-slate-700/50">
+                <div className="w-1 h-4 bg-gradient-to-b from-blue-400 to-purple-400" />
+                <h4 className="font-mono font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-widest text-sm">
+                  Selected Tests [{selectedTests.length}]
+                </h4>
+              </div>
+              <div className="space-y-4 max-h-72 overflow-y-auto">
                 {selectedTests.map(test => (
-                  <div key={test.id} className="p-3 rounded border space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="font-medium">{test.name}</div>
+                  <div 
+                    key={test.id} 
+                    className="relative p-4 bg-gradient-to-r from-slate-50/80 to-blue-50/30 dark:from-slate-900/50 dark:to-blue-950/30 border-l-2 border-blue-400 shadow-md shadow-blue-500/10"
+                    style={{
+                      clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%)'
+                    }}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="font-mono font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wide text-sm">{test.name}</div>
                       <button
                         onClick={() => removeTest(test.id)}
-                        className="px-2 py-1 text-sm border rounded"
+                        className="px-3 py-1.5 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-800/50 text-red-700 dark:text-red-400 font-mono text-xs tracking-wide transition-all duration-200 border-l-2 border-red-400"
+                        style={{
+                          clipPath: 'polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 0 100%)'
+                        }}
                       >
-                        Remove
+                        REMOVE
                       </button>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      <textarea
-                        value={test.clinicalReasoning}
-                        onChange={(e) => {
-                          const updated = selectedTests.map(t => 
-                            t.id === test.id ? { ...t, clinicalReasoning: e.target.value } : t
-                          );
-                          setSelectedTests(updated);
-                        }}
-                        placeholder="Clinical reasoning (min 20 chars)"
-                        rows="3"
-                        className="border px-2 py-1 rounded"
-                      />
-                      <select
-                        value={test.priority}
-                        onChange={(e) => {
-                          const updated = selectedTests.map(t => 
-                            t.id === test.id ? { ...t, priority: e.target.value } : t
-                          );
-                          setSelectedTests(updated);
-                        }}
-                        className="border px-2 py-1 rounded"
-                      >
-                        <option value="">Select Priority</option>
-                        <option value="immediate">Immediate</option>
-                        <option value="urgent">Urgent</option>
-                        <option value="routine">Routine</option>
-                      </select>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="block text-xs font-mono font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-widest">
+                          Clinical Reasoning
+                        </label>
+                        <textarea
+                          value={test.clinicalReasoning}
+                          onChange={(e) => {
+                            const updated = selectedTests.map(t => 
+                              t.id === test.id ? { ...t, clinicalReasoning: e.target.value } : t
+                            );
+                            setSelectedTests(updated);
+                          }}
+                          placeholder="Clinical reasoning (min 20 chars)"
+                          rows="3"
+                          className="w-full bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 focus:border-blue-400 dark:focus:border-blue-400 px-3 py-2 font-mono text-sm text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 resize-none transition-all duration-200"
+                          style={{
+                            clipPath: 'polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px))'
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="block text-xs font-mono font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-widest">
+                          Priority Level
+                        </label>
+                        <select
+                          value={test.priority}
+                          onChange={(e) => {
+                            const updated = selectedTests.map(t => 
+                              t.id === test.id ? { ...t, priority: e.target.value } : t
+                            );
+                            setSelectedTests(updated);
+                          }}
+                          className="w-full bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 focus:border-blue-400 dark:focus:border-blue-400 px-3 py-2 font-mono text-sm text-slate-900 dark:text-slate-100 transition-all duration-200"
+                          style={{
+                            clipPath: 'polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px))'
+                          }}
+                        >
+                          <option value="">SELECT PRIORITY</option>
+                          <option value="immediate">IMMEDIATE</option>
+                          <option value="urgent">URGENT</option>
+                          <option value="routine">ROUTINE</option>
+                        </select>
+                      </div>
                     </div>
-                    <div className="flex justify-between text-xs text-gray-500">
-                      <span>Cost: ${test.cost}</span>
-                      <span>Turnaround: {test.turnaround_minutes} min</span>
+                    <div className="flex justify-between mt-3 pt-2 border-t border-slate-200/30 dark:border-slate-700/50">
+                      <span className="text-xs font-mono text-slate-600 dark:text-slate-400">COST: <span className="text-blue-600 dark:text-blue-400 font-semibold">${test.cost}</span></span>
+                      <span className="text-xs font-mono text-slate-600 dark:text-slate-400">ETA: <span className="text-purple-600 dark:text-purple-400 font-semibold">{test.turnaround_minutes}m</span></span>
+                    </div>
+                    <div className="absolute top-4 right-16">
+                      <div className="w-2 h-2 bg-blue-400 rounded-full shadow-lg shadow-blue-400/50 animate-pulse" />
                     </div>
                   </div>
                 ))}
               </div>
 
               {/* Summary */}
-              <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Total Cost:</span>
-                  <span className="font-medium">${totalCost}</span>
+              <div className="relative p-4 bg-gradient-to-r from-slate-900 to-blue-900 dark:from-slate-950 dark:to-blue-950 border-2 border-blue-400/30"
+                style={{
+                  clipPath: 'polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px))'
+                }}
+              >
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="flex justify-between">
+                    <span className="font-mono text-slate-300 uppercase tracking-widest">Total Cost:</span>
+                    <span className="font-mono font-bold text-blue-400">${totalCost}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-mono text-slate-300 uppercase tracking-widest">Max ETA:</span>
+                    <span className="font-mono font-bold text-purple-400">{maxTurnaround}m</span>
+                  </div>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span>Max Turnaround:</span>
-                  <span className="font-medium">{maxTurnaround} minutes</span>
-                </div>
+                <div className="absolute top-0 right-0 w-20 h-full bg-gradient-to-l from-blue-500/20 to-transparent" />
               </div>
             </div>
           )}
