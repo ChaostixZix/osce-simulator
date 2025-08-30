@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
+import useAssessmentStatus from '@/hooks/useAssessmentStatus';
+import QueueIndicator from '@/components/QueueIndicator';
 
 export default function OsceResult({ session, isAssessed = true, canReassess = false, assessmentData = null, error = null }) {
   const [currentAssessmentData, setCurrentAssessmentData] = useState(assessmentData);
@@ -8,14 +10,44 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
   const [statusData, setStatusData] = useState(null);
   const [isReassessing, setIsReassessing] = useState(false);
 
+  // Use real-time assessment status hook
+  const { status: queueStatus, isConnected, error: connectionError } = useAssessmentStatus(
+    session?.id, 
+    {
+      enableSSE: true,
+      onStatusChange: (newStatus, prevStatus) => {
+        // Update local state when status changes
+        setStatusData(newStatus);
+        
+        // If assessment completed, fetch results
+        if (newStatus.status === 'completed' && (!prevStatus || prevStatus.status !== 'completed')) {
+          fetchAssessmentResults();
+        }
+      }
+    }
+  );
+
   const breadcrumbs = [
     { title: 'OSCE', href: route('osce') },
     { title: 'Result', href: '#' },
   ];
 
-  // Poll assessment status
+  // Function to fetch assessment results
+  const fetchAssessmentResults = async () => {
+    try {
+      const resultsRes = await fetch(route('osce.results', session.id));
+      if (resultsRes.ok) {
+        const resultsData = await resultsRes.json();
+        setCurrentAssessmentData(resultsData);
+      }
+    } catch (e) {
+      console.warn('Failed to fetch assessment results');
+    }
+  };
+
+  // Legacy polling fallback (only if SSE is not working)
   useEffect(() => {
-    if (!isAssessed || currentAssessmentData?.is_processing) {
+    if (!isAssessed && !queueStatus && !connectionError) {
       const pollStatus = async () => {
         setIsPolling(true);
         try {
@@ -26,11 +58,7 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
             
             // If assessment is complete, fetch updated results
             if (data.status === 'completed' && !currentAssessmentData) {
-              const resultsRes = await fetch(route('osce.results', session.id));
-              if (resultsRes.ok) {
-                const resultsData = await resultsRes.json();
-                setCurrentAssessmentData(resultsData);
-              }
+              fetchAssessmentResults();
             }
           }
         } catch (e) {
@@ -40,12 +68,14 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
         }
       };
 
-      // Poll immediately and then every 5 seconds
-      pollStatus();
-      const interval = setInterval(pollStatus, 5000);
-      return () => clearInterval(interval);
+      // Only poll if real-time connection is not working
+      if (!isConnected) {
+        pollStatus();
+        const interval = setInterval(pollStatus, 5000);
+        return () => clearInterval(interval);
+      }
     }
-  }, [session.id, isAssessed, currentAssessmentData]);
+  }, [session.id, isAssessed, currentAssessmentData, queueStatus, isConnected, connectionError]);
 
   const triggerReassessment = async () => {
     setIsReassessing(true);
@@ -122,33 +152,38 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
             {canReassess && (
               <button
                 onClick={triggerReassessment}
-                disabled={isReassessing || statusData?.status === 'processing'}
+                disabled={
+                  isReassessing || 
+                  queueStatus?.status === 'queued' || 
+                  queueStatus?.status === 'in_progress' ||
+                  statusData?.status === 'processing'
+                }
                 className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
               >
-                {isReassessing ? 'Triggering...' : 'Reassess'}
+                {isReassessing ? 'Triggering...' : 
+                 queueStatus?.status === 'queued' ? 'Queued...' :
+                 queueStatus?.status === 'in_progress' ? 'Processing...' :
+                 'Reassess'}
               </button>
             )}
           </div>
 
-          {/* Assessment Status */}
-          {statusData?.status === 'processing' && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-center space-x-3">
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-                <div>
-                  <div className="font-medium text-blue-900">Assessment in Progress</div>
-                  <div className="text-sm text-blue-700">
-                    {statusData.current_area ? `Analyzing ${statusData.current_area}...` : 'Processing...'}
-                  </div>
-                  {statusData.progress !== undefined && (
-                    <div className="mt-2 bg-blue-200 rounded-full h-2">
-                      <div 
-                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${statusData.progress}%` }}
-                      ></div>
-                    </div>
-                  )}
-                </div>
+          {/* Real-time Queue Status */}
+          {(queueStatus || statusData) && (
+            <QueueIndicator 
+              status={queueStatus || statusData} 
+              className="mb-6"
+            />
+          )}
+
+          {/* Connection Status */}
+          {connectionError && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+              <div className="flex items-center space-x-2">
+                <span className="text-yellow-600">⚠️</span>
+                <span className="text-sm text-yellow-800">
+                  Real-time updates unavailable. Using fallback polling. ({connectionError})
+                </span>
               </div>
             </div>
           )}

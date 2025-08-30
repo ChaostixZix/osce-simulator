@@ -6,6 +6,7 @@ use App\Models\AiAssessmentAreaResult;
 use App\Models\AiAssessmentRun;
 use App\Models\OsceSession;
 use App\Services\AreaAssessor;
+use App\Services\AssessmentQueueService;
 use App\Services\ResultReducer;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -24,7 +25,8 @@ class AiAssessorOrchestrator implements ShouldQueue
 
     public function __construct(
         public int $sessionId,
-        public bool $force = false
+        public bool $force = false,
+        public ?int $runId = null
     ) {}
 
     /**
@@ -33,25 +35,37 @@ class AiAssessorOrchestrator implements ShouldQueue
     public function handle(): void
     {
         $session = OsceSession::findOrFail($this->sessionId);
+        $queueService = app(AssessmentQueueService::class);
         
         Log::info('AiAssessorOrchestrator started', [
             'session_id' => $this->sessionId,
-            'force' => $this->force
+            'force' => $this->force,
+            'run_id' => $this->runId
         ]);
 
         try {
-            // Create assessment run
-            $assessmentRun = AiAssessmentRun::create([
-                'osce_session_id' => $this->sessionId,
-                'status' => 'in_progress',
-                'started_at' => now(),
-                'max_possible_score' => 85, // Sum of all clinical areas
-            ]);
+            // Get or create assessment run
+            if ($this->runId) {
+                $assessmentRun = AiAssessmentRun::findOrFail($this->runId);
+                // Mark as started
+                $queueService->markAsStarted($assessmentRun->id, 'history');
+            } else {
+                // Create assessment run if not provided
+                $assessmentRun = AiAssessmentRun::create([
+                    'osce_session_id' => $this->sessionId,
+                    'status' => 'in_progress',
+                    'started_at' => now(),
+                    'max_possible_score' => 85, // Sum of all clinical areas
+                ]);
+                
+                // Mark as started
+                $queueService->markAsStarted($assessmentRun->id, 'history');
+            }
 
             // Initialize area results
             AiAssessmentAreaResult::initializeAreasForRun($assessmentRun->id);
 
-            Log::info('Assessment run created', [
+            Log::info('Assessment run started', [
                 'run_id' => $assessmentRun->id,
                 'session_id' => $this->sessionId
             ]);
@@ -66,6 +80,9 @@ class AiAssessorOrchestrator implements ShouldQueue
                         'run_id' => $assessmentRun->id,
                         'area' => $area
                     ]);
+
+                    // Update queue status with current area
+                    $queueService->updateCurrentArea($assessmentRun->id, $area);
 
                     $areaResult = $assessmentRun->areaResults()
                         ->where('clinical_area', $area)
@@ -112,6 +129,9 @@ class AiAssessorOrchestrator implements ShouldQueue
                 'telemetry' => $this->generateTelemetry($assessmentRun),
             ]);
 
+            // Mark as completed in queue service
+            $queueService->markAsCompleted($assessmentRun->id);
+
             Log::info('AiAssessorOrchestrator completed', [
                 'run_id' => $assessmentRun->id,
                 'session_id' => $this->sessionId,
@@ -133,6 +153,9 @@ class AiAssessorOrchestrator implements ShouldQueue
                     'error_message' => $e->getMessage(),
                     'completed_at' => now(),
                 ]);
+                
+                // Mark as failed in queue service
+                $queueService->markAsFailed($assessmentRun->id, $e->getMessage());
             }
 
             throw $e;

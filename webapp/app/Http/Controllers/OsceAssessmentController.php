@@ -7,14 +7,16 @@ use App\Jobs\AssessOsceSessionJob;
 use App\Models\AiAssessmentRun;
 use App\Models\OsceSession;
 use App\Services\AiAssessorService;
+use App\Services\AssessmentQueueService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class OsceAssessmentController extends Controller
 {
-    public function __construct()
-    {
+    public function __construct(
+        private AssessmentQueueService $queueService
+    ) {
         $this->middleware('auth');
     }
 
@@ -55,33 +57,34 @@ class OsceAssessmentController extends Controller
             ]);
         }
 
-        // Check if there's already a running assessment
+        // Check if there's already a running or queued assessment
         $existingRun = AiAssessmentRun::where('osce_session_id', $session->id)
-            ->where('status', 'in_progress')
+            ->whereIn('status', ['queued', 'in_progress'])
             ->first();
 
         if ($existingRun && !$force) {
+            $queueStatus = $this->queueService->getQueueStatus($session->id);
             return response()->json([
-                'message' => 'Assessment already in progress',
+                'message' => $existingRun->status === 'queued' ? 'Assessment queued' : 'Assessment in progress',
                 'run_id' => $existingRun->id,
-                'status' => 'in_progress',
-                'progress' => $existingRun->progress_percentage,
+                'session_id' => $session->id,
+                ...$queueStatus,
             ]);
         }
 
-        // Dispatch the new orchestrator job
-        AiAssessorOrchestrator::dispatch($session->id, $force);
+        // Enqueue the assessment
+        $assessmentRun = $this->queueService->enqueueAssessment($session->id, $force);
         
-        // Get the latest assessment run
-        $assessmentRun = AiAssessmentRun::where('osce_session_id', $session->id)
-            ->latest()
-            ->first();
+        // Dispatch the orchestrator job with run ID
+        AiAssessorOrchestrator::dispatch($session->id, $force, $assessmentRun->id);
+
+        $queueStatus = $this->queueService->getQueueStatus($session->id);
 
         return response()->json([
-            'message' => 'Assessment started',
+            'message' => 'Assessment queued',
             'session_id' => $session->id,
-            'run_id' => $assessmentRun->id ?? null,
-            'status' => 'in_progress',
+            'run_id' => $assessmentRun->id,
+            ...$queueStatus,
         ]);
     }
 
@@ -105,46 +108,56 @@ class OsceAssessmentController extends Controller
             abort(403, 'Unauthorized to view assessment status');
         }
 
-        $assessmentRun = AiAssessmentRun::where('osce_session_id', $session->id)
-            ->latest()
-            ->with('areaResults')
-            ->first();
+        $queueStatus = $this->queueService->getQueueStatus($session->id);
 
-        if (!$assessmentRun) {
+        // If no assessment run found
+        if ($queueStatus['status'] === 'not_queued') {
             return response()->json([
                 'status' => 'not_started',
                 'message' => 'No assessment run found',
             ]);
         }
 
-        $areaResults = $assessmentRun->areaResults->map(function ($result) {
-            return [
-                'area' => $result->area_display_name,
-                'key' => $result->clinical_area,
-                'status' => $result->status,
-                'badge_color' => $result->badge_color,
-                'badge_text' => $result->badge_text,
-                'score' => $result->score,
-                'max_score' => $result->max_score,
-                'was_repaired' => $result->was_repaired,
-                'attempts' => $result->attempts,
-            ];
-        });
+        $response = [
+            'session_id' => $session->id,
+            'timestamp' => now()->toISOString(),
+            ...$queueStatus,
+        ];
 
-        return response()->json([
-            'run_id' => $assessmentRun->id,
-            'status' => $assessmentRun->status,
-            'progress' => $assessmentRun->progress_percentage,
-            'total_score' => $assessmentRun->total_score,
-            'max_possible_score' => $assessmentRun->max_possible_score,
-            'has_fallbacks' => $assessmentRun->has_fallbacks,
-            'completed_areas' => $assessmentRun->completed_areas,
-            'total_areas' => $assessmentRun->total_areas,
-            'area_results' => $areaResults,
-            'started_at' => $assessmentRun->started_at?->toISOString(),
-            'completed_at' => $assessmentRun->completed_at?->toISOString(),
-            'error_message' => $assessmentRun->error_message,
-        ]);
+        // Add area results if assessment is completed or in progress
+        if (in_array($queueStatus['status'], ['completed', 'in_progress'])) {
+            $assessmentRun = AiAssessmentRun::where('osce_session_id', $session->id)
+                ->latest()
+                ->with('areaResults')
+                ->first();
+
+            if ($assessmentRun) {
+                $areaResults = $assessmentRun->areaResults->map(function ($result) {
+                    return [
+                        'area' => $result->area_display_name,
+                        'key' => $result->clinical_area,
+                        'status' => $result->status,
+                        'badge_color' => $result->badge_color,
+                        'badge_text' => $result->badge_text,
+                        'score' => $result->score,
+                        'max_score' => $result->max_score,
+                        'was_repaired' => $result->was_repaired,
+                        'attempts' => $result->attempts,
+                    ];
+                });
+
+                $response = array_merge($response, [
+                    'run_id' => $assessmentRun->id,
+                    'total_score' => $assessmentRun->total_score,
+                    'max_possible_score' => $assessmentRun->max_possible_score,
+                    'has_fallbacks' => $assessmentRun->has_fallbacks,
+                    'area_results' => $areaResults,
+                    'error_message' => $assessmentRun->error_message,
+                ]);
+            }
+        }
+
+        return response()->json($response);
     }
 
     /**
