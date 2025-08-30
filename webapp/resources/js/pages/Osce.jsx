@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Button } from '@vibe-kanban/ui-kit';
+import SessionStatusBadge from '@/components/SessionStatusBadge';
 
 export default function Osce({ cases = [], userSessions = [], user }) {
   const [startingId, setStartingId] = useState(null);
@@ -55,7 +56,10 @@ export default function Osce({ cases = [], userSessions = [], user }) {
               {userSessions.map((s) => (
                 <div key={s.id} className="border border-neutral-800 bg-neutral-900/50 p-3 flex items-center justify-between">
                   <div>
-                    <div className="font-medium lowercase">{s.osce_case?.title}</div>
+                    <div className="flex items-center">
+                      <div className="font-medium lowercase">{s.osce_case?.title}</div>
+                      <SessionStatusBadge session={s} />
+                    </div>
                     <div className="text-xs text-neutral-500 lowercase">status: {s.status}</div>
                   </div>
                   <div className="flex gap-2">

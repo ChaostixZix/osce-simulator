@@ -58,6 +58,10 @@ Route::middleware([
 	Route::get('osce/results/{session}', [OsceAssessmentController::class, 'show'])->name('osce.results.show');
 	// Optional scoring alias: follows the same gating as results
 	Route::get('osce/scoring/{session}', [OsceAssessmentController::class, 'show'])->name('osce.scoring.show');
+	
+	// Real-time queue status routes
+	Route::get('api/osce/sessions/{session}/status-stream', [App\Http\Controllers\AssessmentStatusController::class, 'stream'])->name('osce.status.stream');
+	Route::get('api/osce/queue/overview', [App\Http\Controllers\AssessmentStatusController::class, 'queueOverview'])->name('osce.queue.overview');
 
 	// OSCE Rationalization (post-session reflection)
 	Route::get('osce/rationalization/{session}', [OsceRationalizationController::class, 'show'])->name('osce.rationalization.show');
