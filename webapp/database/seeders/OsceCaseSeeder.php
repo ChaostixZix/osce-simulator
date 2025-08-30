@@ -55,6 +55,28 @@ class OsceCaseSeeder extends Seeder
                 'breathing' => 'I am not breathing. I need immediate help.',
                 'consciousness' => 'I am completely unconscious and unaware of my surroundings.',
             ],
+
+            // New clinical reasoning fields
+            'clinical_setting' => 'emergency',
+            'urgency_level' => 5,
+            'highly_appropriate_tests' => [],
+            'appropriate_tests' => [],
+            'acceptable_tests' => [],
+            'inappropriate_tests' => [
+                'Thyroid-Stimulating Hormone (TSH)',
+                'Prostate-Specific Antigen (PSA)',
+                'Complete Blood Count (CBC)',
+                'Chest X-Ray'
+            ],
+            'contraindicated_tests' => [],
+            'required_tests' => [],
+            'setting_limitations' => [
+                'cardiac_catheterization' => false,
+                'advanced_imaging' => true,
+                'specialist_availability' => ['emergency_medicine'],
+            ],
+            'case_budget' => 1000.00,
+            'test_results_templates' => [],
         ]);
 
         \App\Models\OsceCase::create([
@@ -103,6 +125,32 @@ class OsceCaseSeeder extends Seeder
                 'pain' => 'My chest feels tight and it hurts when I try to breathe.',
                 'history' => 'I\'ve had asthma since I was little. This is the worst it\'s ever been.',
             ],
+
+            // New clinical reasoning fields
+            'clinical_setting' => 'emergency',
+            'urgency_level' => 4,
+            'highly_appropriate_tests' => [
+                'Chest X-Ray',
+            ],
+            'appropriate_tests' => [
+                'Complete Blood Count (CBC)',
+            ],
+            'acceptable_tests' => [],
+            'inappropriate_tests' => [
+                'Troponin I',
+                'Prostate-Specific Antigen (PSA)',
+            ],
+            'contraindicated_tests' => [
+                'Exercise Stress Test',
+            ],
+            'required_tests' => [],
+            'setting_limitations' => [
+                'cardiac_catheterization' => false,
+                'advanced_imaging' => true,
+                'specialist_availability' => ['emergency_medicine', 'pediatrics'],
+            ],
+            'case_budget' => 1500.00,
+            'test_results_templates' => [],
         ]);
 
         \App\Models\OsceCase::create([
@@ -148,6 +196,27 @@ class OsceCaseSeeder extends Seeder
                 'history' => 'No major health problems. I had my appendix removed when I was 20.',
                 'medication' => 'I only take a daily vitamin. No prescription medications.',
             ],
+
+            // New clinical reasoning fields
+            'clinical_setting' => 'outpatient',
+            'urgency_level' => 1,
+            'highly_appropriate_tests' => [],
+            'appropriate_tests' => [],
+            'acceptable_tests' => [],
+            'inappropriate_tests' => [
+                'Troponin I',
+                'Chest X-Ray',
+                'Exercise Stress Test',
+            ],
+            'contraindicated_tests' => [],
+            'required_tests' => [],
+            'setting_limitations' => [
+                'cardiac_catheterization' => false,
+                'advanced_imaging' => false,
+                'specialist_availability' => ['general_practice'],
+            ],
+            'case_budget' => 500.00,
+            'test_results_templates' => [],
         ]);
 
         \App\Models\OsceCase::create([
@@ -230,7 +299,45 @@ class OsceCaseSeeder extends Seeder
             ],
             'case_budget' => 2000.00,
             'test_results_templates' => [
-                // These IDs will correspond after seeding medical tests; using names in controller resolution as fallback
+                '1' => [
+                    'status' => 'completed',
+                    'values' => [
+                        'troponin_i_level' => '2.5 ng/mL',
+                        'reference_range' => '< 0.04 ng/mL',
+                        'abnormal_flag' => 'CRITICAL',
+                    ],
+                    'interpretation' => 'Markedly elevated troponin level, highly indicative of acute myocardial infarction.',
+                    'recommended_action' => 'Immediate cardiology consultation and preparation for cardiac catheterization.',
+                ],
+                '2' => [
+                    'status' => 'completed',
+                    'findings' => [
+                        'rhythm' => 'Sinus tachycardia with ST-segment elevation in leads II, III, and aVF.',
+                        'rate' => '105 bpm',
+                    ],
+                    'interpretation' => 'ST-elevation myocardial infarction (STEMI) of the inferior wall.',
+                    'clinical_significance' => 'Confirms acute cardiac ischemia and dictates immediate reperfusion therapy.',
+                ],
+                '3' => [
+                    'status' => 'completed',
+                    'findings' => [
+                        'lungs' => 'Clear to auscultation bilaterally.',
+                        'cardiac_silhouette' => 'Normal size and contour.',
+                        'pleural_space' => 'No effusions or pneumothorax.',
+                    ],
+                    'interpretation' => 'No acute cardiopulmonary process identified.',
+                    'recommended_action' => 'Does not explain the patient\'s symptoms; cardiac etiology remains the primary concern.',
+                ],
+                '4' => [
+                    'status' => 'completed',
+                    'values' => [
+                        'wbc' => '12.5 x10³/µL',
+                        'hemoglobin' => '15.0 g/dL',
+                        'platelets' => '280 x10³/µL',
+                    ],
+                    'interpretation' => 'Mild leukocytosis, likely a reactive process due to cardiac muscle necrosis and stress.',
+                    'clinical_significance' => 'Non-specific but consistent with an acute inflammatory response.',
+                ],
             ],
         ]);
     }

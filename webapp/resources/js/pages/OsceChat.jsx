@@ -344,25 +344,32 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
     setShowResultsModal(true);
   };
 
-  const refreshResults = async () => {
+const refreshResults = async () => {
+    setResultsLoading(true);
+    setError('');
     try {
-      setResultsLoading(true);
       const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-      const res = await fetch(`/api/osce/refresh-results/${session.id}`, {
+      await fetch(`/api/osce/refresh-results/${session.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': csrf ?? '' },
         credentials: 'same-origin'
       });
-      const data = await res.json();
-      if (res.ok) {
-        // Prefer ordered_tests from response; fall back to session.orderedTests
-        const updated = data?.ordered_tests || data?.session?.ordered_tests || data?.session?.orderedTests || [];
-        setOrderedTestsView(updated);
-        setHasLoadedResults(true);
-      }
+      
+      router.reload({ 
+        only: ['session', 'sessionData'], 
+        preserveScroll: true,
+        onSuccess: () => {
+          setResultsLoading(false);
+        },
+        onError: (errors) => {
+          console.error('Inertia reload error:', errors);
+          setResultsLoading(false);
+          setError('Failed to refresh session data.');
+        }
+      });
     } catch (e) {
-      console.warn('Failed to refresh results');
-    } finally {
+      console.warn('Failed to refresh results', e);
+      setError('An error occurred while refreshing results.');
       setResultsLoading(false);
     }
   };
@@ -505,7 +512,20 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
 
               {/* View Results (Ordered Tests by date) */}
               <div className="border rounded-lg p-4 space-y-3">
-                <h3 className="font-semibold">View Results</h3>
+                                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold">View Results</h3>
+                  <button
+                    onClick={refreshResults}
+                    disabled={resultsLoading}
+                    className="p-1.5 rounded-full text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    aria-label="Refresh test results"
+                  >
+                    <svg className={`w-4 h-4 ${resultsLoading ? 'animate-spin' : ''}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
+                      <path fillRule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z" />
+                      <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z" />
+                    </svg>
+                  </button>
+                </div>
                 <div className="space-y-2 text-sm">
                   {(session?.ordered_tests || session?.orderedTests || []).length === 0 ? (
                     <div className="text-slate-500">Belum ada test diorder.</div>
