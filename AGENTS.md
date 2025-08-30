@@ -128,11 +128,11 @@ Defaults I’ll use if you don’t specify
 Always write task titles and objective actions as full, self‑contained prompts so a developer can execute without guessing. Aligns with CLAUDE.md Vibe Kanban guidance.
 
 - Titles: Use complete, descriptive prompts that name the scope, technology, and deliverables.
-  - Good: "Diagnosis: Build a standalone SOAP module under /soap (Laravel + Vue 3 + Inertia) — define migrations, policies, routes, controllers, and Vue pages; list constraints (SQL LIKE search, no OSCE integration), and acceptance criteria with UX details (autosave, timeline, infinite scroll)."
+  - Good: "Diagnosis: Build a standalone SOAP module under /soap (Laravel + React + Inertia) — define migrations, policies, routes, controllers, and React pages; list constraints (SQL LIKE search, no OSCE integration), and acceptance criteria with UX details (autosave, timeline, infinite scroll)."
   - Bad: "Diagnosis: SOAP module".
 
 - Objective actions: Write numbered steps with specifics — files, paths, commands, models, routes, UI behavior, validation rules, and acceptance tests. Avoid vague verbs.
-  - Good: "1) Create migrations: patients, soap_notes, soap_attachments, soap_comments; run php artisan migrate; 2) Implement models with relationships and scopeLikeSearch; 3) Add policies with admin override; 4) Define routes under /soap … 5) Build Board.vue and Page.vue with autosave (10s) and partial reload …"
+  - Good: "1) Create migrations: patients, soap_notes, soap_attachments, soap_comments; run php artisan migrate; 2) Implement models with relationships and scopeLikeSearch; 3) Add policies with admin override; 4) Define routes under /soap … 5) Build Board.jsx and Page.jsx with autosave (10s) and partial reload …"
   - Bad: "Set up DB and pages".
 
 - Cross‑link artifacts: Include the shared `<feature-slug>` and reference `.claude/kanban/<feature-slug>.prompt.md`, `.implementation.md`, `.tests.md` in each task description.
@@ -141,13 +141,13 @@ Always write task titles and objective actions as full, self‑contained prompts
 
 - Consistency: Mirror timezone, autosave interval, attachment limits, and SPA conventions defined here unless the task overrides them.
 
-## AI Prompt Template — Standalone Feature Module (Laravel + Vue 3 + Inertia 2.0)
+## AI Prompt Template — Standalone Feature Module (Laravel + React + Inertia)
 
 Use this when asking for a laser-detailed, do-this-exactly prompt to scaffold a brand-new, isolated module. Replace all placeholders like `{{placeholder}}` before pasting into your AI/dev tool.
 
 ---
 
-# PROMPT: Build a Standalone {{Module Name}} Module (Laravel + Vue 3 + Inertia 2.0)
+# PROMPT: Build a Standalone {{Module Name}} Module (Laravel + React + Inertia)
 
 ## Objectives (do exactly this)
 
@@ -175,7 +175,7 @@ Use this when asking for a laser-detailed, do-this-exactly prompt to scaffold a 
 
 ## Step 0 — Prereqs & Conventions
 
-* Stack: Laravel, Vue 3, Inertia.js 2.0, dev DB SQLite, storage local.
+* Stack: Laravel, React, Inertia.js, dev DB SQLite, storage local.
 * Assume `users` table exists and `users.is_admin` boolean is available.
 * App timezone: set `config/app.php` → `'timezone' => '{{app-timezone}}'`.
 * Use Inertia form posts for create/update/finalize/attach. Use Inertia partial reload for infinite scroll.
@@ -348,9 +348,9 @@ php artisan make:controller {{CommentController}}
 
 ---
 
-## Step 6 — Frontend Pages (Vue + Inertia)
+## Step 6 — Frontend Pages (React + Inertia)
 
-File: `resources/js/Pages/{{Module}}/Board.vue`
+File: `resources/js/Pages/{{Module}}/Board.jsx`
 
 Behavior
 
@@ -358,7 +358,7 @@ Behavior
 * Grid/list of cards; each shows key fields (e.g., name, tags), badge for total {{recordsRelation}} count, badge with last record relative time, and link → `route('{{route-prefix}}.page', id)`.
 * Pagination via Inertia GET preserving query string.
 
-File: `resources/js/Pages/{{Module}}/Page.vue`
+File: `resources/js/Pages/{{Module}}/Page.jsx`
 
 Layout
 
