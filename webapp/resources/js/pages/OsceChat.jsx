@@ -377,100 +377,104 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-full min-h-0">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[calc(100vh-200px)] min-h-0">
           {/* Left Sidebar */}
-          <div className="lg:col-span-1 space-y-4">
-            {/* Case Overview */}
-            <div className="border rounded-lg p-4 space-y-3">
-              <h3 className="font-semibold text-lg">Case Overview</h3>
-              <div className="space-y-2 text-sm">
-                <div><strong>Scenario:</strong> {session?.osce_case?.title}</div>
-                <div><strong>Setting:</strong> {session?.osce_case?.clinical_setting}</div>
-                {timerData && (
-                  <div><strong>Time:</strong> {timerData.formatted_time_remaining}</div>
-                )}
-              </div>
-            </div>
-
-            {/* Session Widgets */}
-            <div className="border rounded-lg p-4 space-y-3">
-              <h3 className="font-semibold">Session Status</h3>
-              <div className="space-y-2 text-sm">
-                <div>Total Cost: ${session?.total_test_cost ?? 0}</div>
-                <div>Tests Ordered: {session?.ordered_tests?.length ?? 0}</div>
-                <div>Exams Done: {session?.examinations?.length ?? 0}</div>
-              </div>
-            </div>
-
-            {/* View Results (Ordered Tests by date) */}
-            <div className="border rounded-lg p-4 space-y-3">
-              <h3 className="font-semibold">View Results</h3>
-              <div className="space-y-2 text-sm">
-                {(session?.ordered_tests || session?.orderedTests || []).length === 0 ? (
-                  <div className="text-slate-500">Belum ada test diorder.</div>
-                ) : (
-                  <ul className="divide-y">
-                    {(session?.ordered_tests || session?.orderedTests || []).map((t, idx) => (
-                      <li key={idx} className="py-2">
-                        <div className="flex flex-col">
-                          <span className="text-xs text-slate-500">
-                            {(() => {
-                              try {
-                                const d = new Date(t.ordered_at || t.orderedAt || t.created_at || t.createdAt);
-                                const pad = (n) => String(n).padStart(2, '0');
-                                const dd = pad(d.getDate());
-                                const mm = pad(d.getMonth() + 1);
-                                const yyyy = d.getFullYear();
-                                const hh = pad(d.getHours());
-                                const min = pad(d.getMinutes());
-                                return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
-                              } catch {
-                                return '-';
-                              }
-                            })()}
-                          </span>
-                          <span className="font-medium">{t.test_name || t.testName}</span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                <div className="pt-2">
-                  <button onClick={openResults} className="text-sm text-emerald-600 hover:text-emerald-500">
-                    Buka hasil lengkap
-                  </button>
+          <div className="lg:col-span-1 flex flex-col h-full min-h-0">
+            <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+              {/* Case Overview */}
+              <div className="border rounded-lg p-4 space-y-3">
+                <h3 className="font-semibold text-lg">Case Overview</h3>
+                <div className="space-y-2 text-sm">
+                  <div><strong>Scenario:</strong> {session?.osce_case?.title}</div>
+                  <div><strong>Setting:</strong> {session?.osce_case?.clinical_setting}</div>
+                  {timerData && (
+                    <div><strong>Time:</strong> {timerData.formatted_time_remaining}</div>
+                  )}
                 </div>
               </div>
-            </div>
 
-            {/* Actions */}
-            <div className="space-y-2">
-              <button
-                onClick={() => setShowExamModal(true)}
-                disabled={!isSessionActive}
-                className="w-full px-4 py-3 bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 hover:from-emerald-500/20 hover:to-cyan-500/20 border-2 border-emerald-400/30 hover:border-emerald-400/50 disabled:from-slate-300/10 disabled:to-slate-400/10 disabled:border-slate-400/30 text-slate-700 dark:text-slate-300 disabled:text-slate-500 font-mono text-sm tracking-wide transition-all duration-200 disabled:cursor-not-allowed"
-                style={{
-                  clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))'
-                }}
-              >
-                PHYSICAL EXAM
-              </button>
-              <button
-                onClick={() => setShowOrderModal(true)}
-                disabled={!isSessionActive}
-                className="w-full px-4 py-3 bg-gradient-to-r from-blue-500/10 to-purple-500/10 hover:from-blue-500/20 hover:to-purple-500/20 border-2 border-blue-400/30 hover:border-blue-400/50 disabled:from-slate-300/10 disabled:to-slate-400/10 disabled:border-slate-400/30 text-slate-700 dark:text-slate-300 disabled:text-slate-500 font-mono text-sm tracking-wide transition-all duration-200 disabled:cursor-not-allowed"
-                style={{
-                  clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))'
-                }}
-              >
-                ORDER TESTS
-              </button>
+              {/* Session Widgets */}
+              <div className="border rounded-lg p-4 space-y-3">
+                <h3 className="font-semibold">Session Status</h3>
+                <div className="space-y-2 text-sm">
+                  <div>Total Cost: ${session?.total_test_cost ?? 0}</div>
+                  <div>Tests Ordered: {session?.ordered_tests?.length ?? 0}</div>
+                  <div>Exams Done: {session?.examinations?.length ?? 0}</div>
+                </div>
+              </div>
+
+              {/* View Results (Ordered Tests by date) */}
+              <div className="border rounded-lg p-4 space-y-3">
+                <h3 className="font-semibold">View Results</h3>
+                <div className="space-y-2 text-sm">
+                  {(session?.ordered_tests || session?.orderedTests || []).length === 0 ? (
+                    <div className="text-slate-500">Belum ada test diorder.</div>
+                  ) : (
+                    <div className="max-h-48 overflow-y-auto">
+                      <ul className="divide-y">
+                        {(session?.ordered_tests || session?.orderedTests || []).map((t, idx) => (
+                          <li key={idx} className="py-2">
+                            <div className="flex flex-col">
+                              <span className="text-xs text-slate-500">
+                                {(() => {
+                                  try {
+                                    const d = new Date(t.ordered_at || t.orderedAt || t.created_at || t.createdAt);
+                                    const pad = (n) => String(n).padStart(2, '0');
+                                    const dd = pad(d.getDate());
+                                    const mm = pad(d.getMonth() + 1);
+                                    const yyyy = d.getFullYear();
+                                    const hh = pad(d.getHours());
+                                    const min = pad(d.getMinutes());
+                                    return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+                                  } catch {
+                                    return '-';
+                                  }
+                                })()}
+                              </span>
+                              <span className="font-medium">{t.test_name || t.testName}</span>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <div className="pt-2">
+                    <button onClick={openResults} className="text-sm text-emerald-600 hover:text-emerald-500">
+                      Buka hasil lengkap
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="space-y-2">
+                <button
+                  onClick={() => setShowExamModal(true)}
+                  disabled={!isSessionActive}
+                  className="w-full px-4 py-3 bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 hover:from-emerald-500/20 hover:to-cyan-500/20 border-2 border-emerald-400/30 hover:border-emerald-400/50 disabled:from-slate-300/10 disabled:to-slate-400/10 disabled:border-slate-400/30 text-slate-700 dark:text-slate-300 disabled:text-slate-500 font-mono text-sm tracking-wide transition-all duration-200 disabled:cursor-not-allowed"
+                  style={{
+                    clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))'
+                  }}
+                >
+                  PHYSICAL EXAM
+                </button>
+                <button
+                  onClick={() => setShowOrderModal(true)}
+                  disabled={!isSessionActive}
+                  className="w-full px-4 py-3 bg-gradient-to-r from-blue-500/10 to-purple-500/10 hover:from-blue-500/20 hover:to-purple-500/20 border-2 border-blue-400/30 hover:border-blue-400/50 disabled:from-slate-300/10 disabled:to-slate-400/10 disabled:border-slate-400/30 text-slate-700 dark:text-slate-300 disabled:text-slate-500 font-mono text-sm tracking-wide transition-all duration-200 disabled:cursor-not-allowed"
+                  style={{
+                    clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))'
+                  }}
+                >
+                  ORDER TESTS
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Main Chat Area */}
-          <div className="lg:col-span-3 grid grid-rows-[1fr_auto] gap-4 min-h-0">
-            <div ref={messagesRef} className="overflow-auto border p-3 space-y-2">
+          <div className="lg:col-span-3 flex flex-col h-full min-h-0">
+            <div ref={messagesRef} className="flex-1 overflow-y-auto border p-3 space-y-2 min-h-0">
               {messages.map((m, idx) => (
                 <div key={idx} className={m.role === 'user' ? 'text-right' : 'text-left'}>
                   <div className={`inline-block px-3 py-2 rounded ${m.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'}`}>
@@ -483,7 +487,7 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
                 <div className="text-sm text-muted-foreground">No messages yet. Say hello to the patient.</div>
               )}
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 mt-4">
               <input
                 type="text"
                 className="flex-1 border px-3 py-2 bg-background text-foreground"
