@@ -1,6 +1,6 @@
-# Agents — Single-Agent Workflow
+# Agents — Single Agent, Single Prompt (Implementation Only)
 
-Ringkas (ID): Tidak ada lagi 3 agent terpisah. Sekarang kita gunakan 1 agent yang menangani analisis, implementasi, dan testing end-to-end. Dokumen kanban (.prompt.md, .implementation.md, .tests.md) tetap dipakai bila kita memilih alur “prompt‑first”, namun semuanya dikelola oleh satu agent.
+Ringkas (ID): Tidak ada lagi 3 agents (Diagnosis/Implementation/Testing). Hanya ADA 1 agent dan HANYA 1 dokumen prompt: implementation. Tidak ada diagnosis prompt, tidak ada testing prompt — semua fokus ke implementasi.
 
 ## Why
 
@@ -8,19 +8,22 @@ Simplify the delivery loop. One agent owns the feature from diagnosis to impleme
 
 ## Default Mode — Single Agent
 
-- One agent performs: analysis, design, implementation, tests, and docs updates.
-- Use concise plans and keep the user informed with short progress updates.
-- For new work, you may still generate kanban artifacts, but they are owned by the same agent.
+- Satu agent mengerjakan: analisis singkat, implementasi, uji lokal seperlunya, dan update dokumen.
+- Gunakan rencana singkat dan beri update kemajuan yang ringkas.
+- Jika perlu dokumen, hanya buat satu file prompt implementasi (lihat di bawah).
 
-## Prompt‑First (Optional)
+Check-First Implementation (Very Important)
 
-When asked to blueprint first (e.g., “Blueprint this feature …” or “Make a prompt for …”), create the three files under `.claude/kanban/` with a shared kebab‑case slug. A single agent maintains all three:
+- Always search for existing models, routes, controllers, requests, and policies before adding new ones.
+- If an endpoint or method already exists for the intended behavior, extend/reuse it instead of creating duplicates.
+- Only migrate missing columns; do not add fields that already exist.
+- Keep naming and route conventions consistent with what’s already in the codebase.
 
-- `.claude/kanban/<feature-slug>.prompt.md` — Requirements/rationale and constraints.
-- `.claude/kanban/<feature-slug>.implementation.md` — What was implemented and where.
-- `.claude/kanban/<feature-slug>.tests.md` — Test plan, results, and debugging notes.
+## Prompt Doc (Only Implementation)
 
-Note: This preserves the structure without implying separate agents.
+Jika diperlukan dokumentasi untuk memandu pekerjaan, buat SATU file saja:
+
+- `.claude/kanban/<feature-slug>.implementation.md` — berisi tujuan, ruang lingkup, perubahan yang akan/baru dilakukan (file dan path), langkah validasi singkat, dan catatan penting. Tidak ada `.prompt.md` atau `.tests.md` lagi.
 
 ## General Coding (Default)
 
@@ -46,18 +49,17 @@ Note: This preserves the structure without implying separate agents.
 
 ## Migration Note (from 3‑Agent Model)
 
-- Previous guidance split work across Diagnosis, Implementation, and Testing “agents”. We now consolidate responsibility to a single agent. The three kanban files and tasks remain compatible and are handled by the same agent.
+- Sebelumnya ada tiga “agents” (Diagnosis/Implementation/Testing) dengan tiga dokumen. Sekarang disederhanakan: hanya satu agent dan satu dokumen prompt (`.implementation.md`). Hilangkan pembuatan `.prompt.md` dan `.tests.md`.
 
 ## Triggers (Human‑Friendly)
 
-- “Blueprint this feature: …” → Create/update the three `.claude/kanban` files; then implement.
-- “Show me the prompt first” → Preview prompt without writing files.
-- “Let’s code: …” → Implement directly; add tests if appropriate.
-- “Run the webapp tests” / “Run the CLI tests” → Execute the respective suites and report.
+- “Blueprint this feature: …” → Buat/ubah satu file `.claude/kanban/<slug>.implementation.md`, lalu implement.
+- “Show me the prompt first” → Preview konten implementation prompt (tanpa menulis file).
+- “Let’s code: …” → Langsung implement; tambahkan uji seperlunya (tanpa membuat `.tests.md`).
+- “Run the webapp tests” / “Run the CLI tests” → Jalankan test suite yang relevan dan laporkan.
 
 ## Conventions Recap
 
 - Inertia (React): use `@inertiajs/react` (`Link`, `router`, `useForm`) for SPA interactions; no raw fetch for mutations.
 - PHP: PSR‑12 and Laravel conventions.
 - JS/TS: 2‑space indent, ESM, camelCase for vars/functions, PascalCase for components/classes.
-
