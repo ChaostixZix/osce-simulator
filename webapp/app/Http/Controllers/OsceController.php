@@ -374,7 +374,7 @@ class OsceController extends Controller
                     'priority' => $orderData['priority'],
                     'cost' => $test->cost,
                     'ordered_at' => now(),
-                    // memory ID 6519270: turnaround is in seconds now
+                    // Convert minutes to seconds for faster testing: 10 minutes → 10 seconds
                     'results_available_at' => now()->addSeconds($test->turnaround_minutes),
                     'results' => [],
                 ]);

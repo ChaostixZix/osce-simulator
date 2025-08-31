@@ -63,3 +63,4 @@ Jika diperlukan dokumentasi untuk memandu pekerjaan, buat SATU file saja:
 - Inertia (React): use `@inertiajs/react` (`Link`, `router`, `useForm`) for SPA interactions; no raw fetch for mutations.
 - PHP: PSR‑12 and Laravel conventions.
 - JS/TS: 2‑space indent, ESM, camelCase for vars/functions, PascalCase for components/classes.
+

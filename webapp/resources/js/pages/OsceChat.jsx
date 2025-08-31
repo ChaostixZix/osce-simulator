@@ -9,6 +9,9 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
   const [sending, setSending] = useState(false);
   const [aiTyping, setAiTyping] = useState(false);
   const [timerData, setTimerData] = useState(null);
+  const [localRemaining, setLocalRemaining] = useState(null);
+  const [timerStatus, setTimerStatus] = useState('active');
+  const [timerTicking, setTimerTicking] = useState(false);
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [showExamModal, setShowExamModal] = useState(false);
   const [testSearchQuery, setTestSearchQuery] = useState('');
@@ -20,7 +23,28 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [resultsLoading, setResultsLoading] = useState(false);
   const [orderedTestsView, setOrderedTestsView] = useState(() => (session?.ordered_tests || session?.orderedTests || []));
+  const [hasLoadedResults, setHasLoadedResults] = useState(false);
+  const [nowTick, setNowTick] = useState(Date.now());
+  const refreshGuardRef = useRef(false);
   const messagesRef = useRef(null);
+  
+  // Add state for expandable results
+  const [expandedResults, setExpandedResults] = useState({});
+  
+  const toggleResultExpansion = (testId) => {
+    setExpandedResults(prev => ({
+      ...prev,
+      [testId]: !prev[testId]
+    }));
+  };
+
+  // Order Tests: tabs, categories, available tests
+  const [activeType, setActiveType] = useState('lab'); // 'lab' | 'imaging' | 'procedure' | 'physical_exam'
+  const [categoriesByType, setCategoriesByType] = useState({});
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [availableTests, setAvailableTests] = useState([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
+  const [loadingAvailable, setLoadingAvailable] = useState(false);
 
   const breadcrumbs = [
     { title: 'OSCE', href: route('osce') },
@@ -53,6 +77,8 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
         const data = await res.json();
         if (!res.ok) throw new Error();
         setTimerData(data);
+        setLocalRemaining(typeof data?.remaining_seconds === 'number' ? data.remaining_seconds : null);
+        setTimerStatus(data?.time_status || 'active');
       } catch (e) {
         console.warn('Failed to load timer');
       }
@@ -63,6 +89,30 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
     const timerInterval = setInterval(loadTimer, 30000);
     return () => clearInterval(timerInterval);
   }, [session?.id]);
+
+  // Local ticking for session timer (per second) to provide smooth countdown between polls
+  useEffect(() => {
+    if (!localRemaining || timerStatus !== 'active') {
+      setTimerTicking(false);
+      return;
+    }
+    setTimerTicking(true);
+    const id = setInterval(() => {
+      setLocalRemaining((prev) => {
+        if (typeof prev !== 'number') return prev;
+        const next = Math.max(0, prev - 1);
+        if (next === 0) setTimerStatus('expired');
+        return next;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [localRemaining, timerStatus]);
+
+  // Update orderedTestsView when session prop changes (after refresh)
+  useEffect(() => {
+    const freshOrderedTests = session?.ordered_tests || session?.orderedTests || [];
+    setOrderedTestsView(freshOrderedTests);
+  }, [session?.ordered_tests, session?.orderedTests]);
 
   const sendMessage = async () => {
     if (!input.trim()) return;
@@ -109,7 +159,11 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
     searchAbortRef.current = controller;
     const id = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/medical-tests/search?q=${encodeURIComponent(q)}` , { signal: controller.signal });
+        const params = new URLSearchParams();
+        params.set('q', q);
+        if (activeType) params.set('type', activeType);
+        if (selectedCategory) params.set('category', selectedCategory);
+        const res = await fetch(`/api/medical-tests/search?${params.toString()}` , { signal: controller.signal });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data?.error || 'Search failed');
         setSearchResults(Array.isArray(data) ? data : []);
@@ -123,7 +177,66 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
       clearTimeout(id);
       try { controller.abort(); } catch {}
     };
-  }, [testSearchQuery]);
+  }, [testSearchQuery, activeType, selectedCategory]);
+
+  // Load categories when opening Order Tests modal
+  useEffect(() => {
+    const loadCategories = async () => {
+      setLoadingCategories(true);
+      try {
+        const res = await fetch('/api/medical-tests/categories');
+        const data = await res.json();
+        if (res.ok) {
+          setCategoriesByType(data || {});
+          const list = (data?.[activeType]) || [];
+          setSelectedCategory(list.length ? list[0]?.category : '');
+        }
+      } catch (e) {
+        console.warn('Failed to load categories');
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+    if (showOrderModal) {
+      loadCategories();
+    } else {
+      // reset ephemeral when closing
+      setTestSearchQuery('');
+      setSearchResults([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showOrderModal]);
+
+  const loadAvailableTests = async (type, category) => {
+    setLoadingAvailable(true);
+    try {
+      const params = new URLSearchParams();
+      if (type) params.set('type', type);
+      if (category) params.set('category', category);
+      const res = await fetch(`/api/medical-tests/search?${params.toString()}`);
+      const data = await res.json();
+      if (res.ok) setAvailableTests(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.warn('Failed to load available tests');
+    } finally {
+      setLoadingAvailable(false);
+    }
+  };
+
+  // React to tab change
+  useEffect(() => {
+    const list = (categoriesByType?.[activeType]) || [];
+    const first = list.length ? list[0]?.category : '';
+    setSelectedCategory(first);
+    if (showOrderModal) loadAvailableTests(activeType, first);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeType]);
+
+  // React to category change
+  useEffect(() => {
+    if (showOrderModal) loadAvailableTests(activeType, selectedCategory);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCategory]);
 
   const selectTest = (test) => {
     if (!selectedTests.find(t => t.id === test.id)) {
@@ -241,27 +354,38 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
   };
 
   const openResults = () => {
-    setOrderedTestsView(session?.ordered_tests || session?.orderedTests || []);
+    // Only initialize from server session data if we don't already have a cached view
+    const fresh = session?.ordered_tests || session?.orderedTests || [];
+    setOrderedTestsView((prev) => (Array.isArray(prev) && prev.length > 0 ? prev : fresh));
     setShowResultsModal(true);
   };
 
-  const refreshResults = async () => {
+const refreshResults = async () => {
+    setResultsLoading(true);
+    setError('');
     try {
-      setResultsLoading(true);
       const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-      const res = await fetch(`/api/osce/refresh-results/${session.id}`, {
+      await fetch(`/api/osce/refresh-results/${session.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': csrf ?? '' },
         credentials: 'same-origin'
       });
-      const data = await res.json();
-      if (res.ok) {
-        // Prefer ordered_tests from response; fall back to session.orderedTests
-        setOrderedTestsView(data?.ordered_tests || data?.session?.ordered_tests || data?.session?.orderedTests || []);
-      }
+      
+      router.reload({ 
+        only: ['session', 'sessionData'], 
+        preserveScroll: true,
+        onSuccess: () => {
+          setResultsLoading(false);
+        },
+        onError: (errors) => {
+          console.error('Inertia reload error:', errors);
+          setResultsLoading(false);
+          setError('Failed to refresh session data.');
+        }
+      });
     } catch (e) {
-      console.warn('Failed to refresh results');
-    } finally {
+      console.warn('Failed to refresh results', e);
+      setError('An error occurred while refreshing results.');
       setResultsLoading(false);
     }
   };
@@ -270,22 +394,61 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
     const ra = t.results_available_at || t.resultsAvailableAt;
     if (!ra) return null;
     try {
-      const now = Date.now();
+      const now = nowTick; // use ticking state to force rerender
       const at = new Date(ra).getTime();
-      const diffMin = Math.max(0, Math.round((at - now) / 60000));
-      if (diffMin === 0) return 'ready any moment';
-      return `${diffMin} min`; 
+      const diffMs = Math.max(0, at - now);
+      const s = Math.floor(diffMs / 1000);
+      const mm = String(Math.floor(s / 60)).padStart(2, '0');
+      const ss = String(s % 60).padStart(2, '0');
+      return s <= 0 ? 'ready any moment' : `${mm}:${ss}`;
     } catch {
       return null;
     }
   };
 
-  // Keep modal data in sync when session updates while modal is open
+  // Keep modal data in sync when session updates while modal is open, but do not clobber cached loaded results
   useEffect(() => {
-    if (showResultsModal) {
-      setOrderedTestsView(session?.ordered_tests || session?.orderedTests || []);
-    }
+    if (!showResultsModal) return;
+    const fresh = session?.ordered_tests || session?.orderedTests || [];
+    setOrderedTestsView((prev) => {
+      if (!Array.isArray(prev) || prev.length === 0) return fresh;
+      // Merge new items without overwriting existing results data
+      const key = (t) => `${t.id || t.test_id || t.medical_test_id || (t.test_name || t.testName || 'test')}_${t.ordered_at || t.orderedAt || t.created_at || t.createdAt || ''}`;
+      const map = new Map(prev.map((t) => [key(t), t]));
+      for (const t of fresh) {
+        const k = key(t);
+        if (!map.has(k)) map.set(k, t);
+      }
+      return Array.from(map.values());
+    });
   }, [showResultsModal, session?.ordered_tests, session?.orderedTests]);
+
+  // While results modal is open, tick every second to update countdowns.
+  useEffect(() => {
+    if (!showResultsModal) return;
+    const id = setInterval(() => setNowTick(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [showResultsModal]);
+
+  // Auto-refresh once when any countdown crosses to zero
+  useEffect(() => {
+    if (!showResultsModal) return;
+    try {
+      const anyPending = (orderedTestsView || []).some(t => {
+        const ra = t.results_available_at || t.resultsAvailableAt;
+        if (!ra || t?.results?.status) return false;
+        const at = new Date(ra).getTime();
+        return (at - nowTick) <= 0;
+      });
+      if (anyPending && !refreshGuardRef.current) {
+        refreshGuardRef.current = true;
+        refreshResults().finally(() => {
+          // allow another auto-refresh after a small delay to avoid spam
+          setTimeout(() => { refreshGuardRef.current = false; }, 3000);
+        });
+      }
+    } catch {}
+  }, [nowTick, showResultsModal, orderedTestsView]);
 
   // Auto-scroll to bottom on new messages or when AI starts/stops typing
   useEffect(() => {
@@ -306,100 +469,148 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-full min-h-0">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[calc(100vh-200px)] min-h-0">
           {/* Left Sidebar */}
-          <div className="lg:col-span-1 space-y-4">
-            {/* Case Overview */}
-            <div className="border rounded-lg p-4 space-y-3">
-              <h3 className="font-semibold text-lg">Case Overview</h3>
-              <div className="space-y-2 text-sm">
-                <div><strong>Scenario:</strong> {session?.osce_case?.title}</div>
-                <div><strong>Setting:</strong> {session?.osce_case?.clinical_setting}</div>
-                {timerData && (
-                  <div><strong>Time:</strong> {timerData.formatted_time_remaining}</div>
-                )}
-              </div>
-            </div>
-
-            {/* Session Widgets */}
-            <div className="border rounded-lg p-4 space-y-3">
-              <h3 className="font-semibold">Session Status</h3>
-              <div className="space-y-2 text-sm">
-                <div>Total Cost: ${session?.total_test_cost ?? 0}</div>
-                <div>Tests Ordered: {session?.ordered_tests?.length ?? 0}</div>
-                <div>Exams Done: {session?.examinations?.length ?? 0}</div>
-              </div>
-            </div>
-
-            {/* View Results (Ordered Tests by date) */}
-            <div className="border rounded-lg p-4 space-y-3">
-              <h3 className="font-semibold">View Results</h3>
-              <div className="space-y-2 text-sm">
-                {(session?.ordered_tests || session?.orderedTests || []).length === 0 ? (
-                  <div className="text-slate-500">Belum ada test diorder.</div>
-                ) : (
-                  <ul className="divide-y">
-                    {(session?.ordered_tests || session?.orderedTests || []).map((t, idx) => (
-                      <li key={idx} className="py-2">
-                        <div className="flex flex-col">
-                          <span className="text-xs text-slate-500">
-                            {(() => {
-                              try {
-                                const d = new Date(t.ordered_at || t.orderedAt || t.created_at || t.createdAt);
-                                const pad = (n) => String(n).padStart(2, '0');
-                                const dd = pad(d.getDate());
-                                const mm = pad(d.getMonth() + 1);
-                                const yyyy = d.getFullYear();
-                                const hh = pad(d.getHours());
-                                const min = pad(d.getMinutes());
-                                return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
-                              } catch {
-                                return '-';
-                              }
-                            })()}
-                          </span>
-                          <span className="font-medium">{t.test_name || t.testName}</span>
+          <div className="lg:col-span-1 flex flex-col h-full min-h-0">
+            <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+              {/* Session Timer */}
+              <div className="border rounded-lg p-4 space-y-3">
+                <h3 className="font-semibold text-lg">Session Timer</h3>
+                <div className="space-y-2 text-sm">
+                  {(() => {
+                    const total = (timerData?.duration_minutes || session?.osce_case?.duration_minutes || 0) * 60;
+                    const remaining = typeof localRemaining === 'number' ? localRemaining : (timerData?.remaining_seconds ?? null);
+                    const elapsed = typeof remaining === 'number' ? Math.max(0, total - remaining) : null;
+                    const pct = total > 0 && typeof elapsed === 'number' ? Math.min(100, Math.round((elapsed / total) * 1000) / 10) : 0;
+                    const seconds = typeof remaining === 'number' ? Math.max(0, Math.floor(remaining)) : null;
+                    const mm = seconds !== null ? String(Math.floor(seconds / 60)).padStart(2, '0') : '--';
+                    const ss = seconds !== null ? String(seconds % 60).padStart(2, '0') : '--';
+                    const status = timerStatus || timerData?.time_status || session?.time_status || 'active';
+                    const barColor = status === 'completed' ? 'bg-emerald-500' : status === 'expired' ? 'bg-red-500' : 'bg-blue-500';
+                    return (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <div className="text-xs text-slate-600 dark:text-slate-400">Remaining</div>
+                          <div className="text-xs text-slate-600 dark:text-slate-400">{pct}%</div>
                         </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                <div className="pt-2">
-                  <button onClick={openResults} className="text-sm text-emerald-600 hover:text-emerald-500">
-                    Buka hasil lengkap
-                  </button>
+                        <div className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded overflow-hidden">
+                          <div className={`h-2 ${barColor} transition-all`} style={{ width: `${pct}%` }} />
+                        </div>
+                        <div className="text-sm font-mono">
+                          {mm}:{ss} {status === 'expired' ? '(expired)' : status === 'completed' ? '(completed)' : ''}
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
-            </div>
+              {/* Case Overview */}
+              <div className="border rounded-lg p-4 space-y-3">
+                <h3 className="font-semibold text-lg">Case Overview</h3>
+                <div className="space-y-2 text-sm">
+                  <div><strong>Scenario:</strong> {session?.osce_case?.title}</div>
+                  <div><strong>Setting:</strong> {session?.osce_case?.clinical_setting}</div>
+                  {timerData && (
+                    <div><strong>Time:</strong> {timerData.formatted_time_remaining}</div>
+                  )}
+                </div>
+              </div>
 
-            {/* Actions */}
-            <div className="space-y-2">
-              <button
-                onClick={() => setShowExamModal(true)}
-                disabled={!isSessionActive}
-                className="w-full px-4 py-3 bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 hover:from-emerald-500/20 hover:to-cyan-500/20 border-2 border-emerald-400/30 hover:border-emerald-400/50 disabled:from-slate-300/10 disabled:to-slate-400/10 disabled:border-slate-400/30 text-slate-700 dark:text-slate-300 disabled:text-slate-500 font-mono text-sm tracking-wide transition-all duration-200 disabled:cursor-not-allowed"
-                style={{
-                  clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))'
-                }}
-              >
-                PHYSICAL EXAM
-              </button>
-              <button
-                onClick={() => setShowOrderModal(true)}
-                disabled={!isSessionActive}
-                className="w-full px-4 py-3 bg-gradient-to-r from-blue-500/10 to-purple-500/10 hover:from-blue-500/20 hover:to-purple-500/20 border-2 border-blue-400/30 hover:border-blue-400/50 disabled:from-slate-300/10 disabled:to-slate-400/10 disabled:border-slate-400/30 text-slate-700 dark:text-slate-300 disabled:text-slate-500 font-mono text-sm tracking-wide transition-all duration-200 disabled:cursor-not-allowed"
-                style={{
-                  clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))'
-                }}
-              >
-                ORDER TESTS
-              </button>
+              {/* Session Widgets */}
+              <div className="border rounded-lg p-4 space-y-3">
+                <h3 className="font-semibold">Session Status</h3>
+                <div className="space-y-2 text-sm">
+                  <div>Total Cost: ${session?.total_test_cost ?? 0}</div>
+                  <div>Tests Ordered: {session?.ordered_tests?.length ?? 0}</div>
+                  <div>Exams Done: {session?.examinations?.length ?? 0}</div>
+                </div>
+              </div>
+
+              {/* View Results (Ordered Tests by date) */}
+              <div className="border rounded-lg p-4 space-y-3">
+                                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold">View Results</h3>
+                  <button
+                    onClick={refreshResults}
+                    disabled={resultsLoading}
+                    className="p-1.5 rounded-full text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    aria-label="Refresh test results"
+                  >
+                    <svg className={`w-4 h-4 ${resultsLoading ? 'animate-spin' : ''}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
+                      <path fillRule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z" />
+                      <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z" />
+                    </svg>
+                  </button>
+                </div>
+                <div className="space-y-2 text-sm">
+                  {(session?.ordered_tests || session?.orderedTests || []).length === 0 ? (
+                    <div className="text-slate-500">Belum ada test diorder.</div>
+                  ) : (
+                    <div className="max-h-48 overflow-y-auto">
+                      <ul className="divide-y">
+                        {(session?.ordered_tests || session?.orderedTests || []).map((t, idx) => (
+                          <li key={idx} className="py-2">
+                            <div className="flex flex-col">
+                              <span className="text-xs text-slate-500">
+                                {(() => {
+                                  try {
+                                    const d = new Date(t.ordered_at || t.orderedAt || t.created_at || t.createdAt);
+                                    const pad = (n) => String(n).padStart(2, '0');
+                                    const dd = pad(d.getDate());
+                                    const mm = pad(d.getMonth() + 1);
+                                    const yyyy = d.getFullYear();
+                                    const hh = pad(d.getHours());
+                                    const min = pad(d.getMinutes());
+                                    return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+                                  } catch {
+                                    return '-';
+                                  }
+                                })()}
+                              </span>
+                              <span className="font-medium">{t.test_name || t.testName}</span>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <div className="pt-2">
+                    <button onClick={openResults} className="text-sm text-emerald-600 hover:text-emerald-500">
+                      Buka hasil lengkap
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="space-y-2">
+                <button
+                  onClick={() => setShowExamModal(true)}
+                  disabled={!isSessionActive}
+                  className="w-full px-4 py-3 bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 hover:from-emerald-500/20 hover:to-cyan-500/20 border-2 border-emerald-400/30 hover:border-emerald-400/50 disabled:from-slate-300/10 disabled:to-slate-400/10 disabled:border-slate-400/30 text-slate-700 dark:text-slate-300 disabled:text-slate-500 font-mono text-sm tracking-wide transition-all duration-200 disabled:cursor-not-allowed"
+                  style={{
+                    clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))'
+                  }}
+                >
+                  PHYSICAL EXAM
+                </button>
+                <button
+                  onClick={() => setShowOrderModal(true)}
+                  disabled={!isSessionActive}
+                  className="w-full px-4 py-3 bg-gradient-to-r from-blue-500/10 to-purple-500/10 hover:from-blue-500/20 hover:to-purple-500/20 border-2 border-blue-400/30 hover:border-blue-400/50 disabled:from-slate-300/10 disabled:to-slate-400/10 disabled:border-slate-400/30 text-slate-700 dark:text-slate-300 disabled:text-slate-500 font-mono text-sm tracking-wide transition-all duration-200 disabled:cursor-not-allowed"
+                  style={{
+                    clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))'
+                  }}
+                >
+                  ORDER TESTS
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Main Chat Area */}
-          <div className="lg:col-span-3 grid grid-rows-[1fr_auto] gap-4 min-h-0">
-            <div ref={messagesRef} className="overflow-auto border p-3 space-y-2">
+          <div className="lg:col-span-3 flex flex-col h-full min-h-0">
+            <div ref={messagesRef} className="flex-1 overflow-y-auto border p-3 space-y-2 min-h-0">
               {messages.map((m, idx) => (
                 <div key={idx} className={m.role === 'user' ? 'text-right' : 'text-left'}>
                   <div className={`inline-block px-3 py-2 rounded ${m.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'}`}>
@@ -412,7 +623,7 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
                 <div className="text-sm text-muted-foreground">No messages yet. Say hello to the patient.</div>
               )}
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 mt-4">
               <input
                 type="text"
                 className="flex-1 border px-3 py-2 bg-background text-foreground"
@@ -539,39 +750,157 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
             </>
           )}
         >
+          {/* Overall progress bar for results readiness */}
+          {(() => {
+            const total = (orderedTestsView || []).length;
+            const ready = (orderedTestsView || []).filter(t => t?.results?.status).length;
+            const pct = total > 0 ? Math.round((ready / total) * 100) : 0;
+            return (
+              <div className="mb-4">
+                <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
+                  <div>Results Ready: {ready}/{total}</div>
+                  <div>{pct}%</div>
+                </div>
+                <div className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded overflow-hidden">
+                  <div className="h-2 bg-emerald-500 transition-all" style={{ width: `${pct}%` }} />
+                </div>
+              </div>
+            );
+          })()}
+
           <div className="max-h-[60vh] overflow-y-auto space-y-4">
             {orderedTestsView.length === 0 ? (
               <div className="text-sm text-slate-500">Belum ada test diorder.</div>
             ) : (
-              orderedTestsView.map((t, idx) => (
-                <div key={idx} className="p-4 border rounded-lg">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="font-mono font-semibold text-sm">{t.test_name || t.testName}</div>
-                    <div className="text-xs text-slate-500">{formatDate(t.ordered_at || t.orderedAt || t.created_at || t.createdAt)}</div>
-                  </div>
-                  <div className="text-xs text-slate-600">Type: {t.test_type || t.testType || '-'}</div>
-                  <div className="mt-2 text-sm flex items-center gap-2">
-                    <span className="font-medium">Status:</span>
-                    <span>{t.results?.status || 'pending'}</span>
-                    {!t.results?.status && etaText(t) && (
-                      <span className="text-xs text-slate-500">ETA: {etaText(t)}</span>
-                    )}
-                  </div>
-                  {t.results?.message && (
-                    <div className="mt-1 text-xs text-slate-600">{t.results.message}</div>
-                  )}
-                  {Array.isArray(t.results?.values) && t.results.values.length > 0 && (
-                    <div className="mt-2">
-                      <div className="text-xs font-medium mb-1">Values:</div>
-                      <ul className="pl-4 list-disc text-xs text-slate-700">
-                        {t.results.values.map((v, i) => (
-                          <li key={i}>{typeof v === 'string' ? v : JSON.stringify(v)}</li>
-                        ))}
-                      </ul>
+              orderedTestsView.map((t, idx) => {
+                const testId = t.id || idx;
+                const isExpanded = expandedResults[testId];
+
+                return (
+                  <div key={testId} className="p-4 border rounded-lg transition-all duration-300">
+                    <div className="flex items-center justify-between">
+                      <div className="font-mono font-semibold text-sm">{t.test_name || t.testName}</div>
+                      <button onClick={() => toggleResultExpansion(testId)} className="text-sm text-blue-500">
+                        {isExpanded ? 'Collapse' : 'Expand'}
+                      </button>
                     </div>
-                  )}
-                </div>
-              ))
+                    <div className="text-xs text-slate-500">{formatDate(t.ordered_at || t.orderedAt)}</div>
+                    
+                    {/* Per-test progress towards results availability */}
+                    {(() => {
+                      const ra = t.results_available_at || t.resultsAvailableAt;
+                      const orderedAt = t.ordered_at || t.orderedAt || t.created_at || t.createdAt;
+                      const turnaroundMin = t.turnaround_minutes || t.turnaroundMinutes || 0;
+                      let pct = 0;
+                      try {
+                        if (t?.results?.status) {
+                          pct = 100;
+                        } else if (ra) {
+                          const now = nowTick;
+                          const end = new Date(ra).getTime();
+                          const start = orderedAt ? new Date(orderedAt).getTime() : end - turnaroundMin * 60000;
+                          const total = Math.max(1, end - start);
+                          const done = Math.min(total, Math.max(0, now - start));
+                          pct = Math.max(0, Math.min(100, Math.round((done / total) * 100)));
+                        } else if (turnaroundMin && orderedAt) {
+                          const now = nowTick;
+                          const start = new Date(orderedAt).getTime();
+                          const end = start + turnaroundMin * 60000;
+                          const total = Math.max(1, end - start);
+                          const done = Math.min(total, Math.max(0, now - start));
+                          pct = Math.max(0, Math.min(100, Math.round((done / total) * 100)));
+                        }
+                      } catch {}
+                      return (
+                        <div className="mt-2">
+                          <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded overflow-hidden">
+                            <div className={`h-1.5 ${t?.results?.status ? 'bg-emerald-500' : 'bg-blue-500'} transition-all`} style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    
+                    <div className="mt-2 text-sm flex items-center gap-2">
+                      <span className="font-medium">Status:</span>
+                      {!t.results?.status ? (
+                        <span className="inline-flex items-center gap-2 text-slate-600">
+                          <span className="relative inline-flex">
+                            <span className="animate-ping inline-flex h-2 w-2 rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="absolute inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                          </span>
+                          pending
+                          {etaText(t) && (
+                            <span className="ml-2 text-xs text-slate-500">{etaText(t)}</span>
+                          )}
+                        </span>
+                      ) : (
+                        <span>{t.results?.status}</span>
+                      )}
+                    </div>
+                    
+                    {/* Expandable Content */}
+                    <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-96 mt-2' : 'max-h-0'}`}>
+                      <div className="pt-2 border-t">
+                        <div className="text-xs text-slate-600">Type: {t.test_type || t.testType || '-'}</div>
+                        
+                        {/* Display message or interpretation */}
+                        {(t.results?.message || t.results?.interpretation) && (
+                          <div className="mt-1 text-sm text-slate-600">
+                            {t.results.message || t.results.interpretation}
+                          </div>
+                        )}
+                        
+                        {/* Display clinical significance if available */}
+                        {t.results?.clinical_significance && (
+                          <div className="mt-2">
+                            <div className="text-xs font-medium mb-1 text-red-600">Clinical Significance:</div>
+                            <p className="text-xs text-red-700 font-medium">{t.results.clinical_significance}</p>
+                          </div>
+                        )}
+                        
+                        {/* Display findings if available */}
+                        {t.results?.findings && typeof t.results.findings === 'object' && (
+                          <div className="mt-2">
+                            <div className="text-xs font-medium mb-1">Findings:</div>
+                            <ul className="pl-4 list-disc text-xs text-slate-700">
+                              {Object.entries(t.results.findings).map(([key, value], i) => (
+                                <li key={i}><span className="font-medium">{key}:</span> {value}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        
+                        {/* Display values array if available (original format) */}
+                        {Array.isArray(t.results?.values) && t.results.values.length > 0 ? (
+                          <div className="mt-2">
+                            <div className="text-xs font-medium mb-1">Values:</div>
+                            <ul className="pl-4 list-disc text-xs text-slate-700">
+                              {t.results.values.map((v, i) => (
+                                <li key={i}>
+                                  {typeof v === 'object' && v.name ? 
+                                    `${v.name}: ${v.value} ${v.unit || ''} ${v.flag ? `(${v.flag})` : ''}` :
+                                    (typeof v === 'string' ? v : JSON.stringify(v))
+                                  }
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : (!t.results?.findings && !t.results?.message && !t.results?.interpretation) && (
+                          <div className="text-xs text-slate-500 mt-2">No detailed results available.</div>
+                        )}
+                        
+                        {/* Display interpretation separately if it wasn't already shown as message */}
+                        {t.results?.interpretation && t.results?.message && t.results.interpretation !== t.results.message && (
+                          <div className="mt-2">
+                            <div className="text-xs font-medium mb-1">Interpretation:</div>
+                            <p className="text-xs text-slate-700">{t.results.interpretation}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
         </Modal>
@@ -601,6 +930,39 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
             </>
           )}
         >
+          {/* Type Tabs + Categories */}
+          <div className="mb-4 space-y-3">
+            <div className="flex gap-2 flex-wrap">
+              {['lab','imaging','procedure','physical_exam'].map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setActiveType(t)}
+                  className={`px-3 py-1.5 rounded-md border text-xs font-mono uppercase tracking-widest transition-colors ${
+                    activeType === t ? 'bg-blue-600 text-white border-blue-600' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  {t === 'lab' ? 'LAB' : t === 'imaging' ? 'IMAGING' : t === 'procedure' ? 'PROCEDURE' : 'PHYSICAL EXAM'}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {(categoriesByType?.[activeType] || []).map((c) => (
+                <button
+                  key={c.category}
+                  onClick={() => setSelectedCategory(c.category)}
+                  className={`px-3 py-1.5 rounded-full border text-xs font-mono tracking-wide whitespace-nowrap transition-colors ${
+                    selectedCategory === c.category
+                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border-blue-300 dark:border-blue-700'
+                      : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  {c.category}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Search Section */}
           <div className="mb-6">
             <div className="relative">
@@ -649,6 +1011,50 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
                         style={{
                           clipPath: 'polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 0 100%)'
                         }}
+                      >
+                        {selectedTests.some(t => t.id === test.id) ? 'SELECTED' : 'SELECT'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {/* Available tests by category when not searching */}
+            {searchResults.length === 0 && (
+              <div className="mt-4 space-y-2 max-h-48 overflow-y-auto">
+                {loadingAvailable && (
+                  <div className="text-xs font-mono text-slate-500 dark:text-slate-400">Loading available tests…</div>
+                )}
+                {!loadingAvailable && availableTests.length === 0 && (
+                  <div className="text-xs font-mono text-slate-500 dark:text-slate-400">No tests found in this category.</div>
+                )}
+                {!loadingAvailable && availableTests.map((test) => (
+                  <div 
+                    key={test.id}
+                    className="group relative p-4 bg-slate-50/50 hover:bg-slate-100/50 dark:bg-slate-900/30 dark:hover:bg-slate-800/50 border-l-2 border-slate-300 dark:border-slate-600 hover:border-blue-400 dark:hover:border-blue-400 transition-all duration-200"
+                    style={{ clipPath: 'polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 0 100%)' }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <div className="font-mono font-semibold text-slate-900 dark:text-slate-100 text-sm uppercase tracking-wide">{test.name}</div>
+                        <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 font-mono">
+                          <span className="px-2 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-xs">{test.category}</span>
+                          <span>•</span>
+                          <span>{test.type}</span>
+                        </div>
+                        {test.cost ? (
+                          <div className="text-xs font-mono text-blue-600 dark:text-blue-400 font-semibold">${test.cost}</div>
+                        ) : null}
+                      </div>
+                      <button
+                        onClick={() => selectTest(test)}
+                        disabled={selectedTests.some(t => t.id === test.id) || !isSessionActive}
+                        className={`px-4 py-2 font-mono text-xs tracking-wide transition-all duration-200 ${
+                          selectedTests.some(t => t.id === test.id)
+                            ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-l-2 border-emerald-400'
+                            : 'bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-800/50 text-blue-700 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 border-l-2 border-blue-400 hover:border-blue-500'
+                        }`}
+                        style={{ clipPath: 'polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 0 100%)' }}
                       >
                         {selectedTests.some(t => t.id === test.id) ? 'SELECTED' : 'SELECT'}
                       </button>

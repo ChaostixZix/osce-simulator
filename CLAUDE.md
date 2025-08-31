@@ -4,6 +4,106 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Migration notice: The frontend is being migrated from Vue 3 to React using Inertia (React adapter) and the Vibe UI KIT. Legacy pages remain in Vue during the transition. Prefer React for new features; keep Vue pages stable until migrated.
 
+## 🎮 Gaming Design System - MANDATORY RULES
+
+When working on ANY frontend component or page, you MUST follow the established gaming design system to maintain consistency across the application.
+
+### ✅ ALWAYS USE These Components & Styles:
+
+#### 1. **Cyber Borders** - NO RECTANGLES ALLOWED
+```jsx
+// Use cyber-border class for ALL containers, cards, buttons
+<div className="cyber-border bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-500/30 p-6">
+```
+**Rule:** NEVER use regular rectangles - always use angled corners via cyber-border class
+
+#### 2. **Color Rotation Pattern** 
+```jsx
+const colors = [
+  { bg: 'bg-gradient-to-br from-emerald-500/10 to-emerald-600/5', border: 'border-emerald-500/30', accent: 'text-emerald-400' },
+  { bg: 'bg-gradient-to-br from-blue-500/10 to-blue-600/5', border: 'border-blue-500/30', accent: 'text-blue-400' },
+  { bg: 'bg-gradient-to-br from-purple-500/10 to-purple-600/5', border: 'border-purple-500/30', accent: 'text-purple-400' }
+];
+const cardColor = colors[idx % colors.length];
+```
+
+#### 3. **Typography Hierarchy**
+- **Page titles**: `text-2xl font-medium lowercase glow-text text-foreground`
+- **Section headers**: `text-lg font-medium lowercase text-foreground font-mono`  
+- **Body text**: `text-muted-foreground lowercase`
+- **Status/labels**: `text-xs font-mono uppercase tracking-wider`
+
+#### 4. **Interactive Elements**
+```jsx
+// Buttons must use cyber-button
+<button className="cyber-button px-4 py-2 text-emerald-600 dark:text-emerald-300 font-mono uppercase tracking-wide">
+
+// Cards must have hover effects
+className="hover:scale-[1.02] transition-all duration-300 group"
+
+// Always include corner decorations
+<div className="absolute top-2 right-2 w-2 h-2 bg-gradient-to-br from-emerald-400 to-cyan-400 opacity-60 group-hover:opacity-100 transition-opacity"></div>
+```
+
+#### 5. **Status Indicators** - Always Include
+```jsx
+// Pulsing status dot + text
+<div className="flex items-center gap-2">
+  <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+  <span className="text-xs text-emerald-500 font-mono uppercase">ONLINE</span>
+</div>
+```
+
+#### 6. **Section Headers Pattern** - Use Consistently
+```jsx
+<div className="flex items-center gap-3 mb-4">
+  <div className="w-1 h-6 bg-gradient-to-b from-emerald-400 to-cyan-400"></div>
+  <h2 className="text-lg font-medium lowercase text-foreground font-mono">section title</h2>
+  <div className="flex-1 h-px bg-gradient-to-r from-border to-transparent"></div>
+  <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
+    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+    <span>status info</span>
+  </div>
+</div>
+```
+
+#### 7. **Page Welcome Header** - Standard Pattern
+```jsx
+<div className="text-center space-y-4 relative">
+  <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-20 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent"></div>
+  
+  <div className="flex items-center justify-center gap-3">
+    <div className="w-8 h-0.5 bg-gradient-to-r from-emerald-400 to-cyan-400"></div>
+    <span className="text-xs text-emerald-500 font-mono uppercase tracking-wider">SECTION LABEL</span>
+    <div className="w-8 h-0.5 bg-gradient-to-l from-emerald-400 to-cyan-400"></div>
+  </div>
+  
+  <h1 className="text-2xl font-medium lowercase glow-text text-foreground">page title</h1>
+</div>
+```
+
+### ❌ FORBIDDEN Styles:
+- Plain rectangular borders
+- Gray/boring card backgrounds without gradients
+- Static elements without hover effects  
+- Mixed case text (except uppercase labels)
+- Hard-coded dark/light colors (use theme-aware classes)
+- Missing decorative corner elements
+- Instant transitions (always use duration-300)
+
+### 🎯 Quality Checklist:
+Before submitting any UI work, verify:
+- [ ] All containers use `cyber-border` class
+- [ ] Colors follow the emerald → blue → purple rotation
+- [ ] Hover effects include `hover:scale-[1.02]` and `transition-all duration-300`
+- [ ] Status indicators with pulsing dots are present
+- [ ] Typography follows hierarchy (lowercase titles, mono technical text)
+- [ ] Corner decorations on interactive elements
+- [ ] Gradient backgrounds instead of flat colors
+- [ ] Theme-aware text colors (`text-foreground`, `text-muted-foreground`)
+
+**Reference:** See `/DESIGN_SYSTEM.md` for complete documentation and examples.
+
 ## Project Overview
 
 This is a Laravel project with an Inertia-powered SPA frontend. The main application code is located in the `webapp` directory. We currently have a mix of Vue (legacy) and React (new) pages. Styling uses Tailwind; UI components are shadcn-vue for legacy and Vibe UI KIT for new React pages.
