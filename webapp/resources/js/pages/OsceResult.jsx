@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import useAssessmentStatus from '@/hooks/useAssessmentStatus';
@@ -10,30 +10,8 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
   const [statusData, setStatusData] = useState(null);
   const [isReassessing, setIsReassessing] = useState(false);
 
-  // Use real-time assessment status hook
-  const { status: queueStatus, isConnected, error: connectionError } = useAssessmentStatus(
-    session?.id, 
-    {
-      enableSSE: true,
-      onStatusChange: (newStatus, prevStatus) => {
-        // Update local state when status changes
-        setStatusData(newStatus);
-        
-        // If assessment completed, fetch results
-        if (newStatus.status === 'completed' && (!prevStatus || prevStatus.status !== 'completed')) {
-          fetchAssessmentResults();
-        }
-      }
-    }
-  );
-
-  const breadcrumbs = [
-    { title: 'OSCE', href: route('osce') },
-    { title: 'Result', href: '#' },
-  ];
-
-  // Function to fetch assessment results
-  const fetchAssessmentResults = async () => {
+  // Stable fetcher for assessment results
+  const fetchAssessmentResults = useCallback(async () => {
     try {
       const resultsRes = await fetch(route('osce.results', session.id));
       if (resultsRes.ok) {
@@ -43,7 +21,37 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
     } catch (e) {
       console.warn('Failed to fetch assessment results');
     }
-  };
+  }, [session?.id]);
+
+  // Stable status change handler to avoid re-subscribing SSE/polling
+  const handleStatusChange = useCallback((newStatus, prevStatus) => {
+    setStatusData(newStatus);
+    if (newStatus.status === 'completed' && (!prevStatus || prevStatus.status !== 'completed')) {
+      fetchAssessmentResults();
+    }
+  }, [fetchAssessmentResults]);
+
+  // Use real-time assessment status hook
+  const enableRealtime = !currentAssessmentData || isReassessing;
+  const { status: queueStatus, isConnected, error: connectionError, disconnect } = useAssessmentStatus(
+    session?.id,
+    {
+      enableSSE: enableRealtime,
+      onStatusChange: handleStatusChange,
+    }
+  );
+
+  const breadcrumbs = [
+    { title: 'osce', href: route('osce') },
+    { title: 'results', href: '#' },
+  ];
+
+  // Disconnect real-time updates once completed to stop further polling
+  useEffect(() => {
+    if (queueStatus?.status === 'completed' || statusData?.status === 'completed') {
+      disconnect?.();
+    }
+  }, [queueStatus?.status, statusData?.status, disconnect]);
 
   // Legacy polling fallback (only if SSE is not working)
   useEffect(() => {
@@ -140,31 +148,36 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
 
   return (
     <>
-      <Head title="OSCE Result" />
+      <Head title="osce results" />
       <AppLayout breadcrumbs={breadcrumbs}>
-        <div className="space-y-6">
+        <div className="space-y-8">
           {/* Header */}
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold">OSCE Results</h1>
-              <p className="text-gray-600">{session?.osce_case?.title}</p>
+          <div className="text-center space-y-4 relative">
+            <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-20 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent" />
+            <div className="flex items-center justify-center gap-3 mb-2">
+              <div className="w-8 h-0.5 bg-gradient-to-r from-emerald-400 to-cyan-400" />
+              <span className="text-xs text-emerald-500 font-mono uppercase tracking-wider">assessment results</span>
+              <div className="w-8 h-0.5 bg-gradient-to-l from-emerald-400 to-cyan-400" />
             </div>
+            <h1 className="text-2xl font-medium lowercase glow-text text-foreground">{session?.osce_case?.title || 'osce results'}</h1>
             {canReassess && (
-              <button
-                onClick={triggerReassessment}
-                disabled={
-                  isReassessing || 
-                  queueStatus?.status === 'queued' || 
-                  queueStatus?.status === 'in_progress' ||
-                  statusData?.status === 'processing'
-                }
-                className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
-              >
-                {isReassessing ? 'Triggering...' : 
-                 queueStatus?.status === 'queued' ? 'Queued...' :
-                 queueStatus?.status === 'in_progress' ? 'Processing...' :
-                 'Reassess'}
-              </button>
+              <div className="flex items-center justify-center">
+                <button
+                  onClick={triggerReassessment}
+                  disabled={
+                    isReassessing || 
+                    queueStatus?.status === 'queued' || 
+                    queueStatus?.status === 'in_progress' ||
+                    statusData?.status === 'processing'
+                  }
+                  className="cyber-button px-4 py-2 text-blue-600 dark:text-blue-300 font-mono uppercase tracking-wide text-xs disabled:opacity-50"
+                >
+                  {isReassessing ? 'triggering…' : 
+                   queueStatus?.status === 'queued' ? 'queued…' :
+                   queueStatus?.status === 'in_progress' ? 'processing…' :
+                   'reassess'}
+                </button>
+              </div>
             )}
           </div>
 
@@ -178,33 +191,29 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
 
           {/* In-progress Warning */}
           {(queueStatus?.status === 'queued' || queueStatus?.status === 'in_progress' || statusData?.status === 'queued' || statusData?.status === 'in_progress') && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-              <div className="flex items-center space-x-2">
-                <span className="text-yellow-600">⚠️</span>
-                <span className="text-sm text-yellow-800">
-                  The assessment is still in progress, please come back later.
-                </span>
+            <div className="cyber-border bg-yellow-50/10 border-yellow-500/30 p-3">
+              <div className="flex items-center gap-2">
+                <span className="text-yellow-500">⚠️</span>
+                <span className="text-xs text-muted-foreground lowercase">assessment in progress — please check back soon.</span>
               </div>
             </div>
           )}
 
           {/* Connection Status */}
           {connectionError && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-              <div className="flex items-center space-x-2">
-                <span className="text-yellow-600">⚠️</span>
-                <span className="text-sm text-yellow-800">
-                  Real-time updates unavailable. Using fallback polling. ({connectionError})
-                </span>
+            <div className="cyber-border bg-yellow-50/10 border-yellow-500/30 p-3">
+              <div className="flex items-center gap-2">
+                <span className="text-yellow-500">⚠️</span>
+                <span className="text-xs text-muted-foreground lowercase">real-time unavailable. using fallback polling. ({connectionError})</span>
               </div>
             </div>
           )}
 
           {/* Error State */}
           {!isAssessed && error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <div className="text-red-900">
-                {error || 'This session has not been assessed yet.'}
+            <div className="cyber-border bg-red-50/10 border-red-500/30 p-4">
+              <div className="text-red-400 text-sm lowercase font-mono">
+                {error || 'this session has not been assessed yet.'}
               </div>
             </div>
           )}
@@ -213,55 +222,63 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
           {currentAssessmentData && (
             <div className="space-y-6">
               {/* Performance Overview */}
-              <div className="bg-white border rounded-lg p-6">
-                <h2 className="text-xl font-semibold mb-4">Performance Overview</h2>
+              <div className="cyber-border bg-card/30 p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-1 h-6 bg-gradient-to-b from-emerald-400 to-cyan-400" />
+                  <h2 className="text-lg font-medium lowercase text-foreground font-mono">performance overview</h2>
+                  <div className="flex-1 h-px bg-gradient-to-r from-border to-transparent" />
+                </div>
                 <div className="grid md:grid-cols-3 gap-6">
                   <div className="text-center">
-                    <div className="text-3xl font-bold text-blue-600">
+                    <div className="text-3xl font-bold text-blue-500">
                       {Math.round((currentAssessmentData.overall_score / currentAssessmentData.max_score) * 100)}%
                     </div>
-                    <div className="text-sm text-gray-600">Overall Score</div>
+                    <div className="text-xs text-muted-foreground lowercase">overall score</div>
                     <div className="text-lg font-semibold mt-1">
                       {getBand((currentAssessmentData.overall_score / currentAssessmentData.max_score) * 100)}
                     </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-3xl font-bold text-green-600">
+                    <div className="text-3xl font-bold text-emerald-500">
                       {Math.round((currentAssessmentData.clinical_reasoning_score || 0))}%
                     </div>
-                    <div className="text-sm text-gray-600">Clinical Reasoning</div>
+                    <div className="text-xs text-muted-foreground lowercase">clinical reasoning</div>
                     <div className="text-lg font-semibold mt-1">
                       {session?.clinical_reasoning_score || 0} points
                     </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-3xl font-bold text-orange-600">
+                    <div className="text-3xl font-bold text-orange-500">
                       {formatCurrency(session?.total_test_cost || 0)}
                     </div>
-                    <div className="text-sm text-gray-600">Total Test Cost</div>
-                    <div className="text-sm text-gray-500 mt-1">
-                      Budget: {formatCurrency(session?.osce_case?.case_budget || 1000)}
+                    <div className="text-xs text-muted-foreground lowercase">total test cost</div>
+                    <div className="text-xs text-muted-foreground mt-1 lowercase font-mono">
+                      budget: {formatCurrency(session?.osce_case?.case_budget || 1000)}
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Clinical Areas Assessment */}
-              <div className="bg-white border rounded-lg p-6">
-                <h2 className="text-xl font-semibold mb-4">Clinical Areas Assessment</h2>
+              <div className="cyber-border bg-card/30 p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-1 h-6 bg-gradient-to-b from-emerald-400 to-cyan-400" />
+                  <h2 className="text-lg font-medium lowercase text-foreground font-mono">clinical areas assessment</h2>
+                  <div className="flex-1 h-px bg-gradient-to-r from-border to-transparent" />
+                </div>
                 <div className="grid gap-4">
                   {(currentAssessmentData.areas || []).map((area, index) => (
-                    <div key={index} className="border rounded p-4">
+                    <div key={index} className="cyber-border p-4 bg-card/20">
                       <div className="flex justify-between items-start mb-3">
                         <div>
-                          <h3 className="font-semibold text-lg">{area.area}</h3>
-                          <p className="text-sm text-gray-600">{area.description}</p>
+                          <h3 className="font-semibold text-base lowercase text-foreground">{area.area}</h3>
+                          <p className="text-xs text-muted-foreground lowercase">{area.description}</p>
                         </div>
                         <div className="text-right">
                           <div className={getScoreBadge(area.score, area.max_score)}>
                             {area.score}/{area.max_score}
                           </div>
-                          <div className="text-sm text-gray-500 mt-1">
+                          <div className="text-xs text-muted-foreground mt-1 lowercase font-mono">
                             {area.badge_text}
                           </div>
                         </div>
@@ -269,15 +286,15 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
                       
                       {area.justification && (
                         <div className="mb-3">
-                          <h4 className="font-medium text-sm text-gray-700 mb-1">Assessment:</h4>
-                          <p className="text-sm text-gray-600">{area.justification}</p>
+                          <h4 className="font-medium text-xs text-muted-foreground mb-1 lowercase">assessment</h4>
+                          <p className="text-sm text-foreground/90">{area.justification}</p>
                         </div>
                       )}
 
                       {area.strengths && area.strengths.length > 0 && (
                         <div className="mb-3">
-                          <h4 className="font-medium text-sm text-green-700 mb-1">Strengths:</h4>
-                          <ul className="text-sm text-gray-600 list-disc list-inside">
+                          <h4 className="font-medium text-xs text-emerald-500 mb-1 lowercase">strengths</h4>
+                          <ul className="text-sm text-foreground/90 list-disc list-inside">
                             {area.strengths.map((strength, i) => (
                               <li key={i}>{strength}</li>
                             ))}
@@ -287,8 +304,8 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
 
                       {area.areas_for_improvement && area.areas_for_improvement.length > 0 && (
                         <div className="mb-3">
-                          <h4 className="font-medium text-sm text-orange-700 mb-1">Areas for Improvement:</h4>
-                          <ul className="text-sm text-gray-600 list-disc list-inside">
+                          <h4 className="font-medium text-xs text-orange-500 mb-1 lowercase">areas for improvement</h4>
+                          <ul className="text-sm text-foreground/90 list-disc list-inside">
                             {area.areas_for_improvement.map((improvement, i) => (
                               <li key={i}>{improvement}</li>
                             ))}
@@ -298,7 +315,7 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
 
                       {area.citations && area.citations.length > 0 && (
                         <div>
-                          <h4 className="font-medium text-sm text-gray-700 mb-1">References:</h4>
+                          <h4 className="font-medium text-xs text-muted-foreground mb-1 lowercase">references</h4>
                           <div className="space-y-1">
                             {area.citations.map((citation, i) => (
                               <div key={i} className="text-xs text-blue-600">
@@ -320,45 +337,49 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
               </div>
 
               {/* Session Summary */}
-              <div className="bg-white border rounded-lg p-6">
-                <h2 className="text-xl font-semibold mb-4">Session Summary</h2>
+              <div className="cyber-border bg-card/30 p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-1 h-6 bg-gradient-to-b from-emerald-400 to-cyan-400" />
+                  <h2 className="text-lg font-medium lowercase text-foreground font-mono">session summary</h2>
+                  <div className="flex-1 h-px bg-gradient-to-r from-border to-transparent" />
+                </div>
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-3">
                     <div>
-                      <span className="font-medium">Duration:</span>
+                      <span className="font-medium lowercase">duration:</span>
                       <span className="ml-2">
                         {session?.duration_minutes} minutes 
                         {session?.time_extended && ` (+${session.time_extended} extended)`}
                       </span>
                     </div>
                     <div>
-                      <span className="font-medium">Messages Exchanged:</span>
+                      <span className="font-medium lowercase">messages exchanged:</span>
                       <span className="ml-2">{session?.messages_count || 0}</span>
                     </div>
                     <div>
-                      <span className="font-medium">Physical Exams:</span>
+                      <span className="font-medium lowercase">physical exams:</span>
                       <span className="ml-2">{session?.examinations_count || 0}</span>
                     </div>
                     <div>
-                      <span className="font-medium">Tests Ordered:</span>
+                      <span className="font-medium lowercase">tests ordered:</span>
                       <span className="ml-2">{session?.ordered_tests?.length || 0}</span>
                     </div>
                   </div>
                   <div className="space-y-3">
                     <div>
-                      <span className="font-medium">Session Started:</span>
+                      <span className="font-medium lowercase">session started:</span>
                       <span className="ml-2">
                         {session?.started_at ? formatDateTime(session.started_at) : 'N/A'}
                       </span>
                     </div>
                     <div>
-                      <span className="font-medium">Session Completed:</span>
+                      <span className="font-medium lowercase">session completed:</span>
                       <span className="ml-2">
                         {session?.completed_at ? formatDateTime(session.completed_at) : 'N/A'}
                       </span>
                     </div>
                     <div>
-                      <span className="font-medium">Assessed At:</span>
+                      <span className="font-medium lowercase">assessed at:</span>
                       <span className="ml-2">
                         {currentAssessmentData.assessed_at ? formatDateTime(currentAssessmentData.assessed_at) : 'N/A'}
                       </span>
@@ -369,29 +390,33 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
 
               {/* Test Orders Analysis */}
               {session?.ordered_tests && session.ordered_tests.length > 0 && (
-                <div className="bg-white border rounded-lg p-6">
-                  <h2 className="text-xl font-semibold mb-4">Test Orders Analysis</h2>
+                <div className="cyber-border bg-card/30 p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-1 h-6 bg-gradient-to-b from-emerald-400 to-cyan-400" />
+                    <h2 className="text-lg font-medium lowercase text-foreground font-mono">test orders analysis</h2>
+                    <div className="flex-1 h-px bg-gradient-to-r from-border to-transparent" />
+                  </div>
                   <div className="space-y-3">
                     {session.ordered_tests.map((test, index) => (
-                      <div key={index} className="border rounded p-3">
+                      <div key={index} className="cyber-border p-3 bg-card/20">
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
                             <div className="font-medium">{test.test_name}</div>
-                            <div className="text-sm text-gray-600 mt-1">
-                              <strong>Reasoning:</strong> {test.clinical_reasoning}
+                            <div className="text-xs text-muted-foreground mt-1 lowercase">
+                              <span className="font-mono text-foreground/80">reasoning:</span> {test.clinical_reasoning}
                             </div>
-                            <div className="text-xs text-gray-500 mt-1">
-                              Priority: {test.priority} • Cost: {formatCurrency(test.cost)}
+                            <div className="text-xs text-muted-foreground mt-1 lowercase font-mono">
+                              priority: {test.priority} • cost: {formatCurrency(test.cost)}
                             </div>
                           </div>
                           <div className="ml-4 text-right">
                             <div className="text-sm font-medium">
                               {test.results?.status === 'no_data' ? (
-                                <span className="text-yellow-600">Not Available</span>
+                                <span className="text-yellow-500">not available</span>
                               ) : test.results ? (
-                                <span className="text-green-600">Available</span>
+                                <span className="text-emerald-500">available</span>
                               ) : (
-                                <span className="text-gray-500">Pending</span>
+                                <span className="text-muted-foreground">pending</span>
                               )}
                             </div>
                           </div>
@@ -404,9 +429,12 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
 
               {/* Feedback Summary */}
               {currentAssessmentData.feedback_summary && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                  <h2 className="text-xl font-semibold mb-4 text-blue-900">Feedback Summary</h2>
-                  <div className="text-blue-800">
+                <div className="cyber-border bg-blue-50/10 border-blue-500/30 p-6">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-1 h-6 bg-gradient-to-b from-blue-400 to-cyan-400" />
+                    <h2 className="text-lg font-medium lowercase text-foreground font-mono">feedback summary</h2>
+                  </div>
+                  <div className="text-sm text-foreground/90">
                     {currentAssessmentData.feedback_summary}
                   </div>
                 </div>
@@ -416,21 +444,25 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
 
           {/* Legacy Assessment Data Fallback */}
           {!currentAssessmentData && isAssessed && !statusData?.status === 'processing' && (
-            <div className="bg-white border rounded-lg p-6">
-              <h2 className="text-xl font-semibold mb-4">Session Assessment</h2>
+            <div className="cyber-border bg-card/30 p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-1 h-6 bg-gradient-to-b from-emerald-400 to-cyan-400" />
+                <h2 className="text-lg font-medium lowercase text-foreground font-mono">session assessment</h2>
+                <div className="flex-1 h-px bg-gradient-to-r from-border to-transparent" />
+              </div>
               <div className="space-y-4">
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
-                    <span className="font-medium">Clinical Reasoning Score:</span>
+                    <span className="font-medium lowercase">clinical reasoning score:</span>
                     <span className="ml-2">{session?.clinical_reasoning_score || 0} points</span>
                   </div>
                   <div>
-                    <span className="font-medium">Total Test Cost:</span>
+                    <span className="font-medium lowercase">total test cost:</span>
                     <span className="ml-2">{formatCurrency(session?.total_test_cost || 0)}</span>
                   </div>
                 </div>
-                <div className="text-sm text-gray-600">
-                  Detailed assessment results will be available after processing.
+                <div className="text-xs text-muted-foreground lowercase">
+                  detailed assessment results will be available after processing.
                 </div>
               </div>
             </div>
@@ -438,15 +470,15 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
 
           {/* Navigation */}
           <div className="flex justify-between">
-            <Link href={route('osce')} className="text-blue-600 hover:text-blue-800">
-              ← Back to OSCE
+            <Link href={route('osce')} className="cyber-button px-3 py-2 text-emerald-600 dark:text-emerald-300 font-mono uppercase tracking-wide text-xs">
+              ← back to osce
             </Link>
             {session?.is_rationalization_complete && (
               <Link 
                 href={route('osce.rationalization.show', session.id)} 
-                className="text-blue-600 hover:text-blue-800"
+                className="cyber-button px-3 py-2 text-blue-600 dark:text-blue-300 font-mono uppercase tracking-wide text-xs"
               >
-                View Rationalization →
+                view rationalization →
               </Link>
             )}
           </div>

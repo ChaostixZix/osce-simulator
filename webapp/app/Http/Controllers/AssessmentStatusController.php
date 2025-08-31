@@ -79,7 +79,9 @@ class AssessmentStatusController extends Controller
             ->where('user_id', Auth::id())
             ->firstOrFail();
 
-        $status = $this->queueService->getQueueStatus($sessionId);
+        // Prefer cached status to avoid excessive DB work under polling
+        $status = Cache::get("assessment_status_{$sessionId}")
+            ?? $this->queueService->getQueueStatus($sessionId);
 
         return response()->json([
             'session_id' => $sessionId,
@@ -108,7 +110,9 @@ class AssessmentStatusController extends Controller
      */
     private function sendStatusEvent(int $sessionId, ?string &$lastStatusHash): void
     {
-        $status = $this->queueService->getQueueStatus($sessionId);
+        // Prefer cached status if available; fall back to live calculation
+        $status = Cache::get("assessment_status_{$sessionId}")
+            ?? $this->queueService->getQueueStatus($sessionId);
         $statusHash = md5(json_encode($status));
 
         // Only send if status changed
