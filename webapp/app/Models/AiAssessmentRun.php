@@ -14,6 +14,12 @@ class AiAssessmentRun extends Model
     protected $fillable = [
         'osce_session_id',
         'status',
+        // queue tracking fields
+        'queue_position',
+        'estimated_wait_time_minutes',
+        'queued_at',
+        'current_area',
+        'status_message',
         'final_result',
         'total_score',
         'max_possible_score',
@@ -26,6 +32,7 @@ class AiAssessmentRun extends Model
     protected $casts = [
         'final_result' => 'array',
         'telemetry' => 'array',
+        'queued_at' => 'datetime',
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
     ];

@@ -14,7 +14,8 @@ return new class extends Migration
         Schema::create('ai_assessment_runs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('osce_session_id')->constrained()->onDelete('cascade');
-            $table->enum('status', ['pending', 'in_progress', 'completed', 'failed'])->default('pending');
+            // Queue-aware statuses used across the app
+            $table->enum('status', ['queued', 'in_progress', 'completed', 'failed', 'cancelled'])->default('queued');
             $table->json('final_result')->nullable(); // The aggregated assessment result
             $table->integer('total_score')->nullable();
             $table->integer('max_possible_score')->nullable();
