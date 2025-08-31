@@ -29,6 +29,57 @@ class GeminiService
     }
 
     /**
+     * Generic JSON generation helper using a provided JSON schema.
+     * Returns the decoded JSON on success or an empty array on failure.
+     */
+    public function generateJson(array $schema, string $prompt, array $options = []): array
+    {
+        $requestBody = [
+            'contents' => [
+                [
+                    'parts' => [
+                        ['text' => $prompt],
+                    ],
+                ],
+            ],
+            'generationConfig' => array_merge([
+                'temperature' => 0.3,
+                'maxOutputTokens' => 1024,
+                'responseMimeType' => 'application/json',
+                'responseSchema' => $schema,
+            ], $options),
+        ];
+
+        try {
+            $response = Http::timeout((int) (config('gemini.timeout', 30)))
+                ->withHeaders(['Content-Type' => 'application/json'])
+                ->post("{$this->baseUrl}/{$this->model}:generateContent?key={$this->apiKey}", $requestBody);
+
+            if (! $response->successful()) {
+                Log::warning('Gemini generateJson failed', [
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
+                return [];
+            }
+
+            $data = $response->json();
+            $text = $data['candidates'][0]['content']['parts'][0]['text'] ?? '';
+            $json = json_decode($text, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                Log::warning('Gemini generateJson invalid JSON', ['text' => $text]);
+                return [];
+            }
+            return is_array($json) ? $json : [];
+        } catch (\Throwable $e) {
+            Log::error('Gemini generateJson exception', [
+                'error' => $e->getMessage(),
+            ]);
+            return [];
+        }
+    }
+
+    /**
      * Evaluate medical rationale with web search grounding
      */
     public function evaluateWithGrounding(string $systemPrompt, string $userRationale, string $context = ''): array

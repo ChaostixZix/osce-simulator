@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,18 +40,90 @@ const searchResults = ref<MedicalTest[]>([]);
 const selectedTests = ref<MedicalTest[]>([]);
 const isSubmitting = ref(false);
 
+// Tabs + categories state
+type TestType = 'lab' | 'imaging' | 'procedure' | 'physical_exam'
+const activeType = ref<TestType>('lab')
+const categoriesByType = ref<Record<string, Array<{ category: string; type: TestType }>>>({})
+const selectedCategory = ref<string>('')
+const availableTests = ref<MedicalTest[]>([])
+const isLoadingCategories = ref(false)
+const isLoadingAvailable = ref(false)
+
 const searchMedicalTests = async () => {
     if (testSearchQuery.value.length < 2) { 
         searchResults.value.length = 0; 
         return; 
     }
     try { 
-        const resp = await fetch(`/api/medical-tests/search?q=${encodeURIComponent(testSearchQuery.value)}`);
+        const params = new URLSearchParams()
+        params.set('q', testSearchQuery.value)
+        if (activeType.value) params.set('type', activeType.value)
+        if (selectedCategory.value) params.set('category', selectedCategory.value)
+        const resp = await fetch(`/api/medical-tests/search?${params.toString()}`)
         if (resp.ok) searchResults.value = await resp.json(); 
     } catch (e) { 
         console.error('Search error', e); 
     }
 };
+
+const fetchCategories = async () => {
+    if (isLoadingCategories.value) return
+    isLoadingCategories.value = true
+    try {
+        const resp = await fetch('/api/medical-tests/categories')
+        if (resp.ok) {
+            const data = await resp.json()
+            categoriesByType.value = data || {}
+            // Initialize default category for the active tab
+            const list = categoriesByType.value[activeType.value] || []
+            selectedCategory.value = list.length ? list[0].category : ''
+        }
+    } catch (e) {
+        console.error('Failed to load categories', e)
+    } finally {
+        isLoadingCategories.value = false
+    }
+}
+
+const loadAvailableTests = async () => {
+    availableTests.value.length = 0
+    if (!selectedCategory.value && !activeType.value) return
+    isLoadingAvailable.value = true
+    try {
+        const params = new URLSearchParams()
+        if (activeType.value) params.set('type', activeType.value)
+        if (selectedCategory.value) params.set('category', selectedCategory.value)
+        const resp = await fetch(`/api/medical-tests/search?${params.toString()}`)
+        if (resp.ok) availableTests.value = await resp.json()
+    } catch (e) {
+        console.error('Failed to load available tests', e)
+    } finally {
+        isLoadingAvailable.value = false
+    }
+}
+
+// When modal opens, hydrate categories + available tests
+watch(showModal, async (open) => {
+    if (open) {
+        await fetchCategories()
+        await loadAvailableTests()
+    } else {
+        // reset ephemeral lists when closing
+        testSearchQuery.value = ''
+        searchResults.value.length = 0
+    }
+})
+
+// React to tab or category change
+watch(activeType, async () => {
+    const list = categoriesByType.value[activeType.value] || []
+    selectedCategory.value = list.length ? list[0].category : ''
+    await loadAvailableTests()
+})
+
+watch(selectedCategory, async () => {
+    await loadAvailableTests()
+})
 
 const isTestOrdered = (id: number) => selectedTests.value.some(t => t.id === id);
 
@@ -127,6 +199,42 @@ const handleSubmitOrders = () => {
                 <div class="absolute top-0 right-0 w-20 h-full bg-gradient-to-l from-blue-500/10 to-transparent dark:from-blue-400/10"></div>
             </DialogHeader>
             <div class="space-y-6 relative">
+                <!-- Type Tabs + Categories -->
+                <div class="space-y-3">
+                    <div class="flex gap-2 flex-wrap">
+                        <button
+                            v-for="t in ['lab','imaging','procedure','physical_exam']"
+                            :key="t"
+                            @click="activeType = t as TestType"
+                            :class="[
+                                'px-3 py-1.5 rounded-md border text-xs font-mono uppercase tracking-widest transition-colors',
+                                activeType === t
+                                    ? 'bg-blue-600 text-white border-blue-600'
+                                    : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'
+                            ]"
+                        >
+                            {{ t === 'lab' ? 'LAB' : t === 'imaging' ? 'IMAGING' : t === 'procedure' ? 'PROCEDURE' : 'PHYSICAL EXAM' }}
+                        </button>
+                    </div>
+
+                    <!-- Categories for active tab -->
+                    <div class="flex gap-2 overflow-x-auto pb-1">
+                        <button
+                            v-for="c in (categoriesByType[activeType] || [])"
+                            :key="c.category"
+                            @click="selectedCategory = c.category"
+                            :class="[
+                                'px-3 py-1.5 rounded-full border text-xs font-mono tracking-wide whitespace-nowrap transition-colors',
+                                selectedCategory === c.category
+                                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border-blue-300 dark:border-blue-700'
+                                    : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                            ]"
+                        >
+                            {{ c.category }}
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Search Section -->
                 <div>
                     <div class="relative">
@@ -142,9 +250,50 @@ const handleSubmitOrders = () => {
                             style="clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))"
                         />
                     </div>
+                    <!-- Search results -->
                     <div v-if="searchResults.length > 0" class="mt-4 space-y-2 max-h-48 overflow-y-auto">
                         <div 
                             v-for="test in searchResults" 
+                            :key="test.id" 
+                            class="group relative p-4 bg-slate-50/50 hover:bg-slate-100/50 dark:bg-slate-900/30 dark:hover:bg-slate-800/50 border-l-2 border-slate-300 dark:border-slate-600 hover:border-blue-400 dark:hover:border-blue-400 transition-all duration-200"
+                            style="clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 0 100%)"
+                        >
+                            <div class="flex items-center justify-between">
+                                <div class="space-y-1">
+                                    <div class="font-mono font-semibold text-slate-900 dark:text-slate-100 text-sm uppercase tracking-wide">{{ test.name }}</div>
+                                    <div class="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 font-mono">
+                                        <span class="px-2 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-xs">{{ test.category }}</span>
+                                        <span>•</span>
+                                        <span>{{ test.type }}</span>
+                                    </div>
+                                    <div v-if="test.cost" class="text-xs font-mono text-blue-600 dark:text-blue-400 font-semibold">${{ test.cost }}</div>
+                                </div>
+                                <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    :disabled="isTestOrdered(test.id) || !isSessionActive" 
+                                    @click="selectTest(test)"
+                                    :class="[
+                                        'font-mono text-xs tracking-wide transition-all duration-200',
+                                        isTestOrdered(test.id)
+                                            ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-l-2 border-emerald-400'
+                                            : 'bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-800/50 text-blue-700 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 border-l-2 border-blue-400 hover:border-blue-500'
+                                    ]"
+                                    style="clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 0 100%)"
+                                >
+                                    {{ isTestOrdered(test.id) ? 'SELECTED' : 'SELECT' }}
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Available tests by category (when not searching) -->
+                    <div v-else class="mt-4 space-y-2 max-h-48 overflow-y-auto">
+                        <div v-if="isLoadingAvailable" class="text-xs font-mono text-slate-500 dark:text-slate-400">Loading available tests…</div>
+                        <div v-else-if="availableTests.length === 0" class="text-xs font-mono text-slate-500 dark:text-slate-400">No tests found in this category.</div>
+                        <div 
+                            v-else
+                            v-for="test in availableTests" 
                             :key="test.id" 
                             class="group relative p-4 bg-slate-50/50 hover:bg-slate-100/50 dark:bg-slate-900/30 dark:hover:bg-slate-800/50 border-l-2 border-slate-300 dark:border-slate-600 hover:border-blue-400 dark:hover:border-blue-400 transition-all duration-200"
                             style="clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 0 100%)"
