@@ -5,6 +5,9 @@ Goal
 - Prevent status-stream network errors caused by invalid enum values.
 - Show a clear warning message when assessment is still in progress.
 
+Status
+- Implemented. Code paths, routes, and UI verified in repo. Queue is asynchronous using the `database` driver.
+
 Scope of Changes
 - Database migration: align `ai_assessment_runs.status` enum values with code usage (`queued`, `in_progress`, `completed`, `failed`, `cancelled`).
 - Model: allow queue tracking fields to be mass-assigned and casted.
@@ -18,6 +21,20 @@ Files Changed
   - Add `$casts['queued_at' => 'datetime']`.
 - webapp/resources/js/pages/OsceResult.jsx
   - Fix prop name to receive `assessment` (matches controller) and add a yellow warning banner when status is `queued` or `in_progress`.
+ - webapp/app/Jobs/AiAssessorOrchestrator.php
+   - Mark job to run on `assessments` queue (async) via `$queue = 'assessments'`.
+ - webapp/app/Jobs/AssessOsceSessionJob.php
+   - Mark job to run on `assessments` queue (async) via `$queue = 'assessments'`.
+
+Asynchronous Queue
+- Driver: `database` (see `config/queue.php`, `.env.example QUEUE_CONNECTION=database`).
+- Worker: `composer run dev` now runs `queue:work --queue=assessments,default --tries=1` alongside the server.
+- Dispatching: Jobs are routed to `assessments` via `->onQueue('assessments')` at dispatch time.
+
+Routes (Existing)
+- `GET api/osce/sessions/{session}/status` → `OsceAssessmentController@status` as `osce.status`.
+- `GET api/osce/sessions/{session}/status-stream` → `AssessmentStatusController@stream` as `osce.status.stream`.
+- `POST osce/sessions/{session}/assess/trigger` → `OsceAssessmentController@assessInertia` as `osce.assess.trigger`.
 
 Validation Steps
 1) Run migrations:

@@ -76,7 +76,8 @@ class OsceAssessmentController extends Controller
         $assessmentRun = $this->queueService->enqueueAssessment($session->id, $force);
         
         // Dispatch the orchestrator job with run ID
-        AiAssessorOrchestrator::dispatch($session->id, $force, $assessmentRun->id);
+        AiAssessorOrchestrator::dispatch($session->id, $force, $assessmentRun->id)
+            ->onQueue('assessments');
 
         $queueStatus = $this->queueService->getQueueStatus($session->id);
 
