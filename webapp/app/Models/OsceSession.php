@@ -37,6 +37,10 @@ class OsceSession extends Model
         'assessed_at',
         'assessor_model',
         'rubric_version',
+        'diagnosis',
+        'differential_diagnosis',
+        'plan',
+        'finalized_at',
     ];
 
     protected $appends = [
@@ -52,6 +56,7 @@ class OsceSession extends Model
         'completed_at' => 'datetime',
         'rationalization_completed_at' => 'datetime',
         'assessed_at' => 'datetime',
+        'finalized_at' => 'datetime',
         'time_extended' => 'integer',
         'responses' => 'array',
         'feedback' => 'array',
@@ -294,5 +299,55 @@ class OsceSession extends Model
     public function getIsRationalizationCompleteAttribute(): bool
     {
         return (bool) $this->rationalization_completed_at;
+    }
+
+    /**
+     * Check if session can be finalized
+     */
+    public function canFinalize(): bool
+    {
+        $user = auth()->user();
+        
+        // Session must be completed first
+        if ($this->status !== 'completed') {
+            return false;
+        }
+        
+        // Only session owner can finalize
+        return $this->user_id === $user?->id;
+    }
+
+    /**
+     * Check if session is finalized
+     */
+    public function isFinalized(): bool
+    {
+        return !is_null($this->finalized_at);
+    }
+
+    /**
+     * Finalize the session with diagnosis, differential diagnosis, and plan
+     */
+    public function finalize(string $diagnosis, string $differential, string $plan): void
+    {
+        if ($this->isFinalized()) {
+            throw new \Exception('Session is already finalized');
+        }
+
+        if (!$this->canFinalize()) {
+            throw new \Exception('Session cannot be finalized');
+        }
+
+        $this->diagnosis = $diagnosis;
+        $this->differential_diagnosis = $differential;
+        $this->plan = $plan;
+        $this->finalized_at = now();
+        $this->save();
+
+        \Log::info('OSCE Session finalized', [
+            'session_id' => $this->id,
+            'finalized_at' => $this->finalized_at?->toISOString(),
+            'user_id' => auth()->user()?->id,
+        ]);
     }
 }

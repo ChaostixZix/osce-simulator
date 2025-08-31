@@ -266,6 +266,52 @@ class OsceController extends Controller
         ]);
     }
 
+    public function finalizeSession(Request $request, OsceSession $session)
+    {
+        $user = auth()->user();
+        if ($session->user_id !== $user->id) {
+            abort(403, 'Unauthorized access to session');
+        }
+
+        // Check if session is already finalized
+        if ($session->isFinalized()) {
+            return response()->json([
+                'message' => 'Session is already finalized'
+            ], 409);
+        }
+
+        // Check if session can be finalized
+        if (!$session->canFinalize()) {
+            return response()->json([
+                'message' => 'Session cannot be finalized'
+            ], 403);
+        }
+
+        // Validate required fields
+        $validated = $request->validate([
+            'diagnosis' => 'required|string|min:10',
+            'differential_diagnosis' => 'required|string|min:10',
+            'plan' => 'required|string|min:10'
+        ]);
+
+        try {
+            $session->finalize(
+                $validated['diagnosis'],
+                $validated['differential_diagnosis'],
+                $validated['plan']
+            );
+
+            return response()->json([
+                'message' => 'Session finalized successfully',
+                'session' => $session->fresh()->load('osceCase'),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => $e->getMessage()
+            ], 400);
+        }
+    }
+
     /**
      * Show session results with rationalization gating
      */
