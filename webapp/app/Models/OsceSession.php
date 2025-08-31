@@ -217,7 +217,7 @@ class OsceSession extends Model
 
             // Dispatch assessment job if not already assessed
             if (! $this->assessed_at) {
-                AssessOsceSessionJob::dispatch($this->id);
+                AssessOsceSessionJob::dispatch($this->id)->onQueue('assessments');
             }
         }
     }
