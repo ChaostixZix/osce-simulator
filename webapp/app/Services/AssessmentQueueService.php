@@ -25,10 +25,9 @@ class AssessmentQueueService
             ];
         }
 
-        // Update queue position if still queued or processing
-        if (in_array($assessmentRun->status, ['queued', 'in_progress'])) {
-            $this->updateQueuePositions();
-        }
+        // Do not recalculate queue positions on every status read to avoid
+        // excessive writes under SSE/polling. Positions are updated on
+        // enqueue/start/complete/fail events.
 
         return [
             'status' => $assessmentRun->status,
