@@ -24,6 +24,8 @@ function OsceChatContent({ session, user, sessionData = {}, examCatalog = {} }) 
   const [error, setError] = useState('');
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [resultsLoading, setResultsLoading] = useState(false);
+  const [showEndSessionModal, setShowEndSessionModal] = useState(false);
+  const [endingSession, setEndingSession] = useState(false);
   const [orderedTestsView, setOrderedTestsView] = useState(() => (session?.ordered_tests || session?.orderedTests || []));
   const [hasLoadedResults, setHasLoadedResults] = useState(false);
   const [nowTick, setNowTick] = useState(Date.now());
@@ -395,6 +397,38 @@ const refreshResults = async () => {
     }
   };
 
+  const endSession = async () => {
+    setEndingSession(true);
+    setError('');
+    try {
+      const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+      const response = await fetch(`/api/osce/sessions/${session.id}/complete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRF-TOKEN': csrf || ''
+        },
+        credentials: 'same-origin'
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        setShowEndSessionModal(false);
+        // Navigate to results page using Inertia
+        router.visit(route('osce.results.show', session.id));
+      } else {
+        setError(data.message || 'Failed to end session');
+      }
+    } catch (e) {
+      console.error('Failed to end session:', e);
+      setError('An error occurred while ending the session.');
+    } finally {
+      setEndingSession(false);
+    }
+  };
+
   const etaText = (t) => {
     const ra = t.results_available_at || t.resultsAvailableAt;
     if (!ra) return null;
@@ -608,6 +642,16 @@ const refreshResults = async () => {
                   }}
                 >
                   ORDER TESTS
+                </button>
+                <button
+                  onClick={() => setShowEndSessionModal(true)}
+                  disabled={!isSessionActive || endingSession}
+                  className="w-full px-4 py-3 bg-gradient-to-r from-red-500/10 to-orange-500/10 hover:from-red-500/20 hover:to-orange-500/20 border-2 border-red-400/30 hover:border-red-400/50 disabled:from-slate-300/10 disabled:to-slate-400/10 disabled:border-slate-400/30 text-slate-700 dark:text-slate-300 disabled:text-slate-500 font-mono text-sm tracking-wide transition-all duration-200 disabled:cursor-not-allowed"
+                  style={{
+                    clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))'
+                  }}
+                >
+                  {endingSession ? 'ENDING...' : 'END SESSION'}
                 </button>
               </div>
             </div>
@@ -1176,6 +1220,108 @@ const refreshResults = async () => {
               </div>
             </div>
           )}
+        </Modal>
+
+        {/* End Session Confirmation Modal */}
+        <Modal
+          open={showEndSessionModal}
+          onClose={() => setShowEndSessionModal(false)}
+          title="End OSCE Session"
+          size="md"
+        >
+          <div className="space-y-6">
+            {/* Warning Header */}
+            <div className="cyber-border bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-500/30 p-4 relative group">
+              <div className="absolute top-2 right-2 w-2 h-2 bg-gradient-to-br from-amber-400 to-orange-400 opacity-60 group-hover:opacity-100 transition-opacity"></div>
+              
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-1 h-4 bg-gradient-to-b from-amber-400 to-orange-400"></div>
+                <span className="text-xs text-amber-400 font-mono uppercase tracking-wider">warning</span>
+              </div>
+              
+              <div className="text-sm text-foreground font-medium lowercase">
+                you are about to end this osce session
+              </div>
+            </div>
+
+            {/* Session Info */}
+            <div className="cyber-border bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/30 p-4 relative">
+              <div className="absolute top-2 right-2 w-2 h-2 bg-gradient-to-br from-blue-400 to-cyan-400 opacity-60"></div>
+              
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-1 h-4 bg-gradient-to-b from-blue-400 to-cyan-400"></div>
+                <span className="text-xs text-blue-400 font-mono uppercase tracking-wider">current session</span>
+              </div>
+              
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground lowercase">case:</span>
+                  <span className="text-foreground font-mono">{session?.osce_case?.title}</span>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground lowercase">time remaining:</span>
+                  <span className="text-foreground font-mono">{timerData?.formatted_time_remaining || '00:00'}</span>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground lowercase">tests ordered:</span>
+                  <span className="text-foreground font-mono">{session?.ordered_tests?.length || 0}</span>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground lowercase">exams performed:</span>
+                  <span className="text-foreground font-mono">{session?.examinations?.length || 0}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Confirmation Text */}
+            <div className="text-center space-y-3">
+              <div className="text-sm text-muted-foreground lowercase">
+                ending the session now will complete your osce and take you to the results page.
+              </div>
+              
+              <div className="text-xs text-muted-foreground font-mono">
+                this action cannot be undone
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-between gap-4">
+              <button
+                type="button"
+                onClick={() => setShowEndSessionModal(false)}
+                disabled={endingSession}
+                className="cyber-button px-6 py-2 text-muted-foreground hover:text-foreground font-mono uppercase tracking-wide text-xs disabled:opacity-50"
+              >
+                continue session
+              </button>
+              
+              <button
+                type="button"
+                onClick={endSession}
+                disabled={endingSession}
+                className="cyber-button px-6 py-2 text-red-600 dark:text-red-400 hover:text-red-500 font-mono uppercase tracking-wide text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {endingSession ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 border border-red-400 border-t-transparent rounded-full animate-spin"></div>
+                    <span>ending...</span>
+                  </div>
+                ) : (
+                  'end session now'
+                )}
+              </button>
+            </div>
+
+            {/* Error Display */}
+            {error && (
+              <div className="cyber-border bg-gradient-to-br from-red-500/10 to-red-600/5 border-red-500/30 p-3">
+                <div className="text-xs text-red-400 font-mono">{error}</div>
+              </div>
+            )}
+          </div>
         </Modal>
       </AppLayout>
     </>

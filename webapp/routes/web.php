@@ -27,6 +27,7 @@ Route::middleware([
 	Route::post('api/osce/sessions/start', [App\Http\Controllers\OsceController::class, 'startSession']);
 	Route::get('api/osce/sessions/{session}/timer', [App\Http\Controllers\OsceController::class, 'getSessionTimer']);
 	Route::post('api/osce/sessions/{session}/complete', [App\Http\Controllers\OsceController::class, 'completeSession']);
+	Route::post('api/osce/sessions/{session}/finalize', [App\Http\Controllers\OsceController::class, 'finalizeSession']);
 	Route::post('api/osce/sessions/{session}/extend', [App\Http\Controllers\OsceController::class, 'extendSession']);
 	
 	// OSCE Chat routes (named for Ziggy)
