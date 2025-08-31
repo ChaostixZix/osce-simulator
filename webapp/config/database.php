@@ -143,7 +143,8 @@ return [
 
     'redis' => [
 
-        'client' => env('REDIS_CLIENT', 'phpredis'),
+        // Prefer explicit env, otherwise auto-detect available client
+        'client' => env('REDIS_CLIENT', (extension_loaded('redis') ? 'phpredis' : (class_exists(\Predis\Client::class) ? 'predis' : 'phpredis'))),
 
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),
