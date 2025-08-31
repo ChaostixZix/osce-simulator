@@ -4,7 +4,7 @@ import AppLayout from '@/Layouts/AppLayout';
 import useAssessmentStatus from '@/hooks/useAssessmentStatus';
 import QueueIndicator from '@/components/QueueIndicator';
 
-export default function OsceResult({ session, isAssessed = true, canReassess = false, assessmentData = null, error = null }) {
+export default function OsceResult({ session, isAssessed = true, canReassess = false, assessment: assessmentData = null, error = null }) {
   const [currentAssessmentData, setCurrentAssessmentData] = useState(assessmentData);
   const [isPolling, setIsPolling] = useState(false);
   const [statusData, setStatusData] = useState(null);
@@ -174,6 +174,18 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
               status={queueStatus || statusData} 
               className="mb-6"
             />
+          )}
+
+          {/* In-progress Warning */}
+          {(queueStatus?.status === 'queued' || queueStatus?.status === 'in_progress' || statusData?.status === 'queued' || statusData?.status === 'in_progress') && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+              <div className="flex items-center space-x-2">
+                <span className="text-yellow-600">⚠️</span>
+                <span className="text-sm text-yellow-800">
+                  The assessment is still in progress, please come back later.
+                </span>
+              </div>
+            </div>
           )}
 
           {/* Connection Status */}
