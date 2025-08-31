@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Events\TestOrderReady;
 use App\Models\SessionOrderedTest;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -27,6 +28,14 @@ class ProcessTestResultsJob implements ShouldQueue
                 'results' => $results,
                 'completed_at' => now(),
             ]);
+
+            // Broadcast test ready notification
+            TestOrderReady::dispatch(
+                session_id: $test->osce_session_id,
+                order_id: $test->id,
+                test_name: $test->test_name,
+                ready_at: now()->toISOString()
+            );
         }
     }
 

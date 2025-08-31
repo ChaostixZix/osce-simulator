@@ -1,104 +1,115 @@
-Feature slug: live-test-ready-notification
+# Live Test Ready Notification Implementation
 
-Objective
+## Overview
+Implemented live notifications that show a toast message "Dok tes untuk {nama tests} sudah siap" when an ordered test becomes ready, without requiring page refresh.
 
-- Implement live notifications so that when an ordered test finishes processing, the user immediately sees a toast: "Dok tets untuk {nama tests} sudah siap". The toast should appear on the OSCE session UI without manual refresh and work with the current SPA stack (Laravel + Inertia + React preferred; keep Vue pages stable).
+## Implementation Details
 
-Reuse-First Checklist (do this before coding)
+### Backend Components
 
-- Search for existing realtime setup (Laravel Echo, Reverb, Pusher) and existing private channels for OSCE (e.g., `osce.sessions.{sessionId}`) — reuse the same transport and patterns.
-- Check for any existing events for queue/assessment status (e.g., "queue indicators" work) — piggyback on the same client bootstrap and helpers if present.
-- Check if there is a generic Toast/Notification component/hook (e.g., `useToast`, `NotificationsProvider`) — reuse; otherwise add a minimal local toast.
-- Identify where a test order transitions to "ready" (controller/job/service). Wire event dispatch precisely at the status flip.
+#### 1. Event Broadcasting (`app/Events/TestOrderReady.php`)
+- **Purpose**: Broadcasts test ready notifications to private channels
+- **Channel**: `osce.sessions.{sessionId}` - private channel scoped to session
+- **Payload**: session_id, order_id, test_name, ready_at timestamp
+- **Event Name**: `TestOrderReady`
 
-Backend (Laravel)
+#### 2. Channel Authorization (`routes/channels.php`)
+- **Channel**: `osce.sessions.{session}`  
+- **Authorization**: User must own the session OR be an admin
+- **Security**: Prevents unauthorized users from listening to other sessions
 
-- Event: `webapp/app/Events/TestOrderReady.php`
-  - Implements `ShouldBroadcast`.
-  - Payload: `session_id`, `order_id`, `test_name`, `ready_at` (timestamp).
-  - Channel: private `osce.sessions.{sessionId}`.
-  - Name the event `TestOrderReady` (class also determines broadcast name unless overridden).
+#### 3. Event Dispatch (`app/Jobs/ProcessTestResultsJob.php`)
+- **Location**: Line 33-38 after test completion
+- **Trigger**: When `completed_at` is updated in `SessionOrderedTest`
+- **Data**: Uses test name and session ID from the completed test
 
-- Channels: `webapp/routes/channels.php`
-  - Authorize private channel `osce.sessions.{session}` so only the owner (or allowed roles) of the session can subscribe.
-  - Example:
-    - `Broadcast::channel('osce.sessions.{session}', fn(User $u, OsceSession $session) => $u->id === $session->user_id || $u->is_admin);`
+### Frontend Components
 
-- Dispatch location
-  - Identify the exact spot where a test order becomes ready (e.g., `OrderTestJob` completion, service method, or controller). Immediately after persisting `status='ready'`, dispatch the event:
-    - `TestOrderReady::dispatch(session_id: $session->id, order_id: $order->id, test_name: $order->name, ready_at: now());`
+#### 4. Toast System (`resources/js/Components/Notifications/`)
+- **Toast.jsx**: Individual notification component with gaming design
+- **ToastContainer.jsx**: Provider + context for managing multiple toasts
+- **Features**: Auto-dismiss, exit animations, cyber-border styling
 
-- Config
-  - Reuse existing broadcast driver if already set (prefer `reverb` or `pusher`). If none:
-    - `.env`: `BROADCAST_DRIVER=reverb` and configure Reverb per Laravel docs; local dev can run `php artisan reverb:start` alongside app.
-  - Keep queueing consistent; broadcasting can be queued.
+#### 5. Realtime Hook (`resources/js/hooks/useOsceSessionRealtime.js`)
+- **Purpose**: Manages Laravel Echo subscription to OSCE session events  
+- **Fallback**: Gracefully degrades when broadcast is not configured
+- **Cleanup**: Automatically unsubscribes when component unmounts
+- **Toast Integration**: Displays Indonesian message format
 
-Frontend (Inertia React preferred)
+#### 6. Page Integration (`resources/js/pages/OsceChat.jsx`)
+- **Wrapper**: ToastProvider wraps the entire component
+- **Hook**: useOsceSessionRealtime initialized with session ID
+- **Dependencies**: Laravel Echo and Pusher.js installed via npm
 
-- Subscription hook (reuse existing if present)
-  - Create or extend a session-level hook, e.g., `webapp/resources/js/hooks/useOsceSessionRealtime.js`:
-    - On mount, subscribe via Echo to `private-osce.sessions.${sessionId}` and listen for `TestOrderReady`.
-    - On event, show toast: `Dok tets untuk ${test_name} sudah siap`.
-    - Clean up subscription on unmount.
+## Configuration Requirements
 
-- Toast UI
-  - If a global toast system exists (e.g., `useToast` from your UI kit), use it.
-  - Else, add a minimal toast component under `webapp/resources/js/Components/Notifications/Toast.jsx` and a small provider to render stacked toasts.
-  - Auto-dismiss after ~5 seconds, allow click to open results (optional enhancement).
+### Required Environment Variables
+```env
+# For Reverb (recommended for development)
+BROADCAST_CONNECTION=reverb
+REVERB_HOST=127.0.0.1
+REVERB_PORT=8080
 
-- Integration point
-  - In the OSCE session page/component (React), initialize the hook with the current `sessionId` once mounted. Ensure only one subscription per page.
-  - If Vue page is still used for this screen, create a small Vue plugin or composition function to subscribe similarly (do not mix React+Vue on one page).
-
-Example (React, pseudo-code)
-
-```js
-// hooks/useOsceSessionRealtime.js
-import Echo from '../lib/echo'
-import { useEffect } from 'react'
-import { useToast } from '../components/ui/use-toast' // reuse if exists
-
-export function useOsceSessionRealtime(sessionId){
-  const { toast } = useToast()
-  useEffect(()=>{
-    if (!sessionId || !Echo) return
-    const channel = Echo.private(`osce.sessions.${sessionId}`)
-      .listen('TestOrderReady', (e)=>{
-        const name = e?.test_name ?? 'pemeriksaan'
-        toast({ title: `Dok tets untuk ${name} sudah siap` })
-      })
-    return ()=> { try { channel?.unsubscribe?.() } catch(_){} }
-  },[sessionId])
-}
+# OR for Pusher (production)
+BROADCAST_CONNECTION=pusher
+PUSHER_APP_ID=your_app_id
+PUSHER_APP_KEY=your_app_key  
+PUSHER_APP_SECRET=your_secret
+PUSHER_HOST=
+PUSHER_PORT=443
+PUSHER_SCHEME=https
+PUSHER_APP_CLUSTER=mt1
 ```
 
-Acceptance Criteria
-
-1) When a test order flips to ready, backend broadcasts `TestOrderReady` on `private-osce.sessions.{sessionId}` with `test_name`.
-2) Active session UI shows a toast instantly: `Dok tets untuk {nama tests} sudah siap`, no page refresh needed.
-3) Only the session owner (or permitted roles) receives the event; others do not.
-4) Subscriptions clean up on navigation (no memory leaks or duplicate toasts).
-5) If realtime is not configured, the app remains functional (no errors); notification is simply not shown or can fall back to a light poll (optional future).
-
-Notes
-
-- Reuse existing Echo/Reverb bootstrap if available (usually in `resources/js/bootstrap.js` or a similar file). Avoid creating parallel clients.
-- Message copy kept verbatim per request. If you prefer "tes" instead of "tets", update string centrally.
-- Optional: clicking the toast can navigate to the results view for that order; wire `onClick` to open the results modal if available.
-
-Files to Add/Touch
-
-- Add: `webapp/app/Events/TestOrderReady.php`
-- Touch: `webapp/routes/channels.php` (authorize channel)
-- Touch: The job/service/controller that marks orders ready (dispatch event)
-- Add or reuse: `webapp/resources/js/hooks/useOsceSessionRealtime.js`
-- Reuse or add: toast UI under `webapp/resources/js/Components/Notifications/`
-
-Quick Commands (backend)
-
+### Start Realtime Services
 ```bash
-cd webapp
-php artisan make:event TestOrderReady
-# ensure ShouldBroadcast and channel/payload implementation
+# For Reverb development
+cd webapp && php artisan reverb:start --host=0.0.0.0 --port=8080
+
+# For Pusher, no additional service needed
 ```
 
+## Testing Flow
+
+1. **Setup**: Start Laravel + Reverb servers
+2. **Session**: Open OSCE chat session in browser
+3. **Order**: Order a medical test via the UI  
+4. **Wait**: Test becomes ready after turnaround time
+5. **Notification**: ProcessTestResultsJob runs, dispatches event
+6. **Display**: Toast appears with "Dok tes untuk {test name} sudah siap"
+
+## Fallback Behavior
+
+- **No Broadcast Config**: App continues working, no notifications shown
+- **Connection Failed**: Logs warning, no impact on core functionality
+- **Channel Auth Failed**: User doesn't receive notifications but session works
+- **Echo Not Loaded**: Hook detects and skips subscription gracefully
+
+## File Changes Summary
+
+### Created:
+- `app/Events/TestOrderReady.php` - Broadcast event
+- `routes/channels.php` - Channel authorization
+- `resources/js/Components/Notifications/Toast.jsx` - Toast component
+- `resources/js/Components/Notifications/ToastContainer.jsx` - Toast provider
+- `resources/js/hooks/useOsceSessionRealtime.js` - Realtime hook
+
+### Modified:
+- `app/Jobs/ProcessTestResultsJob.php` - Added event dispatch
+- `resources/js/pages/OsceChat.jsx` - Added toast provider + realtime hook
+- `package.json` - Added laravel-echo and pusher-js dependencies
+
+## Security Considerations
+
+- ✅ Private channels ensure only authorized users receive notifications
+- ✅ CSRF protection on auth endpoint  
+- ✅ User must own session or be admin to subscribe
+- ✅ No sensitive test data in broadcast payload
+- ✅ Client-side validation prevents XSS in toast messages
+
+## Performance Impact
+
+- **Minimal**: Events only sent when tests actually complete
+- **Scoped**: Private channels limit broadcast scope to session owner
+- **Efficient**: Single event per test completion, not per polling request
+- **Cleanup**: Proper subscription cleanup prevents memory leaks
