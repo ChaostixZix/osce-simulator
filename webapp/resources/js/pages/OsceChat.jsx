@@ -2,8 +2,10 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import Modal from '@/components/react/Modal.jsx';
+import { ToastProvider } from '@/Components/Notifications/ToastContainer';
+import { useOsceSessionRealtime } from '@/hooks/useOsceSessionRealtime';
 
-export default function OsceChat({ session, user, sessionData = {}, examCatalog = {} }) {
+function OsceChatContent({ session, user, sessionData = {}, examCatalog = {} }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -45,6 +47,9 @@ export default function OsceChat({ session, user, sessionData = {}, examCatalog 
   const [availableTests, setAvailableTests] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [loadingAvailable, setLoadingAvailable] = useState(false);
+
+  // Initialize realtime notifications for test results
+  const { isConnected } = useOsceSessionRealtime(session?.id);
 
   const breadcrumbs = [
     { title: 'OSCE', href: route('osce') },
@@ -1174,5 +1179,14 @@ const refreshResults = async () => {
         </Modal>
       </AppLayout>
     </>
+  );
+}
+
+// Wrapper component that provides toast functionality
+export default function OsceChat(props) {
+  return (
+    <ToastProvider>
+      <OsceChatContent {...props} />
+    </ToastProvider>
   );
 }
