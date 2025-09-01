@@ -421,6 +421,33 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
                 </div>
               </div>
 
+              {/* Debugging — AI fallback and errors */}
+              {(() => {
+                const areas = currentAssessmentData?.output?.clinical_areas || currentAssessmentData.area_results || [];
+                const hasFallbacks = (currentAssessmentData?.has_fallbacks) || areas.some((a) => a.status === 'fallback');
+                if (!hasFallbacks) return null;
+                return (
+                  <div className="cyber-border bg-yellow-50/10 border-yellow-500/30 p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-yellow-500">⚠️</span>
+                      <span className="text-xs text-muted-foreground lowercase">ai issues detected — some areas used rubric fallback</span>
+                    </div>
+                    <div className="space-y-1">
+                      {areas.map((a, i) => (
+                        <div key={i} className="text-xs text-muted-foreground">
+                          <span className="font-mono">{a.key}</span>: status=<span className="font-mono">{a.status}</span>, attempts={a.attempts ?? 0}{' '}
+                          {a.error_message ? (
+                            <>
+                              • last_error: <span className="text-foreground/90">{String(a.error_message).slice(0, 200)}</span>
+                            </>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Session Summary */}
               <div className="cyber-border bg-card/30 p-6">
                 <div className="flex items-center gap-3 mb-4">
@@ -519,14 +546,14 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
               )}
 
               {/* Feedback Summary */}
-              {currentAssessmentData.feedback_summary && (
+              {(currentAssessmentData.overall_feedback || currentAssessmentData?.output?.overall_feedback) && (
                 <div className="cyber-border bg-blue-50/10 border-blue-500/30 p-6">
                   <div className="flex items-center gap-3 mb-2">
                     <div className="w-1 h-6 bg-gradient-to-b from-blue-400 to-cyan-400" />
                     <h2 className="text-lg font-medium lowercase text-foreground font-mono">feedback summary</h2>
                   </div>
                   <div className="text-sm text-foreground/90">
-                    {currentAssessmentData.feedback_summary}
+                    {currentAssessmentData.overall_feedback || currentAssessmentData?.output?.overall_feedback}
                   </div>
                 </div>
               )}

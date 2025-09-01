@@ -22,5 +22,9 @@ class Kernel extends ConsoleKernel
     protected function commands(): void
     {
         $this->load(__DIR__.'/Commands');
+        // Manually register local utility commands that aren't auto-discovered
+        $this->commands([
+            \App\Console\Commands\ProbeGeminiForSession::class,
+        ]);
     }
 }

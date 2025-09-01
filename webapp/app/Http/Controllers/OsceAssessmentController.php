@@ -144,6 +144,7 @@ class OsceAssessmentController extends Controller
                         'max_score' => $result->max_score,
                         'was_repaired' => $result->was_repaired,
                         'attempts' => $result->attempts,
+                        'error_message' => $result->error_message,
                     ];
                 });
 
@@ -207,6 +208,7 @@ class OsceAssessmentController extends Controller
                     'justification' => $result->justification,
                     'was_repaired' => $result->was_repaired,
                     'attempts' => $result->attempts,
+                    'error_message' => $result->error_message,
                 ];
             });
 
