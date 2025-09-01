@@ -34,6 +34,7 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
   // Stable status change handler to avoid re-subscribing SSE/polling
   const handleStatusChange = useCallback((newStatus, prevStatus) => {
     setStatusData(newStatus);
+    // Only fetch new results if assessment actually completed (not if already completed)
     if (newStatus.status === 'completed' && (!prevStatus || prevStatus.status !== 'completed')) {
       fetchAssessmentResults();
     }
@@ -73,7 +74,7 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
             setStatusData(data);
             
             // If assessment is complete, fetch updated results
-            if (data.status === 'completed' && !currentAssessmentData) {
+            if (data.status === 'completed') {
               fetchAssessmentResults();
             }
           }
@@ -125,12 +126,13 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
           'X-Requested-With': 'XMLHttpRequest',
           'X-CSRF-TOKEN': csrf ?? ''
         },
-        credentials: 'same-origin'
+        credentials: 'same-origin',
+        body: JSON.stringify({ force: true })
       });
 
       if (res.ok) {
-        // Start polling for new results
-        setCurrentAssessmentData(null);
+        // Keep existing assessment data visible during reassessment
+        // Only clear when new assessment completes
         setStatusData({ status: 'processing', progress: 0 });
       }
     } catch (e) {
@@ -250,6 +252,18 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
           {/* Results Content */}
           {currentAssessmentData && (
             <div className="space-y-6">
+              {/* Reassessment in Progress Banner */}
+              {(queueStatus?.status === 'queued' || queueStatus?.status === 'in_progress' || statusData?.status === 'processing') && (
+                <div className="cyber-border bg-blue-50/10 border-blue-500/30 p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+                    <div className="text-sm text-blue-400 lowercase font-mono">
+                      reassessment in progress — showing previous results below
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Performance Overview */}
               <div className="cyber-border bg-card/30 p-6">
                 <div className="flex items-center gap-3 mb-4">

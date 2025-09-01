@@ -194,6 +194,22 @@ class OsceAssessmentController extends Controller
 
         // If we have a new assessment run, use that data
         if ($assessmentRun) {
+            // Load area results for the API response
+            $areaResults = $assessmentRun->areaResults->map(function ($result) {
+                return [
+                    'area' => $result->area_display_name,
+                    'key' => $result->clinical_area,
+                    'status' => $result->status,
+                    'badge_color' => $result->badge_color,
+                    'badge_text' => $result->badge_text,
+                    'score' => $result->score,
+                    'max_score' => $result->max_score,
+                    'justification' => $result->justification,
+                    'was_repaired' => $result->was_repaired,
+                    'attempts' => $result->attempts,
+                ];
+            });
+
             return response()->json([
                 'session_id' => $session->id,
                 'run_id' => $assessmentRun->id,
@@ -203,6 +219,7 @@ class OsceAssessmentController extends Controller
                 'assessor_model' => config('services.gemini.model', 'gemini-2.5-flash'),
                 'assessment_type' => 'detailed_clinical_areas_assessment',
                 'assessor_output' => $assessmentRun->final_result,
+                'area_results' => $areaResults,
                 'case_title' => $session->osceCase->title ?? 'Unknown Case',
                 'user_name' => $session->user->name ?? 'Unknown User',
                 'completed_at' => $session->completed_at?->toISOString(),
