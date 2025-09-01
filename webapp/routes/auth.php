@@ -11,16 +11,16 @@ Route::get('login', function (AuthKitLoginRequest $request) {
 
 // Primary WorkOS callback endpoint
 Route::get('authenticate', function (AuthKitAuthenticationRequest $request) {
-    return tap(to_route('dashboard'), fn () => $request->authenticate());
+    return tap(to_route('dashboard'), fn () => $request->authenticateWithFallback());
 })->middleware(['guest']);
 
 // Aliases for providers/environments that redirect to conventional callback paths
 Route::get('auth/callback', function (AuthKitAuthenticationRequest $request) {
-    return tap(to_route('dashboard'), fn () => $request->authenticate());
+    return tap(to_route('dashboard'), fn () => $request->authenticateWithFallback());
 })->middleware(['guest']);
 
 Route::get('auth/authenticate', function (AuthKitAuthenticationRequest $request) {
-    return tap(to_route('dashboard'), fn () => $request->authenticate());
+    return tap(to_route('dashboard'), fn () => $request->authenticateWithFallback());
 })->middleware(['guest']);
 
 Route::post('logout', function (AuthKitLogoutRequest $request) {

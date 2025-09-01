@@ -13,40 +13,32 @@ class WorkOSServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Extend the AuthKitAuthenticationRequest to handle WorkOS ID changes
+        // Extend the AuthKitAuthenticationRequest with an email-safe flow
         AuthKitAuthenticationRequest::macro('authenticateWithFallback', function () {
             return $this->authenticate(
-                // Custom findUsing: try workos_id first, then email fallback
+                // 1) Find existing user by WorkOS ID when present
                 findUsing: function (string $workosId) {
-                    // First try to find by WorkOS ID
-                    $user = User::where('workos_id', $workosId)->first();
-                    
-                    // If not found by WorkOS ID, we need to get the email from WorkOS
-                    // and try to find an existing user by email
-                    if (!$user) {
-                        try {
-                            \WorkOS\WorkOS::configure();
-                            $workosUser = (new \WorkOS\UserManagement)->authenticateWithCode(
-                                config('services.workos.client_id'),
-                                request()->query('code'),
-                            );
-                            
-                            // Try to find by email
-                            $user = User::where('email', $workosUser->user->email)->first();
-                        } catch (\Exception $e) {
-                            // If WorkOS call fails, return null to create new user
-                            return null;
-                        }
-                    }
-                    
-                    return $user;
+                    return User::where('workos_id', $workosId)->first();
                 },
-                // Custom updateUsing: always update the WorkOS ID
-                updateUsing: function (User $user, \Laravel\WorkOS\User $userFromWorkOS) {
+                // 2) Create or link by email to avoid UNIQUE email conflicts
+                createUsing: function (\Laravel\WorkOS\User $workosUser) {
+                    $fullName = trim(($workosUser->firstName ?? '').' '.($workosUser->lastName ?? ''));
+                    return User::updateOrCreate(
+                        ['email' => $workosUser->email],
+                        [
+                            'name' => $fullName !== '' ? $fullName : ($workosUser->email ?? 'User'),
+                            'workos_id' => $workosUser->id,
+                            'avatar' => $workosUser->avatar ?? null,
+                        ]
+                    );
+                },
+                // 3) Always keep local user in sync with WorkOS profile
+                updateUsing: function (User $user, \Laravel\WorkOS\User $workosUser) {
+                    $fullName = trim(($workosUser->firstName ?? '').' '.($workosUser->lastName ?? ''));
                     return tap($user)->update([
-                        'name' => $userFromWorkOS->firstName.' '.$userFromWorkOS->lastName,
-                        'workos_id' => $userFromWorkOS->id,
-                        'avatar' => $userFromWorkOS->avatar ?? $user->avatar,
+                        'name' => $fullName !== '' ? $fullName : ($user->name ?? $workosUser->email),
+                        'workos_id' => $workosUser->id,
+                        'avatar' => $workosUser->avatar ?? $user->avatar,
                     ]);
                 }
             );

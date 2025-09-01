@@ -60,7 +60,7 @@ class AreaAssessor
 
                 // Make API call for this specific area
                 $response = $this->callGeminiForArea($artifact, $area);
-                
+
                 // Apply JSON gate
                 $jsonResult = $this->applyJsonGate($response, $area, $areaResult);
                 
@@ -90,8 +90,13 @@ class AreaAssessor
                     ];
                 }
 
-                // If not successful but not fatal, try again
+                // If not successful but not fatal, attach last error and try again
                 if ($attempt < $maxRetries) {
+                    if (!empty($jsonResult['error'] ?? null)) {
+                        $areaResult->update([
+                            'error_message' => (string) $jsonResult['error'],
+                        ]);
+                    }
                     Log::warning('AreaAssessor retrying', [
                         'session_id' => $session->id,
                         'area' => $area,
@@ -107,6 +112,11 @@ class AreaAssessor
                     'area' => $area,
                     'attempt' => $attempt,
                     'error' => $e->getMessage()
+                ]);
+
+                // Persist error to area result for frontend debugging
+                $areaResult->update([
+                    'error_message' => $e->getMessage(),
                 ]);
 
                 if ($attempt >= $maxRetries) {
@@ -148,10 +158,10 @@ class AreaAssessor
                     ]
                 ],
                 'generationConfig' => [
-                    'temperature' => 0.1,
+                    'temperature' => 0.0,
                     'topK' => 1,
                     'topP' => 1,
-                    'maxOutputTokens' => 900,
+                    'maxOutputTokens' => 1200,
                     'responseMimeType' => 'application/json',
                     'responseSchema' => $schema,
                 ],
@@ -265,11 +275,21 @@ class AreaAssessor
             if ($cleaned === '') {
                 return null;
             }
-            
-            // Remove markdown code blocks
-            $cleaned = preg_replace('/^```json\s*/', '', $cleaned);
-            $cleaned = preg_replace('/\s*```$/', '', $cleaned);
-            
+
+            // Remove BOM
+            $cleaned = preg_replace('/^\xEF\xBB\xBF/', '', $cleaned);
+
+            // Remove any markdown code fences anywhere (case-insensitive)
+            // Example: ```json ... ``` or ``` ... ```
+            $cleaned = preg_replace('/```[a-zA-Z]*\s*/i', '', $cleaned);
+            $cleaned = str_replace('```', '', $cleaned);
+
+            // If narrative text precedes the JSON, strip everything before first '{'
+            $firstBrace = strpos($cleaned, '{');
+            if ($firstBrace !== false) {
+                $cleaned = substr($cleaned, $firstBrace);
+            }
+
             // Remove trailing commas
             $cleaned = preg_replace('/,\s*}/', '}', $cleaned);
             $cleaned = preg_replace('/,\s*]/', ']', $cleaned);
@@ -283,18 +303,18 @@ class AreaAssessor
                 }
                 $cleaned = $candidate;
             }
-            
+
             // Try to fix incomplete JSON by ensuring proper closing
             $open = substr_count($cleaned, '{');
             $close = substr_count($cleaned, '}');
             if ($open > $close) {
                 $cleaned .= str_repeat('}', $open - $close);
             }
-            
+
             // One more pass removing accidental trailing commas
             $cleaned = preg_replace('/,\s*}/', '}', $cleaned);
             $cleaned = preg_replace('/,\s*]/', ']', $cleaned);
-            
+
             return $cleaned;
         } catch (Exception $e) {
             Log::error('JSON repair exception', ['error' => $e->getMessage()]);
@@ -343,7 +363,8 @@ class AreaAssessor
                 'rubric_method' => 'computed',
                 'original_rubric_score' => $rubricScore,
                 'scaled_to_max' => $maxScore
-            ]
+            ],
+            'error_message' => $areaResult->error_message ?? 'AI request failed; used rubric fallback',
         ]);
 
         return [
@@ -559,8 +580,12 @@ You must return ONLY a JSON object with this exact structure:
 {
   "score": <integer between 0 and {$config['max_score']}>,
   "max_score": {$config['max_score']},
-  "justification": "<detailed analysis maximum 1200 characters>"
+  "justification": "<detailed analysis maximum 1200 characters>",
+  "outline": ["<concise bullet point of key analysis>", "<...>"],
+  "citations": ["msg#12", "test:ECG", "exam:cardiac auscultation"]
 }
+
+Be specific and evidence-based. Include brief outline and citations to session messages/tests/exams that justify the score.
 PROMPT;
     }
 
@@ -569,14 +594,24 @@ PROMPT;
      */
     private function getAreaSchema(): array
     {
+        // Allow richer fields to pass through so downstream UI can surface them
         return [
             'type' => 'object',
             'properties' => [
                 'score' => ['type' => 'integer'],
                 'max_score' => ['type' => 'integer'],
-                'justification' => ['type' => 'string', 'maxLength' => 1200]
+                'justification' => ['type' => 'string', 'maxLength' => 1200],
+                // Optional but encouraged for richer UX
+                'outline' => [
+                    'type' => 'array',
+                    'items' => ['type' => 'string']
+                ],
+                'citations' => [
+                    'type' => 'array',
+                    'items' => ['type' => 'string']
+                ],
             ],
-            'required' => ['score', 'max_score', 'justification']
+            'required' => ['score', 'max_score', 'justification'],
         ];
     }
 
