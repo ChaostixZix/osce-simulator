@@ -23,3 +23,8 @@ Broadcast::channel('osce.sessions.{session}', function (User $user, $sessionId) 
     $session = OsceSession::find($sessionId);
     return $session && ($user->id === $session->user_id || $user->is_admin);
 });
+
+// Private channel for assessment notifications per user
+Broadcast::channel('assessment.{userId}', function (User $user, $userId) {
+    return (int) $user->id === (int) $userId;
+});

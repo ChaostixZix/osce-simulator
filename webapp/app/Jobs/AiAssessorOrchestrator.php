@@ -8,6 +8,7 @@ use App\Models\OsceSession;
 use App\Services\AreaAssessor;
 use App\Services\AssessmentQueueService;
 use App\Services\ResultReducer;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -81,8 +82,8 @@ class AiAssessorOrchestrator implements ShouldQueue
                         'area' => $area
                     ]);
 
-                    // Update queue status with current area
-                    $queueService->updateCurrentArea($assessmentRun->id, $area);
+                    // Update queue status with current area (lightweight update)
+                    $this->updateAreaQuietly($assessmentRun, $area);
 
                     $areaResult = $assessmentRun->areaResults()
                         ->where('clinical_area', $area)
@@ -160,6 +161,40 @@ class AiAssessorOrchestrator implements ShouldQueue
 
             throw $e;
         }
+    }
+
+    /**
+     * Update current area without triggering heavy operations
+     */
+    private function updateAreaQuietly(AiAssessmentRun $assessmentRun, string $area): void
+    {
+        // Direct database update without triggering events
+        $assessmentRun->update([
+            'current_area' => $area,
+            'status_message' => "Analyzing {$area}...",
+            'progress_percentage' => $this->calculateProgress($area),
+        ]);
+        
+        // Lightweight cache update for status polling
+        Cache::put("assessment_area_{$assessmentRun->osce_session_id}", [
+            'current_area' => $area,
+            'updated_at' => now()->toISOString(),
+        ], 300);
+    }
+    
+    /**
+     * Calculate progress percentage based on current area
+     */
+    private function calculateProgress(string $currentArea): int
+    {
+        $areas = array_keys(AiAssessmentAreaResult::CLINICAL_AREAS);
+        $currentIndex = array_search($currentArea, $areas);
+        
+        if ($currentIndex === false) {
+            return 0;
+        }
+        
+        return (int) round((($currentIndex + 1) / count($areas)) * 100);
     }
 
     /**

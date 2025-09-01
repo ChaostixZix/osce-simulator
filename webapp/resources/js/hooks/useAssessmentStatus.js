@@ -1,25 +1,23 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 /**
- * Custom hook for real-time assessment status tracking
- * Supports both Server-Sent Events (SSE) and polling fallback
+ * Custom hook for assessment status polling (WebSocket notifications handle completion)
+ * Simplified version - no more SSE, just polling for status checks
  */
 export default function useAssessmentStatus(sessionId, options = {}) {
   const {
-    enableSSE = true,
-    pollInterval = 5000,
+    pollInterval = 3000, // 3 seconds polling for status checks
     maxRetries = 3,
     onStatusChange = null,
+    enablePolling = true,
   } = options;
 
   const [status, setStatus] = useState(null);
-  const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState(null);
-  const [retryCount, setRetryCount] = useState(0);
+  const [isPolling, setIsPolling] = useState(false);
 
-  const eventSourceRef = useRef(null);
   const pollTimerRef = useRef(null);
-  const retryTimerRef = useRef(null);
+  const retryCountRef = useRef(0);
 
   const updateStatus = useCallback((newStatus) => {
     setStatus(prev => {
@@ -34,60 +32,10 @@ export default function useAssessmentStatus(sessionId, options = {}) {
     });
   }, [onStatusChange]);
 
-  const connectSSE = useCallback(() => {
-    if (!enableSSE || !sessionId) return;
-
-    try {
-      const eventSource = new EventSource(route('osce.status.stream', sessionId));
-      eventSourceRef.current = eventSource;
-
-      eventSource.onopen = () => {
-        console.log('SSE connection opened');
-        setIsConnected(true);
-        setError(null);
-        setRetryCount(0);
-      };
-
-      eventSource.addEventListener('status-update', (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          updateStatus(data);
-        } catch (err) {
-          console.error('Failed to parse SSE data:', err);
-        }
-      });
-
-      eventSource.onerror = (event) => {
-        console.error('SSE error:', event);
-        setIsConnected(false);
-        
-        if (eventSource.readyState === EventSource.CLOSED) {
-          // Connection closed, attempt retry
-          if (retryCount < maxRetries) {
-            const delay = Math.min(1000 * Math.pow(2, retryCount), 30000);
-            console.log(`SSE reconnecting in ${delay}ms (attempt ${retryCount + 1}/${maxRetries})`);
-            
-            retryTimerRef.current = setTimeout(() => {
-              setRetryCount(prev => prev + 1);
-              connectSSE();
-            }, delay);
-          } else {
-            console.log('SSE max retries reached, falling back to polling');
-            setError('Real-time connection failed, using polling');
-            startPolling();
-          }
-        }
-      };
-
-    } catch (err) {
-      console.error('Failed to create SSE connection:', err);
-      setError('Failed to establish real-time connection');
-      startPolling();
-    }
-  }, [sessionId, enableSSE, retryCount, maxRetries, updateStatus]);
-
   const startPolling = useCallback(async () => {
-    if (!sessionId) return;
+    if (!sessionId || !enablePolling) return;
+
+    setIsPolling(true);
 
     try {
       const response = await fetch(route('osce.status', sessionId));
@@ -95,64 +43,61 @@ export default function useAssessmentStatus(sessionId, options = {}) {
         const data = await response.json();
         updateStatus(data);
         setError(null);
+        retryCountRef.current = 0;
+
+        // Stop polling if assessment is completed or failed
+        if (data.status === 'completed' || data.status === 'failed') {
+          console.log('Assessment finished, stopping polling');
+          setIsPolling(false);
+          return;
+        }
       } else {
         throw new Error(`HTTP ${response.status}`);
       }
     } catch (err) {
       console.error('Polling error:', err);
-      setError('Failed to fetch status');
+      retryCountRef.current += 1;
+      
+      if (retryCountRef.current >= maxRetries) {
+        setError('Failed to fetch status after multiple retries');
+        setIsPolling(false);
+        return;
+      } else {
+        setError(`Polling error (attempt ${retryCountRef.current}/${maxRetries})`);
+      }
     }
 
     // Schedule next poll
     pollTimerRef.current = setTimeout(startPolling, pollInterval);
-  }, [sessionId, pollInterval, updateStatus]);
+  }, [sessionId, pollInterval, updateStatus, enablePolling, maxRetries]);
 
-  const disconnect = useCallback(() => {
-    // Close SSE connection
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
-    }
-
-    // Clear timers
+  const stopPolling = useCallback(() => {
     if (pollTimerRef.current) {
       clearTimeout(pollTimerRef.current);
       pollTimerRef.current = null;
     }
-
-    if (retryTimerRef.current) {
-      clearTimeout(retryTimerRef.current);
-      retryTimerRef.current = null;
-    }
-
-    setIsConnected(false);
+    setIsPolling(false);
   }, []);
 
-  // Initialize connection
+  // Initialize polling
   useEffect(() => {
-    if (!sessionId) return;
+    if (!sessionId || !enablePolling) return;
 
-    // Try SSE first, fall back to polling
-    if (enableSSE && typeof EventSource !== 'undefined') {
-      connectSSE();
-    } else {
-      startPolling();
-    }
-
-    return disconnect;
-  }, [sessionId, enableSSE, connectSSE, startPolling, disconnect]);
+    startPolling();
+    return stopPolling;
+  }, [sessionId, enablePolling, startPolling, stopPolling]);
 
   // Cleanup on unmount
   useEffect(() => {
-    return disconnect;
-  }, [disconnect]);
+    return stopPolling;
+  }, [stopPolling]);
 
   return {
     status,
-    isConnected,
+    isPolling,
     error,
-    retryCount,
-    reconnect: connectSSE,
-    disconnect,
+    retryCount: retryCountRef.current,
+    startPolling,
+    stopPolling,
   };
 }

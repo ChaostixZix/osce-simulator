@@ -14,7 +14,7 @@
                 "./webapp/artisan",
                 "boost:mcp"
             ],
-            "cwd": "/home/bintangputra/osc/webapp"
+            "cwd": "/home/bintangputra/osce.simulator/webapp"
         }
     }
 }
