@@ -935,11 +935,32 @@ class AiAssessorService
             $original = $text;
             
             // Try to repair common JSON issues
-            $cleaned = trim($text);
+            $cleaned = trim($text ?? '');
 
-            $cleaned = preg_replace('/^```json\s*/', '', $cleaned);
-            $cleaned = preg_replace('/\s*```$/', '', $cleaned);
+            $patterns = [
+                '/^```json\s*/', '/^```\s*/', '/\s*```$/', '/^```json\n/', '/\n```$/'
+            ];
+            foreach ($patterns as $pattern) {
+                $cleaned = preg_replace($pattern, '', $cleaned);
+            }
 
+            // Remove trailing commas
+            $cleaned = preg_replace('/,\s*}/', '}', $cleaned);
+            $cleaned = preg_replace('/,\s*]/', ']', $cleaned);
+
+            // Trim to last closing brace if extra text appended
+            $lastBrace = strrpos($cleaned, '}');
+            if ($lastBrace !== false) {
+                $candidate = substr($cleaned, 0, $lastBrace + 1);
+                $cleaned = $candidate;
+            }
+
+            // Balance braces
+            $open = substr_count($cleaned, '{');
+            $close = substr_count($cleaned, '}');
+            if ($open > $close) {
+                $cleaned .= str_repeat('}', $open - $close);
+            }
 
             $decoded = json_decode($cleaned, true);
             if (json_last_error() === JSON_ERROR_NONE && $this->validateAssessmentSchema($decoded)) {
@@ -947,6 +968,18 @@ class AiAssessorService
                 return $decoded;
             }
 
+            // Try extracting JSON object region
+            $matches = [];
+            if (preg_match('/\{.*\}/s', $cleaned, $matches)) {
+                $extracted = $matches[0];
+                $extracted = preg_replace('/,\s*}/', '}', $extracted);
+                $extracted = preg_replace('/,\s*]/', ']', $extracted);
+                $decoded = json_decode($extracted, true);
+                if (json_last_error() === JSON_ERROR_NONE && $this->validateAssessmentSchema($decoded)) {
+                    Log::info('JSON extraction repair successful', ['session_id' => $sessionId]);
+                    return $decoded;
+                }
+            }
 
             // If repair fails, return fallback
             return null;

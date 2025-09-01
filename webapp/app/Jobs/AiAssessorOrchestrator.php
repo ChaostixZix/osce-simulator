@@ -63,81 +63,28 @@ class AiAssessorOrchestrator implements ShouldQueue
                 $queueService->markAsStarted($assessmentRun->id, 'history');
             }
 
-            // Initialize area results
+            // Initialize area results (idempotent for new runs)
             AiAssessmentAreaResult::initializeAreasForRun($assessmentRun->id);
 
-            Log::info('Assessment run started', [
+            Log::info('Assessment run started (fan-out)', [
                 'run_id' => $assessmentRun->id,
                 'session_id' => $this->sessionId
             ]);
-
-            // Process each clinical area sequentially
-            $areaAssessor = app(AreaAssessor::class);
-            $areas = AiAssessmentAreaResult::CLINICAL_AREAS;
-
-            foreach ($areas as $area => $config) {
-                try {
-                    Log::info('Processing clinical area', [
-                        'run_id' => $assessmentRun->id,
-                        'area' => $area
-                    ]);
-
-                    // Update queue status with current area (lightweight update)
-                    $this->updateAreaQuietly($assessmentRun, $area);
-
-                    $areaResult = $assessmentRun->areaResults()
-                        ->where('clinical_area', $area)
-                        ->firstOrFail();
-
-                    $areaResult->update(['status' => 'in_progress']);
-
-                    // Process the area
-                    $result = $areaAssessor->assessArea($session, $area, $areaResult);
-                    
-                    Log::info('Area processing completed', [
-                        'run_id' => $assessmentRun->id,
-                        'area' => $area,
-                        'status' => $result['status'],
-                        'score' => $result['score'] ?? null
-                    ]);
-
-                } catch (Exception $e) {
-                    Log::error('Area processing failed', [
-                        'run_id' => $assessmentRun->id,
-                        'area' => $area,
-                        'error' => $e->getMessage()
-                    ]);
-
-                    $assessmentRun->areaResults()
-                        ->where('clinical_area', $area)
-                        ->update([
-                            'status' => 'failed',
-                            'error_message' => $e->getMessage(),
-                        ]);
-                }
+            // Fan-out: dispatch one job per clinical area so failures are isolated
+            $areas = array_keys(AiAssessmentAreaResult::CLINICAL_AREAS);
+            foreach ($areas as $area) {
+                AssessAreaJob::dispatch($this->sessionId, $assessmentRun->id, $area)
+                    ->onQueue('assessments');
             }
 
-            // Aggregate results using ResultReducer
-            $resultReducer = app(ResultReducer::class);
-            $finalResult = $resultReducer->aggregateResults($assessmentRun);
+            // Schedule finalize job to aggregate when all areas finish
+            FinalizeAssessmentRunJob::dispatch($assessmentRun->id)
+                ->delay(now()->addSeconds(2))
+                ->onQueue('assessments');
 
-            // Update assessment run with final results
-            $assessmentRun->update([
-                'status' => 'completed',
-                'completed_at' => now(),
-                'final_result' => $finalResult,
-                'total_score' => $finalResult['total_score'] ?? 0,
-                'telemetry' => $this->generateTelemetry($assessmentRun),
-            ]);
-
-            // Mark as completed in queue service
-            $queueService->markAsCompleted($assessmentRun->id);
-
-            Log::info('AiAssessorOrchestrator completed', [
+            Log::info('AiAssessorOrchestrator dispatched area jobs and finalize job', [
                 'run_id' => $assessmentRun->id,
                 'session_id' => $this->sessionId,
-                'total_score' => $finalResult['total_score'] ?? 0,
-                'has_fallbacks' => $assessmentRun->has_fallbacks
             ]);
 
         } catch (Exception $e) {
@@ -163,39 +110,7 @@ class AiAssessorOrchestrator implements ShouldQueue
         }
     }
 
-    /**
-     * Update current area without triggering heavy operations
-     */
-    private function updateAreaQuietly(AiAssessmentRun $assessmentRun, string $area): void
-    {
-        // Direct database update without triggering events
-        $assessmentRun->update([
-            'current_area' => $area,
-            'status_message' => "Analyzing {$area}...",
-            'progress_percentage' => $this->calculateProgress($area),
-        ]);
-        
-        // Lightweight cache update for status polling
-        Cache::put("assessment_area_{$assessmentRun->osce_session_id}", [
-            'current_area' => $area,
-            'updated_at' => now()->toISOString(),
-        ], 300);
-    }
-    
-    /**
-     * Calculate progress percentage based on current area
-     */
-    private function calculateProgress(string $currentArea): int
-    {
-        $areas = array_keys(AiAssessmentAreaResult::CLINICAL_AREAS);
-        $currentIndex = array_search($currentArea, $areas);
-        
-        if ($currentIndex === false) {
-            return 0;
-        }
-        
-        return (int) round((($currentIndex + 1) / count($areas)) * 100);
-    }
+    // Progress calculation based on completed areas is provided by AiAssessmentRun accessors
 
     /**
      * Generate telemetry data for the assessment run

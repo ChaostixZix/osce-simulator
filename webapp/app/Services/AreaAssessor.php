@@ -261,7 +261,10 @@ class AreaAssessor
     {
         try {
             // Clean up common issues
-            $cleaned = trim($text);
+            $cleaned = trim($text ?? '');
+            if ($cleaned === '') {
+                return null;
+            }
             
             // Remove markdown code blocks
             $cleaned = preg_replace('/^```json\s*/', '', $cleaned);
@@ -270,11 +273,27 @@ class AreaAssessor
             // Remove trailing commas
             $cleaned = preg_replace('/,\s*}/', '}', $cleaned);
             $cleaned = preg_replace('/,\s*]/', ']', $cleaned);
+
+            // If there is extra trailing text after the last closing brace, trim it
+            $lastBrace = strrpos($cleaned, '}');
+            if ($lastBrace !== false) {
+                $candidate = substr($cleaned, 0, $lastBrace + 1);
+                if (json_validate($candidate)) {
+                    return $candidate;
+                }
+                $cleaned = $candidate;
+            }
             
             // Try to fix incomplete JSON by ensuring proper closing
-            if (substr_count($cleaned, '{') > substr_count($cleaned, '}')) {
-                $cleaned .= '}';
+            $open = substr_count($cleaned, '{');
+            $close = substr_count($cleaned, '}');
+            if ($open > $close) {
+                $cleaned .= str_repeat('}', $open - $close);
             }
+            
+            // One more pass removing accidental trailing commas
+            $cleaned = preg_replace('/,\s*}/', '}', $cleaned);
+            $cleaned = preg_replace('/,\s*]/', ']', $cleaned);
             
             return $cleaned;
         } catch (Exception $e) {
@@ -378,7 +397,9 @@ You must return ONLY a JSON object with this exact structure:
 {
   "score": <integer between 0 and {$config['max_score']}>,
   "max_score": {$config['max_score']},
-  "justification": "<detailed analysis with specific quotes from user messages, maximum 1200 characters>"
+  "justification": "<detailed analysis with specific quotes from user messages, maximum 1200 characters>",
+  "outline": ["<concise bullet point of key analysis>", "<... 4-8 items total ...>"],
+  "citations": ["msg#12", "test:ECG", "exam:cardiac auscultation"]
 }
 
 Be specific and quote actual user messages when possible. Focus only on history-taking performance.
@@ -411,7 +432,9 @@ You must return ONLY a JSON object with this exact structure:
 {
   "score": <integer between 0 and {$config['max_score']}>,
   "max_score": {$config['max_score']},
-  "justification": "<detailed analysis with specific examination findings and missing elements, maximum 1200 characters>"
+  "justification": "<detailed analysis with specific examination findings and missing elements, maximum 1200 characters>",
+  "outline": ["<concise bullet point of key analysis>", "<... 4-8 items total ...>"],
+  "citations": ["exam:cardiac auscultation", "exam:respiratory exam"]
 }
 
 Be specific about which examinations were performed and which critical ones were missed.
@@ -445,7 +468,9 @@ You must return ONLY a JSON object with this exact structure:
 {
   "score": <integer between 0 and {$config['max_score']}>,
   "max_score": {$config['max_score']},
-  "justification": "<detailed analysis with specific tests ordered, costs, appropriateness, and missing elements, maximum 1200 characters>"
+  "justification": "<detailed analysis with specific tests ordered, costs, appropriateness, and missing elements, maximum 1200 characters>",
+  "outline": ["<concise bullet point of key analysis>", "<... 4-8 items total ...>"],
+  "citations": ["test:ECG", "test:CBC"]
 }
 
 Be specific about test names, costs, timing, and appropriateness.
@@ -478,7 +503,9 @@ You must return ONLY a JSON object with this exact structure:
 {
   "score": <integer between 0 and {$config['max_score']}>,
   "max_score": {$config['max_score']},
-  "justification": "<detailed analysis of diagnostic reasoning process with evidence from session, maximum 1200 characters>"
+  "justification": "<detailed analysis of diagnostic reasoning process with evidence from session, maximum 1200 characters>",
+  "outline": ["<concise bullet point of key analysis>", "<... 4-8 items total ...>"],
+  "citations": ["msg#15", "test:Troponin"]
 }
 
 Focus specifically on diagnostic thinking and differential diagnosis consideration.
@@ -511,7 +538,9 @@ You must return ONLY a JSON object with this exact structure:
 {
   "score": <integer between 0 and {$config['max_score']}>,
   "max_score": {$config['max_score']},
-  "justification": "<detailed analysis of management approach with specific evidence, maximum 1200 characters>"
+  "justification": "<detailed analysis of management approach with specific evidence, maximum 1200 characters>",
+  "outline": ["<concise bullet point of key analysis>", "<... 4-8 items total ...>"],
+  "citations": ["msg#22", "exam:neuro exam"]
 }
 
 Focus specifically on management planning and therapeutic reasoning.
