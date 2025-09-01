@@ -16,7 +16,12 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
       const resultsRes = await fetch(route('osce.results', session.id));
       if (resultsRes.ok) {
         const resultsData = await resultsRes.json();
-        setCurrentAssessmentData(resultsData);
+        setCurrentAssessmentData((prev) => ({
+          ...(prev || {}),
+          ...resultsData,
+          area_results: resultsData.area_results ?? prev?.area_results ?? [],
+          areas: resultsData.areas ?? prev?.areas ?? [],
+        }));
       }
     } catch (e) {
       console.warn('Failed to fetch assessment results');
@@ -159,7 +164,7 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
               <span className="text-xs text-emerald-500 font-mono uppercase tracking-wider">assessment results</span>
               <div className="w-8 h-0.5 bg-gradient-to-l from-emerald-400 to-cyan-400" />
             </div>
-            <h1 className="text-2xl font-medium lowercase glow-text text-foreground">{session?.osce_case?.title || 'osce results'}</h1>
+            <h1 className="text-2xl font-medium lowercase glow-text text-foreground">{session?.case?.title || 'osce results'}</h1>
             {canReassess && (
               <div className="flex items-center justify-center">
                 <button
@@ -231,16 +236,26 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
                 <div className="grid md:grid-cols-3 gap-6">
                   <div className="text-center">
                     <div className="text-3xl font-bold text-blue-500">
-                      {Math.round((currentAssessmentData.overall_score / currentAssessmentData.max_score) * 100)}%
+                      {(() => {
+                        const score = Number(currentAssessmentData?.score ?? 0);
+                        const max = Number(currentAssessmentData?.max_score ?? 0);
+                        if (!max || max <= 0) return 0 + '%';
+                        return Math.round((score / max) * 100) + '%';
+                      })()}
                     </div>
                     <div className="text-xs text-muted-foreground lowercase">overall score</div>
                     <div className="text-lg font-semibold mt-1">
-                      {getBand((currentAssessmentData.overall_score / currentAssessmentData.max_score) * 100)}
+                      {(() => {
+                        const score = Number(currentAssessmentData?.score ?? 0);
+                        const max = Number(currentAssessmentData?.max_score ?? 0);
+                        const pct = max > 0 ? (score / max) * 100 : 0;
+                        return getBand(pct);
+                      })()}
                     </div>
                   </div>
                   <div className="text-center">
                     <div className="text-3xl font-bold text-emerald-500">
-                      {Math.round((currentAssessmentData.clinical_reasoning_score || 0))}%
+                      {Math.round((session?.clinical_reasoning_score || 0))}%
                     </div>
                     <div className="text-xs text-muted-foreground lowercase">clinical reasoning</div>
                     <div className="text-lg font-semibold mt-1">
@@ -253,7 +268,7 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
                     </div>
                     <div className="text-xs text-muted-foreground lowercase">total test cost</div>
                     <div className="text-xs text-muted-foreground mt-1 lowercase font-mono">
-                      budget: {formatCurrency(session?.osce_case?.case_budget || 1000)}
+                      budget: {formatCurrency(session?.case?.budget || 1000)}
                     </div>
                   </div>
                 </div>
@@ -267,7 +282,7 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
                   <div className="flex-1 h-px bg-gradient-to-r from-border to-transparent" />
                 </div>
                 <div className="grid gap-4">
-                  {(currentAssessmentData.areas || []).map((area, index) => (
+                  {(currentAssessmentData.area_results || currentAssessmentData.areas || []).map((area, index) => (
                     <div key={index} className="cyber-border p-4 bg-card/20">
                       <div className="flex justify-between items-start mb-3">
                         <div>
