@@ -245,7 +245,7 @@ class OsceAssessmentController extends Controller
         }
 
         // Load necessary relationships
-        $session->load(['osceCase', 'user']);
+        $session->load(['osceCase', 'user', 'examinations']);
 
         // Check for new assessment run first
         $assessmentRun = AiAssessmentRun::where('osce_session_id', $session->id)
@@ -285,6 +285,15 @@ class OsceAssessmentController extends Controller
                         'management_plan' => $session->osceCase->management_plan ?? null,
                         'teaching_points' => $session->osceCase->teaching_points ?? [],
                     ],
+                    'examinations' => $session->examinations->map(function ($exam) {
+                        return [
+                            'id' => $exam->id,
+                            'examination_category' => $exam->examination_category,
+                            'examination_type' => $exam->examination_type,
+                            'findings' => $exam->getFormattedFindings(),
+                            'performed_at' => $exam->performed_at?->toISOString(),
+                        ];
+                    }),
                     'user' => [
                         'id' => $session->user->id,
                         'name' => $session->user->name,
@@ -373,6 +382,15 @@ class OsceAssessmentController extends Controller
                     'management_plan' => $session->osceCase->management_plan ?? null,
                     'teaching_points' => $session->osceCase->teaching_points ?? [],
                 ],
+                'examinations' => $session->examinations->map(function ($exam) {
+                    return [
+                        'id' => $exam->id,
+                        'examination_category' => $exam->examination_category,
+                        'examination_type' => $exam->examination_type,
+                        'findings' => $exam->getFormattedFindings(),
+                        'performed_at' => $exam->performed_at?->toISOString(),
+                    ];
+                }),
                 'user' => [
                     'id' => $session->user->id,
                     'name' => $session->user->name,

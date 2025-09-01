@@ -35,12 +35,33 @@ class ResultReducer
         // Build clinical areas array
         $clinicalAreas = [];
         foreach ($areaResults as $result) {
+            $outline = [];
+            $citations = [];
+            // Try to parse extra fields (outline, citations) from raw_response JSON
+            try {
+                $rawText = is_array($result->raw_response) ? ($result->raw_response['text'] ?? null) : null;
+                if ($rawText && json_validate($rawText)) {
+                    $decoded = json_decode($rawText, true);
+                    if (isset($decoded['outline']) && is_array($decoded['outline'])) {
+                        // Normalize outline to strings
+                        $outline = array_values(array_filter(array_map('strval', $decoded['outline'])));
+                    }
+                    if (isset($decoded['citations']) && is_array($decoded['citations'])) {
+                        $citations = $this->normalizeCitations($decoded['citations']);
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Ignore parse errors silently; outline/citations remain empty
+            }
+
             $clinicalAreas[] = [
                 'area' => $result->area_display_name,
                 'key' => $result->clinical_area,
                 'score' => $result->score ?? 0,
                 'max_score' => $result->max_score,
                 'justification' => $result->justification ?? 'No assessment available',
+                'outline' => $outline,
+                'citations' => $citations,
                 'status' => $result->status,
                 'badge_color' => $result->badge_color,
                 'badge_text' => $result->badge_text,
@@ -320,5 +341,53 @@ class ResultReducer
             'failed' => 'failed',
             default => 'unknown'
         };
+    }
+
+    /**
+     * Convert citation strings into clickable objects when possible
+     */
+    private function normalizeCitations(array $citations): array
+    {
+        $normalized = [];
+        foreach ($citations as $c) {
+            if (!is_string($c)) {
+                continue;
+            }
+            $title = $c;
+            $source = 'session';
+            $url = null;
+
+            // test:<name> -> #test-<slug>
+            if (preg_match('/^test\s*:\s*(.+)$/i', $c, $m)) {
+                $name = trim($m[1]);
+                $slug = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $name));
+                $url = '#test-' . trim($slug, '-');
+                $source = 'test';
+                $title = $name;
+            }
+
+            // msg#<n> -> #msg-<n>
+            if (!$url && preg_match('/^msg#(\d+)$/i', $c, $m)) {
+                $url = '#msg-' . $m[1];
+                $source = 'message';
+            }
+
+            // exam:<name> -> #exam-<slug>
+            if (!$url && preg_match('/^exam\s*:\s*(.+)$/i', $c, $m)) {
+                $name = trim($m[1]);
+                $slug = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $name));
+                $url = '#exam-' . trim($slug, '-');
+                $source = 'examination';
+                $title = $name;
+            }
+
+            $normalized[] = [
+                'title' => $title,
+                'source' => $source,
+                'url' => $url,
+            ];
+        }
+
+        return $normalized;
     }
 }

@@ -9,6 +9,8 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
   const [isPolling, setIsPolling] = useState(false);
   const [statusData, setStatusData] = useState(null);
   const [isReassessing, setIsReassessing] = useState(false);
+  const [transcript, setTranscript] = useState([]);
+  const [loadingTranscript, setLoadingTranscript] = useState(false);
 
   // Stable fetcher for assessment results
   const fetchAssessmentResults = useCallback(async () => {
@@ -19,6 +21,7 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
         setCurrentAssessmentData((prev) => ({
           ...(prev || {}),
           ...resultsData,
+          output: resultsData.assessor_output ?? prev?.output,
           area_results: resultsData.area_results ?? prev?.area_results ?? [],
           areas: resultsData.areas ?? prev?.areas ?? [],
         }));
@@ -89,6 +92,27 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
       }
     }
   }, [session.id, isAssessed, currentAssessmentData, queueStatus, isConnected, connectionError]);
+
+  // Fetch transcript for anchors (first 100 messages)
+  useEffect(() => {
+    let ignore = false;
+    const fetchTranscript = async () => {
+      try {
+        setLoadingTranscript(true);
+        const res = await fetch(route('osce.chat.history', session.id) + '?limit=100');
+        if (res.ok) {
+          const data = await res.json();
+          if (!ignore) setTranscript(data?.messages || []);
+        }
+      } catch (e) {
+        // ignore
+      } finally {
+        setLoadingTranscript(false);
+      }
+    };
+    if (session?.id) fetchTranscript();
+    return () => { ignore = true; };
+  }, [session?.id]);
 
   const triggerReassessment = async () => {
     setIsReassessing(true);
@@ -274,15 +298,15 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
                 </div>
               </div>
 
-              {/* Clinical Areas Assessment */}
-              <div className="cyber-border bg-card/30 p-6">
+          {/* Clinical Areas Assessment */}
+          <div className="cyber-border bg-card/30 p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-1 h-6 bg-gradient-to-b from-emerald-400 to-cyan-400" />
                   <h2 className="text-lg font-medium lowercase text-foreground font-mono">clinical areas assessment</h2>
                   <div className="flex-1 h-px bg-gradient-to-r from-border to-transparent" />
                 </div>
                 <div className="grid gap-4">
-                  {(currentAssessmentData.area_results || currentAssessmentData.areas || []).map((area, index) => (
+                  {(currentAssessmentData?.output?.clinical_areas || currentAssessmentData.area_results || currentAssessmentData.areas || []).map((area, index) => (
                     <div key={index} className="cyber-border p-4 bg-card/20">
                       <div className="flex justify-between items-start mb-3">
                         <div>
@@ -303,6 +327,17 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
                         <div className="mb-3">
                           <h4 className="font-medium text-xs text-muted-foreground mb-1 lowercase">assessment</h4>
                           <p className="text-sm text-foreground/90">{area.justification}</p>
+                        </div>
+                      )}
+
+                      {Array.isArray(area.outline) && area.outline.length > 0 && (
+                        <div className="mb-3">
+                          <h4 className="font-medium text-xs text-muted-foreground mb-1 lowercase">outline</h4>
+                          <ul className="text-sm text-foreground/90 list-disc list-inside">
+                            {area.outline.map((item, i) => (
+                              <li key={i}>{item}</li>
+                            ))}
+                          </ul>
                         </div>
                       )}
 
@@ -332,17 +367,20 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
                         <div>
                           <h4 className="font-medium text-xs text-muted-foreground mb-1 lowercase">references</h4>
                           <div className="space-y-1">
-                            {area.citations.map((citation, i) => (
-                              <div key={i} className="text-xs text-blue-600">
-                                {citation.url ? (
-                                  <a href={citation.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                                    {citation.title} ({citation.source})
-                                  </a>
-                                ) : (
-                                  <span>{citation.title} ({citation.source})</span>
-                                )}
-                              </div>
-                            ))}
+                            {area.citations.map((citation, i) => {
+                              const c = typeof citation === 'string' ? { title: citation, source: 'session', url: null } : citation;
+                              return (
+                                <div key={i} className="text-xs text-blue-600">
+                                  {c.url ? (
+                                    <a href={c.url} className="hover:underline">
+                                      {c.title} ({c.source})
+                                    </a>
+                                  ) : (
+                                    <span>{c.title} ({c.source})</span>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
@@ -412,8 +450,13 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
                     <div className="flex-1 h-px bg-gradient-to-r from-border to-transparent" />
                   </div>
                   <div className="space-y-3">
-                    {session.ordered_tests.map((test, index) => (
-                      <div key={index} className="cyber-border p-3 bg-card/20">
+                    {session.ordered_tests.map((test, index) => {
+                      const slug = String(test.test_name || '')
+                        .toLowerCase()
+                        .replace(/[^a-z0-9]+/g, '-')
+                        .replace(/(^-|-$)/g, '');
+                      return (
+                        <div key={index} id={`test-${slug}`} className="cyber-border p-3 bg-card/20">
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
                             <div className="font-medium">{test.test_name}</div>
@@ -436,8 +479,9 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -454,8 +498,58 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
                   </div>
                 </div>
               )}
-            </div>
-          )}
+              </div>
+            )}
+
+            {/* Examinations Summary with anchors */}
+            {Array.isArray(session?.examinations) && session.examinations.length > 0 && (
+              <div className="cyber-border bg-card/30 p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-1 h-6 bg-gradient-to-b from-emerald-400 to-cyan-400" />
+                  <h2 className="text-lg font-medium lowercase text-foreground font-mono">examinations summary</h2>
+                  <div className="flex-1 h-px bg-gradient-to-r from-border to-transparent" />
+                </div>
+                <div className="space-y-2">
+                  {session.examinations.map((exam, idx) => {
+                    const slug = String(exam.examination_type || '')
+                      .toLowerCase()
+                      .replace(/[^a-z0-9]+/g, '-')
+                      .replace(/(^-|-$)/g, '');
+                    return (
+                      <div key={idx} id={`exam-${slug}`} className="text-sm">
+                        <span className="font-medium">{exam.examination_type}</span>
+                        {exam.examination_category ? (
+                          <span className="text-muted-foreground"> — {exam.examination_category}</span>
+                        ) : null}
+                        {exam.findings && (
+                          <span className="text-muted-foreground"> • findings: {exam.findings}</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Transcript (first 100) with anchors */}
+            {Array.isArray(transcript) && transcript.length > 0 && (
+              <div className="cyber-border bg-card/30 p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-1 h-6 bg-gradient-to-b from-emerald-400 to-cyan-400" />
+                  <h2 className="text-lg font-medium lowercase text-foreground font-mono">transcript (first 100)</h2>
+                  <div className="flex-1 h-px bg-gradient-to-r from-border to-transparent" />
+                </div>
+                <div className="space-y-1">
+                  {transcript.map((m, i) => (
+                    <div key={m.id || i} id={`msg-${i + 1}`} className="text-xs">
+                      <span className="font-mono text-muted-foreground">#{i + 1}</span>{' '}
+                      <span className="font-medium">{m.sender_type}</span>:{' '}
+                      <span className="text-foreground/90">{m.message}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
           {/* Legacy Assessment Data Fallback */}
           {!currentAssessmentData && isAssessed && !statusData?.status === 'processing' && (
