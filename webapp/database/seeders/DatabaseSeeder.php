@@ -23,6 +23,16 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
+        // Seed requested user email
+        User::firstOrCreate(
+            ['email' => 'bintangputra5556@gmail.com'],
+            [
+                'name' => 'Bintang Putra',
+                'workos_id' => 'seed-workos-id-0002',
+                'avatar' => 'https://ui-avatars.com/api/?name=Bintang+Putra&background=0d1117&color=fff',
+            ]
+        );
+
         // Seed initial app data
         $this->call([
             MedicalTestSeeder::class,
