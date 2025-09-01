@@ -4,6 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Migration notice: The frontend is being migrated from Vue 3 to React using Inertia (React adapter) and the Vibe UI KIT. Legacy pages remain in Vue during the transition. Prefer React for new features; keep Vue pages stable until migrated.
 
+## Users Rules
+- please never edit vendor folder as it will be reinstalled on composer install
+- never edit node_modules folder, it will be replaced on npm instlal
+
+
 ## 🎮 Gaming Design System - MANDATORY RULES
 
 When working on ANY frontend component or page, you MUST follow the established gaming design system to maintain consistency across the application.
