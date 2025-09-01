@@ -4,7 +4,11 @@ namespace App\Services;
 
 use App\Models\AiAssessmentRun;
 use App\Models\OsceSession;
+use App\Jobs\UpdateQueuePositionsJob;
+use App\Events\AssessmentCompleted;
+use App\Events\AssessmentFailed;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class AssessmentQueueService
@@ -44,37 +48,69 @@ class AssessmentQueueService
     }
 
     /**
-     * Update queue positions for all queued assessments
+     * Update queue positions asynchronously
      */
     public function updateQueuePositions(): void
     {
-        // Get all queued assessments in chronological order
-        $queuedRuns = AiAssessmentRun::where('status', 'queued')
-            ->orderBy('created_at', 'asc')
-            ->get();
-
-        // Get currently processing assessments count
-        $processingCount = AiAssessmentRun::where('status', 'in_progress')->count();
-
-        // Average processing time per assessment (in minutes)
-        $avgProcessingTime = $this->getAverageProcessingTime();
-
-        foreach ($queuedRuns as $index => $run) {
-            $position = $index + 1;
-            $estimatedWaitTime = ($position + $processingCount - 1) * $avgProcessingTime;
-
-            $run->update([
-                'queue_position' => $position,
-                'estimated_wait_time_minutes' => max(1, round($estimatedWaitTime)),
-                'status_message' => $this->getStatusMessage($position, $estimatedWaitTime)
-            ]);
+        // Quick check if there are any queued items
+        $hasQueuedItems = Cache::remember('has_queued_assessments', 10, function () {
+            return AiAssessmentRun::where('status', 'queued')->exists();
+        });
+        
+        if (!$hasQueuedItems) {
+            return; // No work needed
         }
+        
+        // Dispatch background job to avoid blocking main thread
+        UpdateQueuePositionsJob::dispatch()
+            ->onQueue('management')
+            ->delay(now()->addSeconds(1)); // Reduced delay
+    }
 
-        Log::info('Queue positions updated', [
-            'queued_count' => $queuedRuns->count(),
-            'processing_count' => $processingCount,
-            'avg_processing_time' => $avgProcessingTime
-        ]);
+    /**
+     * Update queue positions synchronously (for immediate updates)
+     */
+    public function updateQueuePositionsSync(): void
+    {
+        try {
+            // Get all queued assessments in one query
+            $queuedRuns = AiAssessmentRun::where('status', 'queued')
+                ->orderBy('created_at', 'asc')
+                ->get(['id', 'created_at']);
+
+            if ($queuedRuns->isEmpty()) {
+                return;
+            }
+
+            // Get processing count
+            $processingCount = AiAssessmentRun::where('status', 'in_progress')->count();
+            $avgProcessingTime = $this->getAverageProcessingTime();
+
+            // Prepare bulk update data
+            $updates = [];
+            foreach ($queuedRuns as $index => $run) {
+                $position = $index + 1;
+                $estimatedWaitTime = ($position + $processingCount - 1) * $avgProcessingTime;
+                
+                $updates[] = [
+                    'id' => $run->id,
+                    'queue_position' => $position,
+                    'estimated_wait_time_minutes' => max(1, round($estimatedWaitTime)),
+                    'status_message' => $this->getStatusMessage($position, $estimatedWaitTime),
+                ];
+            }
+
+            // Bulk update
+            $this->bulkUpdateQueuePositions($updates);
+
+            Log::info('Queue positions updated synchronously', [
+                'queued_count' => $queuedRuns->count(),
+                'processing_count' => $processingCount,
+                'avg_processing_time' => $avgProcessingTime
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to update queue positions', ['error' => $e->getMessage()]);
+        }
     }
 
     /**
@@ -96,11 +132,11 @@ class AssessmentQueueService
             'estimated_wait_time_minutes' => null,
         ]);
 
-        // Update queue positions for remaining items
+        // Update queue positions asynchronously
         $this->updateQueuePositions();
         
-        // Broadcast status update
-        $this->broadcastStatusUpdate($run->osce_session_id);
+        // Broadcast status update asynchronously
+        $this->broadcastStatusUpdateAsync($run->osce_session_id);
     }
 
     /**
@@ -118,8 +154,8 @@ class AssessmentQueueService
             'status_message' => "Analyzing {$currentArea}..."
         ]);
 
-        // Broadcast status update
-        $this->broadcastStatusUpdate($run->osce_session_id);
+        // Broadcast status update asynchronously  
+        $this->broadcastStatusUpdateAsync($run->osce_session_id);
     }
 
     /**
@@ -141,11 +177,14 @@ class AssessmentQueueService
             'estimated_wait_time_minutes' => null,
         ]);
 
-        // Update queue positions for remaining items
+        // Update queue positions asynchronously
         $this->updateQueuePositions();
         
-        // Broadcast completion
-        $this->broadcastStatusUpdate($run->osce_session_id);
+        // Broadcast WebSocket event for completion
+        $session = OsceSession::find($run->osce_session_id);
+        if ($session) {
+            broadcast(new AssessmentCompleted($run, $session->user_id));
+        }
     }
 
     /**
@@ -167,11 +206,14 @@ class AssessmentQueueService
             'estimated_wait_time_minutes' => null,
         ]);
 
-        // Update queue positions for remaining items
+        // Update queue positions asynchronously
         $this->updateQueuePositions();
         
-        // Broadcast failure
-        $this->broadcastStatusUpdate($run->osce_session_id);
+        // Broadcast WebSocket event for failure
+        $session = OsceSession::find($run->osce_session_id);
+        if ($session) {
+            broadcast(new AssessmentFailed($run, $session->user_id, $errorMessage));
+        }
     }
 
     /**
@@ -193,11 +235,11 @@ class AssessmentQueueService
             'status_message' => 'Assessment queued for processing',
         ]);
 
-        // Update queue positions
+        // Update queue positions asynchronously
         $this->updateQueuePositions();
         
-        // Broadcast new queue item
-        $this->broadcastStatusUpdate($sessionId);
+        // Broadcast new queue item asynchronously
+        $this->broadcastStatusUpdateAsync($sessionId);
 
         return $run;
     }
@@ -207,24 +249,18 @@ class AssessmentQueueService
      */
     protected function getAverageProcessingTime(): float
     {
-        // Cache the calculation for 5 minutes
         return Cache::remember('assessment_avg_processing_time', 300, function () {
-            $completedRuns = AiAssessmentRun::where('status', 'completed')
+            $result = DB::table('ai_assessment_runs')
+                ->where('status', 'completed')
                 ->whereNotNull('started_at')
                 ->whereNotNull('completed_at')
                 ->orderBy('completed_at', 'desc')
                 ->limit(50)
-                ->get();
+                ->selectRaw('AVG(strftime("%s", completed_at) - strftime("%s", started_at)) as avg_seconds')
+                ->first();
 
-            if ($completedRuns->isEmpty()) {
-                return 3.0; // Default 3 minutes
-            }
-
-            $totalMinutes = $completedRuns->sum(function ($run) {
-                return $run->started_at->diffInMinutes($run->completed_at);
-            });
-
-            return max(1.0, $totalMinutes / $completedRuns->count());
+            $avgSeconds = $result->avg_seconds ?? 180; // Default 3 minutes
+            return max(60, $avgSeconds / 60); // Convert to minutes, minimum 1 minute
         });
     }
 
@@ -246,7 +282,7 @@ class AssessmentQueueService
     }
 
     /**
-     * Broadcast status update via Server-Sent Events
+     * Broadcast status update via Server-Sent Events (synchronous)
      */
     protected function broadcastStatusUpdate(int $sessionId): void
     {
@@ -262,6 +298,54 @@ class AssessmentQueueService
             'position' => $status['queue_position'] ?? null,
             'current_area' => $status['current_area'] ?? null,
         ]);
+    }
+
+    /**
+     * Broadcast status update asynchronously
+     */
+    protected function broadcastStatusUpdateAsync(int $sessionId): void
+    {
+        // Use cache to store lightweight status update
+        Cache::put("assessment_status_pending_{$sessionId}", true, 60);
+        
+        // Dispatch job for actual broadcast
+        \dispatch(function () use ($sessionId) {
+            $this->broadcastStatusUpdate($sessionId);
+        })->delay(now()->addMilliseconds(500));
+    }
+
+    /**
+     * Bulk update queue positions using efficient SQL
+     */
+    protected function bulkUpdateQueuePositions(array $updates): void
+    {
+        if (empty($updates)) {
+            return;
+        }
+
+        // Use CASE statements for bulk update
+        $whenClauses = [];
+        $ids = [];
+        
+        foreach ($updates as $update) {
+            $id = $update['id'];
+            $ids[] = $id;
+            $whenClauses['queue_position'][] = "WHEN id = {$id} THEN {$update['queue_position']}";
+            $whenClauses['estimated_wait_time_minutes'][] = "WHEN id = {$id} THEN {$update['estimated_wait_time_minutes']}";
+            $whenClauses['status_message'][] = "WHEN id = {$id} THEN " . DB::getPdo()->quote($update['status_message']);
+        }
+
+        $idsString = implode(',', $ids);
+        $updatedAt = now()->toDateTimeString();
+
+        $sql = "UPDATE ai_assessment_runs SET 
+                    queue_position = CASE " . implode(' ', $whenClauses['queue_position']) . " END,
+                    estimated_wait_time_minutes = CASE " . implode(' ', $whenClauses['estimated_wait_time_minutes']) . " END,
+                    status_message = CASE " . implode(' ', $whenClauses['status_message']) . " END,
+                    updated_at = '{$updatedAt}'
+                WHERE id IN ({$idsString})";
+
+        DB::statement($sql);
     }
 
     /**
