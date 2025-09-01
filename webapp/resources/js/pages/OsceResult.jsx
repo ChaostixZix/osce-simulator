@@ -34,7 +34,21 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
   // Stable status change handler to avoid re-subscribing SSE/polling
   const handleStatusChange = useCallback((newStatus, prevStatus) => {
     setStatusData(newStatus);
-    // Only fetch new results if assessment actually completed (not if already completed)
+
+    // Merge progressive area results so UI can show 1/5, 2/5, ... with details
+    if (Array.isArray(newStatus?.area_results) && newStatus.area_results.length > 0) {
+      setCurrentAssessmentData(prev => {
+        const prevAreas = prev?.area_results || [];
+        const byKey = Object.fromEntries(prevAreas.map(a => [a.key, a]));
+        newStatus.area_results.forEach(a => { byKey[a.key] = a; });
+        return {
+          ...(prev || {}),
+          area_results: Object.values(byKey),
+        };
+      });
+    }
+
+    // Fetch full results when assessment completes
     if (newStatus.status === 'completed' && (!prevStatus || prevStatus.status !== 'completed')) {
       fetchAssessmentResults();
     }
@@ -119,7 +133,8 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
     setIsReassessing(true);
     try {
       const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-      const res = await fetch(route('osce.assess.trigger', session.id), {
+      // Prefer JSON API to get immediate queue status
+      const res = await fetch(route('osce.assess', session.id), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -131,9 +146,12 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
       });
 
       if (res.ok) {
-        // Keep existing assessment data visible during reassessment
-        // Only clear when new assessment completes
-        setStatusData({ status: 'processing', progress: 0 });
+        const data = await res.json().catch(() => null);
+        if (data && data.status) {
+          setStatusData(data);
+        } else {
+          setStatusData({ status: 'queued', progress_percentage: 0 });
+        }
       }
     } catch (e) {
       console.error('Failed to trigger reassessment', e);
