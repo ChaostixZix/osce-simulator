@@ -1,14 +1,8 @@
-# Laravel + Inertia + React Frontend
+# Vibe Kanban
 
-## Introduction
+Vibe Kanban is a web application for Objective Structured Clinical Examinations (OSCE). It provides a platform for medical students and professionals to practice and get assessed on their clinical skills in a simulated environment.
 
-This project uses a standard Laravel backend with a modern React frontend powered by Inertia.js and Vite. We use the Vibe UI KIT for a consistent and polished user interface, styled with Tailwind CSS.
-
-## Official Documentation
-
-- Laravel: https://laravel.com/docs
-- Inertia.js: https://inertiajs.com
-- React adapter: https://inertiajs.com/client-side-setup (React)
+For detailed documentation, please see [documentation.md](documentation.md).
 
 ## Contributing
 
