@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import Modal from '@/components/react/Modal.jsx';
+import FinalizeSessionModal from '@/components/react/FinalizeSessionModal.jsx';
 import { ToastProvider } from '@/Components/Notifications/ToastContainer';
 import { useOsceSessionRealtime } from '@/hooks/useOsceSessionRealtime';
 
@@ -25,6 +26,7 @@ function OsceChatContent({ session, user, sessionData = {}, examCatalog = {} }) 
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [resultsLoading, setResultsLoading] = useState(false);
   const [showEndSessionModal, setShowEndSessionModal] = useState(false);
+  const [showFinalizeModal, setShowFinalizeModal] = useState(false);
   const [endingSession, setEndingSession] = useState(false);
   const [orderedTestsView, setOrderedTestsView] = useState(() => (session?.ordered_tests || session?.orderedTests || []));
   const [hasLoadedResults, setHasLoadedResults] = useState(false);
@@ -416,8 +418,8 @@ const refreshResults = async () => {
       
       if (response.ok) {
         setShowEndSessionModal(false);
-        // Navigate to results page using Inertia
-        router.visit(route('osce.results.show', session.id));
+        // Show mandatory finalization (diagnosis, differentials, plan) before rationalization/results
+        setShowFinalizeModal(true);
       } else {
         setError(data.message || 'Failed to end session');
       }
@@ -1279,7 +1281,7 @@ const refreshResults = async () => {
             {/* Confirmation Text */}
             <div className="text-center space-y-3">
               <div className="text-sm text-muted-foreground lowercase">
-                ending the session now will complete your osce and take you to the results page.
+                ending the session will complete your osce and then require your diagnosis, differentials, and plan.
               </div>
               
               <div className="text-xs text-muted-foreground font-mono">
@@ -1324,6 +1326,13 @@ const refreshResults = async () => {
           </div>
         </Modal>
       </AppLayout>
+      {/* Finalize (Diagnosis/Differentials/Plan) Modal shown right after end session */}
+      <FinalizeSessionModal 
+        open={showFinalizeModal}
+        onClose={() => setShowFinalizeModal(false)}
+        session={session}
+        onFinalized={() => router.visit(route('osce.rationalization.show', session.id))}
+      />
     </>
   );
 }

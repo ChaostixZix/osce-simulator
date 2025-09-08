@@ -3,6 +3,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import useAssessmentStatus from '@/hooks/useAssessmentStatus';
 import QueueIndicator from '@/components/QueueIndicator';
+import FinalizeSessionModal from '@/components/react/FinalizeSessionModal';
 
 export default function OsceResult({ session, isAssessed = true, canReassess = false, assessment: assessmentData = null, error = null }) {
   const [currentAssessmentData, setCurrentAssessmentData] = useState(assessmentData);
@@ -11,6 +12,7 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
   const [isReassessing, setIsReassessing] = useState(false);
   const [transcript, setTranscript] = useState([]);
   const [loadingTranscript, setLoadingTranscript] = useState(false);
+  const [showFinalizeModal, setShowFinalizeModal] = useState(false);
 
   // Stable fetcher for assessment results
   const fetchAssessmentResults = useCallback(async () => {
@@ -68,6 +70,16 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
     { title: 'osce', href: route('osce') },
     { title: 'results', href: '#' },
   ];
+
+  // Check if session needs finalization
+  const needsFinalization = session?.status === 'completed' && !session?.finalized_at;
+
+  // Auto-show finalize modal if needed
+  useEffect(() => {
+    if (needsFinalization) {
+      setShowFinalizeModal(true);
+    }
+  }, [needsFinalization]);
 
   // Disconnect real-time updates once completed to stop further polling
   useEffect(() => {
@@ -270,6 +282,28 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
           {/* Results Content */}
           {currentAssessmentData && (
             <div className="space-y-6">
+              {/* Finalization callout (if not finalized) */}
+              {needsFinalization && (
+                <div className="cyber-border bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-500/30 p-4 relative">
+                  <div className="absolute top-2 right-2 w-2 h-2 bg-gradient-to-br from-amber-400 to-orange-400 opacity-60" />
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-1 h-4 bg-gradient-to-b from-amber-400 to-orange-400" />
+                        <span className="text-xs text-amber-400 font-mono uppercase tracking-wider">action required</span>
+                      </div>
+                      <div className="text-sm text-foreground lowercase">session must be finalized to complete the workflow</div>
+                      <div className="text-xs text-muted-foreground mt-1">provide diagnosis, differential, and management plan</div>
+                    </div>
+                    <button
+                      onClick={() => setShowFinalizeModal(true)}
+                      className="cyber-button px-4 py-2 text-amber-600 dark:text-amber-300 font-mono uppercase tracking-wide text-xs"
+                    >
+                      finalize now
+                    </button>
+                  </div>
+                </div>
+              )}
               {/* Reassessment in Progress Banner */}
               {(queueStatus?.status === 'queued' || queueStatus?.status === 'in_progress' || statusData?.status === 'processing') && (
                 <div className="cyber-border bg-blue-50/10 border-blue-500/30 p-4">
@@ -652,6 +686,12 @@ export default function OsceResult({ session, isAssessed = true, canReassess = f
           </div>
         </div>
       </AppLayout>
+      {/* Finalize Modal */}
+      <FinalizeSessionModal 
+        open={showFinalizeModal} 
+        onClose={() => setShowFinalizeModal(false)}
+        session={session}
+      />
     </>
   );
 }
