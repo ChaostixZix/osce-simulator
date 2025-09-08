@@ -2,46 +2,83 @@ import React, { useState } from 'react';
 import { router } from '@inertiajs/react';
 import Modal from './Modal';
 
-export default function FinalizeSessionModal({ open, onClose, session }) {
+export default function FinalizeSessionModal({ open, onClose, session, onFinalized }) {
   const [diagnosis, setDiagnosis] = useState('');
-  const [differentialDiagnosis, setDifferentialDiagnosis] = useState('');
+  // Support multiple differential rows
+  const [differentials, setDifferentials] = useState(['']);
   const [plan, setPlan] = useState('');
   const [errors, setErrors] = useState({});
   const [processing, setProcessing] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     setProcessing(true);
     setErrors({});
 
-    router.post(`/api/osce/sessions/${session.id}/finalize`, {
-      diagnosis,
-      differential_diagnosis: differentialDiagnosis,
-      plan,
-    }, {
-      preserveScroll: true,
-      onSuccess: () => {
-        onClose();
-        // Reset form
-        setDiagnosis('');
-        setDifferentialDiagnosis('');
-        setPlan('');
-        // Reload the page to show updated session data
-        router.reload({ only: ['session'] });
-      },
-      onError: (error) => {
-        setErrors(error);
-      },
-      onFinish: () => {
-        setProcessing(false);
+    // Build a readable differential list as a single string for backend
+    const differentialText = differentials
+      .map(v => (v || '').trim())
+      .filter(Boolean)
+      .map((v, i) => `${i + 1}. ${v}`)
+      .join('\n');
+
+    try {
+      const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+      const res = await fetch(`/api/osce/sessions/${session.id}/finalize`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRF-TOKEN': csrf || ''
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          diagnosis,
+          differential_diagnosis: differentialText,
+          plan,
+        })
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        // Attempt to surface validation errors
+        if (data && typeof data === 'object') {
+          setErrors(data.errors || data);
+        } else {
+          setErrors({ general: 'Failed to finalize session' });
+        }
+        return;
       }
-    });
+
+      onClose?.();
+      // Reset form
+      setDiagnosis('');
+      setDifferentials(['']);
+      setPlan('');
+      // Reload the page to show updated session data
+      router.reload({ only: ['session'] });
+      // Notify parent to continue flow (e.g., go to rationalization)
+      if (typeof onFinalized === 'function') {
+        onFinalized();
+      }
+    } catch (err) {
+      setErrors({ general: 'Network error while finalizing session' });
+    } finally {
+      setProcessing(false);
+    }
   };
 
+  const hasAtLeastOneDifferential = differentials.some(v => (v || '').trim().length > 0);
+  const totalDifferentialChars = differentials.reduce((sum, v) => sum + ((v || '').trim().length), 0);
   const isFormValid = diagnosis.trim().length >= 10 && 
-                     differentialDiagnosis.trim().length >= 10 && 
+                     hasAtLeastOneDifferential && totalDifferentialChars >= 10 && 
                      plan.trim().length >= 10;
+
+  const addDifferential = () => setDifferentials(prev => [...prev, '']);
+  const removeDifferential = (idx) => setDifferentials(prev => prev.filter((_, i) => i !== idx));
+  const updateDifferential = (idx, value) => setDifferentials(prev => prev.map((v, i) => i === idx ? value : v));
 
   const footer = (
     <div className="flex items-center justify-between w-full">
@@ -142,26 +179,49 @@ export default function FinalizeSessionModal({ open, onClose, session }) {
             <div className="flex items-center gap-3">
               <div className="w-1 h-5 bg-gradient-to-b from-purple-400 to-blue-400"></div>
               <label className="text-sm font-medium lowercase text-foreground font-mono">
-                differential diagnosis
+                differential diagnoses
               </label>
               <div className="flex-1 h-px bg-gradient-to-r from-border to-transparent"></div>
               <div className="text-xs text-muted-foreground font-mono">
-                {differentialDiagnosis.length}/10 min
+                {differentials.filter(v => (v || '').trim()).length} rows • {totalDifferentialChars}/10 min
               </div>
             </div>
-            
-            <div className="cyber-border bg-gradient-to-br from-purple-500/5 to-purple-600/5 border-purple-500/20 p-0 overflow-hidden">
-              <textarea
-                value={differentialDiagnosis}
-                onChange={(e) => setDifferentialDiagnosis(e.target.value)}
-                rows={3}
-                className="w-full p-4 bg-transparent border-none outline-none resize-none text-sm text-foreground placeholder-muted-foreground"
-                placeholder="list alternative diagnoses and reasoning for ruling them in/out..."
-                required
-                minLength={10}
-              />
+
+            <div className="space-y-2">
+              {differentials.map((val, idx) => (
+                <div key={idx} className="flex items-start gap-2">
+                  <div className="cyber-border flex-1 bg-gradient-to-br from-purple-500/5 to-purple-600/5 border-purple-500/20 p-0 overflow-hidden">
+                    <textarea
+                      value={val}
+                      onChange={(e) => updateDifferential(idx, e.target.value)}
+                      rows={2}
+                      className="w-full p-3 bg-transparent border-none outline-none resize-none text-sm text-foreground placeholder-muted-foreground"
+                      placeholder={`differential #${idx + 1} — diagnosis and brief reasoning...`}
+                    />
+                  </div>
+                  {differentials.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeDifferential(idx)}
+                      className="px-2 py-1 text-xs text-red-400 border border-red-400/40 hover:bg-red-400/10 rounded"
+                    >
+                      remove
+                    </button>
+                  )}
+                </div>
+              ))}
+
+              <div>
+                <button
+                  type="button"
+                  onClick={addDifferential}
+                  className="cyber-button px-3 py-1 text-purple-600 dark:text-purple-300 font-mono uppercase tracking-wide text-xs"
+                >
+                  + add differential
+                </button>
+              </div>
             </div>
-            
+
             {errors.differential_diagnosis && (
               <div className="text-xs text-red-400 font-mono bg-red-500/10 border border-red-500/20 p-2 cyber-border">
                 {errors.differential_diagnosis}
