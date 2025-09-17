@@ -47,4 +47,15 @@ return [
         'model' => env('GEMINI_MODEL', 'gemini-1.5-flash'),
     ],
 
+    'ai' => [
+        'provider' => env('AI_PROVIDER', 'gemini'),
+    ],
+
+    'openai_azure' => [
+        'api_key' => env('OPENAI_AZURE_API_KEY'),
+        'endpoint' => env('OPENAI_AZURE_ENDPOINT'),
+        'deployment' => env('OPENAI_AZURE_DEPLOYMENT', 'gpt-4.1-nano'),
+        'timeout' => env('OPENAI_AZURE_TIMEOUT', 30),
+    ],
+
 ];
