@@ -6,7 +6,7 @@ Migration notice: The frontend is being migrated from Vue 3 to React using Inert
 
 ## Users Rules
 - please never edit vendor folder as it will be reinstalled on composer install
-- never edit node_modules folder, it will be replaced on npm instlal
+- never edit node_modules folder, it will be replaced on bun install
 
 
 ## 🎮 Gaming Design System - MANDATORY RULES
@@ -125,11 +125,12 @@ This is a Laravel project with an Inertia-powered SPA frontend. The main applica
 
 All commands should be run from the `webapp` directory.
 
-- `npm run dev`: Starts the Vite development server for frontend assets.
-- `npm run build`: Compiles and bundles frontend assets for production.
-- `npm run lint`: Lints the codebase using ESLint and attempts to fix issues.
-- `npm run format`: Formats the code using Prettier.
-- `npm run format:check`: Checks the formatting without writing changes.
+- `bun run dev` or `composer run dev`: Starts the Vite development server for frontend assets using bun.
+- `bun run build`: Compiles and bundles frontend assets for production.
+- `bun run lint`: Lints the codebase using ESLint and attempts to fix issues.
+- `bun run format`: Formats the code using Prettier.
+- `bun run format:check`: Checks the formatting without writing changes.
+- `bun install`: Installs JavaScript dependencies.
 - `composer install`: Installs PHP dependencies.
 - `php artisan test`: Runs the PHPUnit tests.
 
@@ -267,7 +268,7 @@ Route files are located in `webapp/routes`.
 4) API/Routes & controllers (methods, URIs, names; validation & auth rules).
 5) Frontend (Vue + Inertia) pages/components, state, autosave/infinite scroll, UX details.
 6) Tooling usage (Laravel Boost MCP: routes, schema, tinker, docs search, logs) with example calls.
-7) Commands (Artisan/npm) to scaffold/migrate/build/test.
+7) Commands (Artisan/bun) to scaffold/migrate/build/test.
 8) Code examples (minimal PHP/Vue snippets for patterns—not full impls).
 9) Validation, errors, permissions (rules, common failures, logging/retries).
 10) Acceptance criteria (exhaustive, testable; include edge cases & permission matrix).
