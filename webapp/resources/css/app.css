@@ -185,45 +185,156 @@
 }
 
 /* Clean UI Components */
+
+
 .clean-card {
+    position: relative;
     border: 1px solid hsl(var(--border));
-    border-radius: var(--radius);
-    background: hsl(var(--card));
-    transition: all 0.2s ease;
+    border-radius: calc(var(--radius) + 4px);
+    background: hsl(var(--card) / 0.96);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease, background-color 0.25s ease;
+    box-shadow:
+        inset 0 1px 0 hsl(var(--foreground) / 0.05),
+        0 22px 42px -28px hsl(var(--foreground) / 0.5),
+        0 1px 2px hsl(var(--foreground) / 0.12);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    overflow: hidden;
+}
+
+.clean-card::before,
+.clean-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+}
+
+.clean-card::before {
+    border: 1px solid hsl(var(--border) / 0.45);
+    opacity: 0.55;
+}
+
+.clean-card::after {
+    background: linear-gradient(180deg, hsl(var(--foreground) / 0.07), transparent 58%);
+    opacity: 0.45;
 }
 
 .clean-card:hover {
-    border-color: hsl(var(--border) / 0.8);
-    box-shadow: 0 4px 12px -4px hsl(var(--foreground) / 0.1);
+    transform: translateY(-3px);
+    border-color: hsl(var(--border) / 0.65);
+    box-shadow:
+        inset 0 1px 0 hsl(var(--foreground) / 0.06),
+        0 28px 52px -28px hsl(var(--foreground) / 0.58),
+        0 10px 20px -12px hsl(var(--foreground) / 0.3);
+}
+
+.clean-card:hover::before {
+    opacity: 0.75;
+}
+
+.clean-card:hover::after {
+    opacity: 0.7;
+}
+
+.clean-card:focus-within {
+    border-color: hsl(var(--ring));
+    box-shadow:
+        inset 0 1px 0 hsl(var(--foreground) / 0.06),
+        0 0 0 2px hsl(var(--ring) / 0.18),
+        0 22px 42px -28px hsl(var(--foreground) / 0.5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .clean-card,
+    .clean-card:hover {
+        transition-duration: 0.01ms;
+        transform: none;
+    }
 }
 
 .clean-button {
+    position: relative;
     border: 1px solid hsl(var(--border));
-    border-radius: var(--radius);
-    background: hsl(var(--background));
+    border-radius: calc(var(--radius) + 2px);
+    background: hsl(var(--background) / 0.98);
     color: hsl(var(--foreground));
-    transition: all 0.2s ease;
     font-weight: 500;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease, border-color 0.25s ease;
+    box-shadow:
+        inset 0 1px 0 hsl(var(--foreground) / 0.05),
+        0 14px 26px -18px hsl(var(--foreground) / 0.4);
+    backdrop-filter: blur(6px) saturate(120%);
+    -webkit-backdrop-filter: blur(6px) saturate(120%);
+    overflow: hidden;
+}
+
+.clean-button::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(180deg, hsl(var(--foreground) / 0.08), transparent 68%);
+    opacity: 0.45;
+    transition: opacity 0.25s ease;
+    pointer-events: none;
 }
 
 .clean-button:hover {
-    background: hsl(var(--accent));
-    border-color: hsl(var(--border) / 0.8);
+    background: hsl(var(--accent) / 0.94);
+    border-color: hsl(var(--border) / 0.65);
+    transform: translateY(-1px);
+    box-shadow:
+        inset 0 1px 0 hsl(var(--foreground) / 0.05),
+        0 18px 30px -18px hsl(var(--foreground) / 0.46);
+}
+
+.clean-button:hover::after {
+    opacity: 0.7;
+}
+
+.clean-button:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
 }
 
 .clean-button:active {
-    transform: translateY(1px);
+    transform: translateY(0);
+    box-shadow:
+        inset 0 1px 0 hsl(var(--foreground) / 0.08),
+        0 6px 12px -10px hsl(var(--foreground) / 0.35);
 }
 
 .clean-button.primary {
-    background: hsl(var(--primary));
+    background: hsl(var(--primary) / 0.95);
     color: hsl(var(--primary-foreground));
     border-color: hsl(var(--primary));
+    box-shadow:
+        inset 0 1px 0 hsl(var(--primary-foreground) / 0.2),
+        0 16px 28px -18px hsl(var(--primary) / 0.6);
 }
 
 .clean-button.primary:hover {
     background: hsl(var(--primary) / 0.9);
-    border-color: hsl(var(--primary) / 0.9);
+    border-color: hsl(var(--primary) / 0.85);
+}
+
+.clean-button:disabled,
+.clean-button[aria-disabled='true'] {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: inset 0 1px 0 hsl(var(--foreground) / 0.03);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .clean-button,
+    .clean-button:hover {
+        transition-duration: 0.01ms;
+        transform: none;
+    }
 }
 
 .minimal-text {

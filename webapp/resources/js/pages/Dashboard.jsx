@@ -105,7 +105,7 @@ export default function Dashboard({ stats, welcome }) {
 
             <AppLayout breadcrumbs={breadcrumbs}>
                 <div className="flex h-full flex-1 flex-col gap-10">
-                    <section className="clean-card bg-card p-8 hover:shadow-sm transition-shadow duration-200">
+                    <section className="clean-card bg-card/95 p-8 transition-all duration-300">
                         <div className="grid gap-8 lg:grid-cols-[1.2fr_1fr] items-center">
                             <div className="space-y-4">
                                 <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 dark:bg-emerald-950/30 px-3 py-1 text-sm font-medium text-emerald-600 dark:text-emerald-400">
@@ -135,7 +135,7 @@ export default function Dashboard({ stats, welcome }) {
                                     </button>
                                 </div>
                             </div>
-                            <div className="clean-card bg-background p-6 shadow-sm hover:shadow transition-transform duration-200">
+                            <div className="clean-card bg-background/95 p-6 transition-all duration-300">
                                 <div className="space-y-5">
                                     {primaryStats.map((item) => (
                                         <div key={item.label} className="flex items-start justify-between gap-4">
@@ -154,17 +154,14 @@ export default function Dashboard({ stats, welcome }) {
 
                     <section className="grid gap-6 lg:grid-cols-[1fr_0.65fr] xl:grid-cols-[1.1fr_0.6fr]">
                         <div className="space-y-6">
-                            <div className="clean-card bg-card p-6 hover:shadow-sm transition-shadow duration-200">
+                            <div className="clean-card bg-card/95 p-6 transition-all duration-300">
                                 <div className="border-b border-border pb-4 mb-4">
                                     <h2 className="text-lg font-medium text-foreground">Today&apos;s Focus Tracks</h2>
                                     <p className="text-sm text-muted-foreground">Stay aligned with your learning plan and pick up where you left off.</p>
                                 </div>
                                 <div className="space-y-5">
                                     {focusTracks.map((track) => (
-                                        <div
-                                            key={track.title}
-                                            className="flex flex-col gap-3 rounded-xl border border-border/60 bg-background/80 p-4 hover:shadow-sm transition-all duration-200"
-                                        >
+                                        <div key={track.title} className="clean-card bg-background/85 p-4 transition-all duration-300">
                                             <div className="flex items-start justify-between gap-3">
                                                 <div className="flex items-center gap-3">
                                                     <span className="text-2xl" aria-hidden>{track.icon}</span>
@@ -173,7 +170,7 @@ export default function Dashboard({ stats, welcome }) {
                                                         <p className="text-sm text-muted-foreground">{track.description}</p>
                                                     </div>
                                                 </div>
-                                                <span className="flex items-center gap-1 rounded-full border border-border/60 bg-background/70 px-3 py-1 text-xs font-medium text-muted-foreground">
+                                                <span className="inline-flex items-center gap-1 rounded-full border border-border/50 bg-card/75 px-3 py-1 text-xs font-medium text-muted-foreground">
                                                     {track.status}
                                                 </span>
                                             </div>
@@ -194,14 +191,14 @@ export default function Dashboard({ stats, welcome }) {
                                 </div>
                             </div>
 
-                            <div className="clean-card bg-card p-6 hover:shadow-sm transition-shadow duration-200">
+                            <div className="clean-card bg-card/95 p-6 transition-all duration-300">
                                 <div className="border-b border-border pb-4 mb-4">
                                     <h2 className="text-lg font-medium text-foreground">Highlights & Momentum</h2>
                                     <p className="text-sm text-muted-foreground">Track your progression at a glance and celebrate recent wins.</p>
                                 </div>
                                 <div className="grid gap-4 md:grid-cols-2">
                                     {engagementHighlights.map((highlight) => (
-                                        <div key={highlight.title} className="clean-card bg-background/70 p-4 border border-border/60">
+                                        <div key={highlight.title} className="clean-card bg-background/85 p-5">
                                             <div className="flex items-center justify-between">
                                                 <p className="text-sm font-medium text-foreground">{highlight.title}</p>
                                                 <span className={`text-base font-semibold ${highlight.accent === 'emerald' ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-600 dark:text-blue-400'}`}>
@@ -226,7 +223,7 @@ export default function Dashboard({ stats, welcome }) {
                         </div>
 
                         <div className="space-y-6">
-                            <div className="clean-card bg-card p-6 hover:shadow-sm transition-shadow duration-200">
+                            <div className="clean-card bg-card/95 p-6 transition-all duration-300">
                                 <div className="border-b border-border pb-4 mb-4">
                                     <h2 className="text-lg font-medium text-foreground">Jump Back In</h2>
                                     <p className="text-sm text-muted-foreground">Browse the areas that keep momentum strong.</p>
@@ -235,7 +232,7 @@ export default function Dashboard({ stats, welcome }) {
                                     {navigationShortcuts.map((shortcut) => (
                                         <button
                                             key={shortcut.title}
-                                            className={`clean-button ${shortcut.intent === 'primary' ? 'primary' : ''} w-full justify-start px-4 py-3 text-left hover:shadow-sm transition-all duration-200 ${shortcut.disabled ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                            className={`clean-button ${shortcut.intent === 'primary' ? 'primary' : ''} w-full px-4 py-3 text-left ${shortcut.disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
                                             disabled={shortcut.disabled}
                                             onClick={() => !shortcut.disabled && goTo(shortcut.href)}
                                         >
@@ -251,19 +248,19 @@ export default function Dashboard({ stats, welcome }) {
                                 </div>
                             </div>
 
-                            <div className="clean-card bg-card p-6 hover:shadow-sm transition-shadow duration-200">
+                            <div className="clean-card bg-card/95 p-6 transition-all duration-300">
                                 <div className="border-b border-border pb-4 mb-4">
                                     <h2 className="text-lg font-medium text-foreground">Platform Health</h2>
                                     <p className="text-sm text-muted-foreground">Everything you need for a smooth training session.</p>
                                 </div>
                                 <div className="space-y-4 text-sm text-muted-foreground">
                                     {systemStatus.map((item) => (
-                                        <div key={item.label} className="flex items-center justify-between rounded-lg border border-border/60 bg-background/70 px-3 py-2">
-                                            <span>{item.label}</span>
+                                        <div key={item.label} className="clean-card bg-background/85 px-4 py-3 flex items-center justify-between">
+                                            <span className="text-muted-foreground">{item.label}</span>
                                             <span className={`font-medium ${item.tone}`}>{item.value}</span>
                                         </div>
                                     ))}
-                                    <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-background/70 px-3 py-2">
+                                    <div className="clean-card bg-background/85 px-4 py-3 flex items-center gap-2">
                                         <div className="h-2 w-2 rounded-full bg-emerald-500" />
                                         <span className="text-sm text-muted-foreground">System Operational — enjoy uninterrupted sessions.</span>
                                     </div>
