@@ -13,7 +13,7 @@ return [
 
     'api_key' => env('GEMINI_API_KEY'),
 
-    'model' => env('GEMINI_MODEL', 'gemini-2.5-flash'),
+    'model' => env('GEMINI_MODEL', 'gemini-1.5-flash'),
 
     'timeout' => env('GEMINI_TIMEOUT', 30),
 
@@ -28,7 +28,7 @@ return [
     ],
 
     'models' => [
-        'gemini-2.5-flash' => [
+        'gemini-1.5-flash' => [
             'supports_grounding' => true,
             'max_tokens' => 8192,
             'temperature_range' => [0.0, 2.0],

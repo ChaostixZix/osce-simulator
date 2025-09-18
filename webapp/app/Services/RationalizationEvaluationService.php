@@ -502,7 +502,7 @@ class RationalizationEvaluationService
             'top_fixes' => $topFixes, // Could be enhanced with specific recommendations
             'grounding_metadata' => $results[0]['grounding_metadata'] ?? null,
             'search_queries' => [], // Could extract from grounding data
-            'model_used' => $results[0]['model_used'] ?? 'gemini-2.5-flash',
+            'model_used' => $results[0]['model_used'] ?? config('services.gemini.model', 'gemini-1.5-flash'),
             'evaluation_started_at' => now()->subMinutes(1), // Approximate
             'evaluation_completed_at' => now(),
             'has_citations' => count($results) > 0 && ! empty($results[0]['evaluation']['citations'] ?? []),

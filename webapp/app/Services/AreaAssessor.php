@@ -18,7 +18,7 @@ class AreaAssessor
     public function __construct(AiAssessorService $aiAssessorService)
     {
         $this->apiKey = config('services.gemini.api_key');
-        $this->model = config('services.gemini.model', 'gemini-2.5-flash');
+        $this->model = config('services.gemini.model', 'gemini-1.5-flash');
         $this->aiAssessorService = $aiAssessorService;
     }
 

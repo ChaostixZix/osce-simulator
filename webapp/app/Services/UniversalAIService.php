@@ -165,7 +165,7 @@ class UniversalAIService
 
                 Log::info("Gemini response successful", [
                     'request_id' => $requestId,
-                    'model' => 'gemini-2.5-flash',
+                    'model' => config('services.gemini.model', 'gemini-1.5-flash'),
                     'response_time' => round($responseTime, 3),
                     'content_length' => strlen($content),
                     'api_success' => $response['success'] ?? false
@@ -175,7 +175,7 @@ class UniversalAIService
                     'content' => $content,
                     'metadata' => [
                         'provider' => 'gemini',
-                        'model' => 'gemini-2.5-flash',
+                        'model' => config('services.gemini.model', 'gemini-1.5-flash'),
                         'request_id' => $requestId,
                         'response_time' => $responseTime,
                         'is_fallback' => empty($content) || !($response['success'] ?? false),
@@ -213,7 +213,7 @@ class UniversalAIService
     {
         try {
             $apiKey = config('services.gemini.api_key');
-            $model = config('services.gemini.model', 'gemini-2.5-flash');
+            $model = config('services.gemini.model', 'gemini-1.5-flash');
             $baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models';
 
             $requestBody = [
