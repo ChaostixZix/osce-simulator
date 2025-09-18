@@ -46,17 +46,17 @@
         <script>
             window.Laravel = window.Laravel || {};
             window.Laravel.broadcasting = {
-                driver: '{{ config("broadcasting.default") }}',
+                driver: '{{ config("broadcasting.default") }}'
                 @if(config('broadcasting.default') === 'reverb')
-                key: '{{ config("broadcasting.connections.reverb.key") }}',
-                wsHost: '{{ config("broadcasting.connections.reverb.host") }}',
-                wsPort: {{ config("broadcasting.connections.reverb.port") }},
-                wssPort: {{ config("broadcasting.connections.reverb.port") }},
-                forceTLS: {{ config("broadcasting.connections.reverb.scheme") === 'https' ? 'true' : 'false' }},
+                ,key: '{{ config("broadcasting.connections.reverb.key") }}'
+                ,wsHost: '{{ config("broadcasting.connections.reverb.host") }}'
+                ,wsPort: {{ config("broadcasting.connections.reverb.port") }}
+                ,wssPort: {{ config("broadcasting.connections.reverb.port") }}
+                ,forceTLS: {{ config("broadcasting.connections.reverb.scheme") === 'https' ? 'true' : 'false' }}
                 @endif
                 @if(config('broadcasting.default') === 'pusher')
-                key: '{{ config("broadcasting.connections.pusher.key") }}',
-                cluster: '{{ config("broadcasting.connections.pusher.options.cluster") }}',
+                ,key: '{{ config("broadcasting.connections.pusher.key") }}'
+                ,cluster: '{{ config("broadcasting.connections.pusher.options.cluster") }}'
                 @endif
             };
         </script>
