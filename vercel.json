@@ -1,0 +1,43 @@
+{
+  "version": 2,
+  "buildCommand": "cd webapp && npm ci && npm run build",
+  "outputDirectory": "webapp/public",
+  "builds": [
+    {
+      "src": "webapp/public/**",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "api/index.php",
+      "use": "vercel-php@0.6.0"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/build/(.*)",
+      "dest": "/webapp/public/build/$1"
+    },
+    {
+      "src": "/(.*\\.(css|js|ico|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot))",
+      "dest": "/webapp/public/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/api/index.php"
+    }
+  ],
+  "env": {
+    "APP_ENV": "production",
+    "APP_DEBUG": "false",
+    "APP_KEY": "@app_key",
+    "APP_URL": "https://your-app-name.vercel.app",
+    "LOG_CHANNEL": "stderr",
+    "SESSION_DRIVER": "array",
+    "CACHE_DRIVER": "array"
+  },
+  "functions": {
+    "api/index.php": {
+      "runtime": "vercel-php@0.6.0"
+    }
+  }
+}

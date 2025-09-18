@@ -17,6 +17,7 @@
     "laravel/reverb": "^1.5",
     "laravel/tinker": "^2.10.1",
     "laravel/workos": "^0.1.0",
+    "openai-php/laravel": "^0.16.0",
     "predis/predis": "^2.2",
     "tightenco/ziggy": "^2.4"
   },
