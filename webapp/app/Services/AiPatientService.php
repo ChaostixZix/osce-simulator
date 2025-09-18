@@ -4,18 +4,15 @@ namespace App\Services;
 
 use App\Models\OsceCase;
 use App\Models\OsceSession;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class AiPatientService
 {
-    private string $apiKey;
-
-    private string $baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+    private UniversalAIService $aiService;
 
     public function __construct()
     {
-        $this->apiKey = config('services.gemini.api_key');
+        $this->aiService = new UniversalAIService();
     }
 
     public function generatePatientResponse(OsceSession $session, string $userMessage, array $chatHistory = []): string
@@ -24,58 +21,40 @@ class AiPatientService
             $osceCase = $session->osceCase;
             $patientContext = $this->buildPatientContext($osceCase, $session, $chatHistory);
 
-            $prompt = $this->buildPrompt($userMessage, $patientContext, $chatHistory);
+            $systemPrompt = $this->buildSystemPrompt($patientContext);
 
-            $response = Http::withHeaders([
-                'Content-Type' => 'application/json',
-            ])->post($this->baseUrl.'?key='.$this->apiKey, [
-                'contents' => [
-                    [
-                        'parts' => [
-                            [
-                                'text' => $prompt,
-                            ],
-                        ],
-                    ],
-                ],
-                'generationConfig' => [
-                    'temperature' => 0.7,
-                    'topK' => 40,
-                    'topP' => 0.95,
-                    'maxOutputTokens' => 120,
-                ],
-                'safetySettings' => [
-                    [
-                        'category' => 'HARM_CATEGORY_HARASSMENT',
-                        'threshold' => 'BLOCK_MEDIUM_AND_ABOVE',
-                    ],
-                    [
-                        'category' => 'HARM_CATEGORY_HATE_SPEECH',
-                        'threshold' => 'BLOCK_MEDIUM_AND_ABOVE',
-                    ],
-                    [
-                        'category' => 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-                        'threshold' => 'BLOCK_MEDIUM_AND_ABOVE',
-                    ],
-                    [
-                        'category' => 'HARM_CATEGORY_DANGEROUS_CONTENT',
-                        'threshold' => 'BLOCK_MEDIUM_AND_ABOVE',
-                    ],
-                ],
-            ]);
-
-            if ($response->successful()) {
-                $data = $response->json();
-
-                return $data['candidates'][0]['content']['parts'][0]['text'] ?? 'I am not feeling well today.';
+            // Format chat history for AI service
+            $formattedMessages = [];
+            foreach ($chatHistory as $message) {
+                $formattedMessages[] = [
+                    'sender' => $message['sender_type'] === 'user' ? 'user' : 'ai_patient',
+                    'message' => $message['message']
+                ];
             }
 
-            Log::error('Gemini API error', [
-                'status' => $response->status(),
-                'response' => $response->body(),
+            // Add the current user message
+            $formattedMessages[] = [
+                'sender' => 'user',
+                'message' => $userMessage
+            ];
+
+            $options = [
+                'temperature' => 0.7,
+                'max_tokens' => 120,
+            ];
+
+            $response = $this->aiService->generateChatResponse($systemPrompt, $formattedMessages, $options);
+
+            // Log the AI response metadata for debugging
+            Log::info('AI Patient Service response', [
+                'provider' => $response['metadata']['provider'],
+                'model' => $response['metadata']['model'],
+                'is_fallback' => $response['metadata']['is_fallback'],
+                'response_time' => $response['metadata']['response_time'],
+                'request_id' => $response['metadata']['request_id'],
             ]);
 
-            return $this->getFallbackResponse($userMessage, $patientContext);
+            return $response['content'] ?: $this->getFallbackResponse($userMessage, $patientContext);
 
         } catch (\Exception $e) {
             Log::error('AI Patient Service error', [
@@ -98,7 +77,7 @@ class AiPatientService
         return $context;
     }
 
-    private function buildPrompt(string $userMessage, array $patientContext, array $chatHistory): string
+    private function buildSystemPrompt(array $patientContext): string
     {
         $prompt = '';
         $prompt .= "You are acting as a simulated patient for clinical OSCE training.\n";
@@ -128,19 +107,7 @@ class AiPatientService
             $prompt .= "Behavioral Instructions: {$patientContext['instructions']}\n\n";
         }
 
-        // Add recent chat context (last 5 messages)
-        if (! empty($chatHistory)) {
-            $prompt .= "Recent Conversation:\n";
-            $recentMessages = array_slice($chatHistory, -5);
-            foreach ($recentMessages as $message) {
-                $role = $message['sender_type'] === 'user' ? 'Doctor' : 'Patient';
-                $prompt .= "{$role}: {$message['message']}\n";
-            }
-            $prompt .= "\n";
-        }
-
-        $prompt .= "Doctor's Question: {$userMessage}\n\n";
-        $prompt .= 'Patient Response (1–2 sentences, concise, in role, language rule above):';
+        $prompt .= 'Respond as this patient would, following all the rules above.';
 
         return $prompt;
     }
@@ -168,6 +135,11 @@ class AiPatientService
 
     public function isConfigured(): bool
     {
-        return ! empty($this->apiKey);
+        try {
+            $result = $this->aiService->testConnection();
+            return $result['success'];
+        } catch (\Exception $e) {
+            return false;
+        }
     }
 }

@@ -100,7 +100,7 @@ class ResultReducer
             'safety_concerns' => $safetyConcerns,
             'recommendations' => $recommendations,
             'model_info' => [
-                'name' => config('services.gemini.model', 'gemini-2.5-flash'),
+                'name' => config('services.gemini.model', 'gemini-1.5-flash'),
                 'temperature' => 0.1,
                 'assessment_approach' => 'map_reduce_clinical_areas',
                 'total_areas' => $areaResults->count(),

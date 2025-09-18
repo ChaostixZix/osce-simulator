@@ -27,6 +27,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "concurrently": "^9.0.1",
+    "framer-motion": "^12.23.14",
     "laravel-echo": "^2.2.0",
     "laravel-vite-plugin": "^2.0.0",
     "pusher-js": "^8.4.0",

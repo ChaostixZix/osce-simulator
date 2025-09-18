@@ -1,0 +1,34 @@
+# Dependencies
+webapp/vendor/
+webapp/node_modules/
+
+# Environment files
+webapp/.env
+webapp/.env.*
+
+# Development files
+webapp/.git/
+.git/
+webapp/tests/
+webapp/storage/logs/
+webapp/storage/framework/cache/
+webapp/storage/framework/sessions/
+webapp/storage/framework/views/
+
+# Documentation and config files
+documentation/
+vibe-ui/
+*.md
+.DS_Store
+.cursor/
+.claude/
+
+# Laravel specific
+webapp/bootstrap/cache/
+webapp/.phpunit.result.cache
+webapp/storage/app/
+webapp/storage/framework/
+webapp/storage/logs/
+
+# Build artifacts (keep public/build for static assets)
+webapp/resources/

@@ -218,7 +218,7 @@ class OsceAssessmentController extends Controller
                 'score' => $assessmentRun->total_score,
                 'max_score' => $assessmentRun->max_possible_score,
                 'assessed_at' => $assessmentRun->completed_at->toISOString(),
-                'assessor_model' => config('services.gemini.model', 'gemini-2.5-flash'),
+                'assessor_model' => config('services.gemini.model', 'gemini-1.5-flash'),
                 'assessment_type' => 'detailed_clinical_areas_assessment',
                 'assessor_output' => $assessmentRun->final_result,
                 'area_results' => $areaResults,
@@ -349,7 +349,7 @@ class OsceAssessmentController extends Controller
                 'percentage' => $assessmentRun->max_possible_score > 0 ? 
                     round(($assessmentRun->total_score / $assessmentRun->max_possible_score) * 100, 1) : 0,
                 'assessed_at' => $assessmentRun->completed_at->toISOString(),
-                'assessor_model' => config('services.gemini.model', 'gemini-2.5-flash'),
+                'assessor_model' => config('services.gemini.model', 'gemini-1.5-flash'),
                 'assessment_type' => 'detailed_clinical_areas_assessment',
                 'output' => $assessmentRun->final_result,
                 'has_fallbacks' => $assessmentRun->has_fallbacks,
