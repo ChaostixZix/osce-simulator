@@ -9,102 +9,85 @@ Migration notice: The frontend is being migrated from Vue 3 to React using Inert
 - never edit node_modules folder, it will be replaced on bun install
 
 
-## 🎮 Gaming Design System - MANDATORY RULES
+## 🎨 Minimal Design System - MANDATORY RULES
 
-When working on ANY frontend component or page, you MUST follow the established gaming design system to maintain consistency across the application.
+When working on ANY frontend component or page, you MUST follow the established minimal design system to maintain consistency across the application.
 
 ### ✅ ALWAYS USE These Components & Styles:
 
-#### 1. **Cyber Borders** - NO RECTANGLES ALLOWED
+#### 1. **Clean Cards**
 ```jsx
-// Use cyber-border class for ALL containers, cards, buttons
-<div className="cyber-border bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-500/30 p-6">
+// Use clean-card class for ALL containers, cards
+<div className="clean-card bg-card p-6">
 ```
-**Rule:** NEVER use regular rectangles - always use angled corners via cyber-border class
+**Rule:** Always use subtle borders and rounded corners via clean-card class
 
-#### 2. **Color Rotation Pattern** 
+#### 2. **Minimal Color Palette**
 ```jsx
-const colors = [
-  { bg: 'bg-gradient-to-br from-emerald-500/10 to-emerald-600/5', border: 'border-emerald-500/30', accent: 'text-emerald-400' },
-  { bg: 'bg-gradient-to-br from-blue-500/10 to-blue-600/5', border: 'border-blue-500/30', accent: 'text-blue-400' },
-  { bg: 'bg-gradient-to-br from-purple-500/10 to-purple-600/5', border: 'border-purple-500/30', accent: 'text-purple-400' }
-];
-const cardColor = colors[idx % colors.length];
+// Use theme-aware colors only
+className="bg-background text-foreground"
+className="bg-card text-card-foreground"
+className="text-muted-foreground" // for secondary text
 ```
 
 #### 3. **Typography Hierarchy**
-- **Page titles**: `text-2xl font-medium lowercase glow-text text-foreground`
-- **Section headers**: `text-lg font-medium lowercase text-foreground font-mono`  
-- **Body text**: `text-muted-foreground lowercase`
-- **Status/labels**: `text-xs font-mono uppercase tracking-wider`
+- **Page titles**: `text-2xl font-semibold text-foreground`
+- **Section headers**: `text-lg font-medium text-foreground`
+- **Body text**: `text-muted-foreground`
+- **Small text**: `text-sm text-muted-foreground`
 
 #### 4. **Interactive Elements**
 ```jsx
-// Buttons must use cyber-button
-<button className="cyber-button px-4 py-2 text-emerald-600 dark:text-emerald-300 font-mono uppercase tracking-wide">
+// Buttons must use clean-button
+<button className="clean-button px-4 py-2">
+<button className="clean-button primary px-4 py-2"> // for primary actions
 
-// Cards must have hover effects
-className="hover:scale-[1.02] transition-all duration-300 group"
-
-// Always include corner decorations
-<div className="absolute top-2 right-2 w-2 h-2 bg-gradient-to-br from-emerald-400 to-cyan-400 opacity-60 group-hover:opacity-100 transition-opacity"></div>
+// Cards should have subtle hover effects
+className="hover:shadow-sm transition-all duration-200"
 ```
 
-#### 5. **Status Indicators** - Always Include
+#### 5. **Layout Patterns**
 ```jsx
-// Pulsing status dot + text
-<div className="flex items-center gap-2">
-  <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-  <span className="text-xs text-emerald-500 font-mono uppercase">ONLINE</span>
-</div>
+// Clean spacing and layout
+<div className="space-y-6"> // consistent vertical spacing
+<div className="grid gap-4"> // for grid layouts
+<div className="flex items-center gap-3"> // for horizontal layouts
 ```
 
 #### 6. **Section Headers Pattern** - Use Consistently
 ```jsx
-<div className="flex items-center gap-3 mb-4">
-  <div className="w-1 h-6 bg-gradient-to-b from-emerald-400 to-cyan-400"></div>
-  <h2 className="text-lg font-medium lowercase text-foreground font-mono">section title</h2>
-  <div className="flex-1 h-px bg-gradient-to-r from-border to-transparent"></div>
-  <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
-    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-    <span>status info</span>
-  </div>
+<div className="border-b border-border pb-3 mb-6">
+  <h2 className="text-lg font-medium text-foreground">Section Title</h2>
+  <p className="text-sm text-muted-foreground">Optional description</p>
 </div>
 ```
 
 #### 7. **Page Welcome Header** - Standard Pattern
 ```jsx
-<div className="text-center space-y-4 relative">
-  <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-20 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent"></div>
-  
-  <div className="flex items-center justify-center gap-3">
-    <div className="w-8 h-0.5 bg-gradient-to-r from-emerald-400 to-cyan-400"></div>
-    <span className="text-xs text-emerald-500 font-mono uppercase tracking-wider">SECTION LABEL</span>
-    <div className="w-8 h-0.5 bg-gradient-to-l from-emerald-400 to-cyan-400"></div>
-  </div>
-  
-  <h1 className="text-2xl font-medium lowercase glow-text text-foreground">page title</h1>
+<div className="text-center space-y-2 mb-8">
+  <h1 className="text-2xl font-semibold text-foreground">Page Title</h1>
+  <p className="text-muted-foreground">Brief description of the page</p>
 </div>
 ```
 
 ### ❌ FORBIDDEN Styles:
-- Plain rectangular borders
-- Gray/boring card backgrounds without gradients
-- Static elements without hover effects  
-- Mixed case text (except uppercase labels)
-- Hard-coded dark/light colors (use theme-aware classes)
-- Missing decorative corner elements
-- Instant transitions (always use duration-300)
+- Bright neon colors or gaming aesthetics
+- Complex gradients or visual effects
+- Unnecessary animations or transitions
+- Overly decorative elements
+- Hard-coded colors (always use CSS variables)
+- Clipped borders or angled corners
+- Glowing or pulsing effects
 
 ### 🎯 Quality Checklist:
 Before submitting any UI work, verify:
-- [ ] All containers use `cyber-border` class
-- [ ] Colors follow the emerald → blue → purple rotation
-- [ ] Hover effects include `hover:scale-[1.02]` and `transition-all duration-300`
-- [ ] Status indicators with pulsing dots are present
-- [ ] Typography follows hierarchy (lowercase titles, mono technical text)
-- [ ] Corner decorations on interactive elements
-- [ ] Gradient backgrounds instead of flat colors
+- [ ] All containers use `clean-card` or proper background classes
+- [ ] Colors use theme-aware CSS variables
+- [ ] Hover effects are subtle (`hover:shadow-sm`)
+- [ ] Typography follows the hierarchy
+- [ ] Spacing is consistent using Tailwind classes
+- [ ] No gaming/cyber aesthetic elements
+- [ ] Clean, minimal appearance overall
 - [ ] Theme-aware text colors (`text-foreground`, `text-muted-foreground`)
 
 **Reference:** See `/DESIGN_SYSTEM.md` for complete documentation and examples.

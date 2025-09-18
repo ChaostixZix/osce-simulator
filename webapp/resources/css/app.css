@@ -15,9 +15,9 @@
 @theme inline {
     --font-sans: Instrument Sans, ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 
-    --radius-lg: 0px;
-    --radius-md: 0px;
-    --radius-sm: 0px;
+    --radius-lg: 12px;
+    --radius-md: 8px;
+    --radius-sm: 6px;
 
     --color-background: var(--background);
     --color-foreground: var(--foreground);
@@ -90,78 +90,78 @@
 }
 
 :root {
-    /* Light mode - Gaming aesthetic with good readability */
-    --background: hsl(0 0% 98%);
-    --foreground: hsl(0 0% 8%);
-    --card: hsl(0 0% 96%);
-    --card-foreground: hsl(0 0% 12%);
-    --popover: hsl(0 0% 98%);
-    --popover-foreground: hsl(0 0% 8%);
-    --primary: hsl(160 100% 25%); /* Emerald for primary actions */
+    /* Light mode - Clean minimal aesthetic inspired by Ghost */
+    --background: hsl(0 0% 100%);
+    --foreground: hsl(0 0% 9%);
+    --card: hsl(0 0% 100%);
+    --card-foreground: hsl(0 0% 9%);
+    --popover: hsl(0 0% 100%);
+    --popover-foreground: hsl(0 0% 9%);
+    --primary: hsl(0 0% 9%); /* Dark primary for clean look */
     --primary-foreground: hsl(0 0% 98%);
-    --secondary: hsl(0 0% 85%);
-    --secondary-foreground: hsl(0 0% 15%);
-    --muted: hsl(0 0% 92%);
-    --muted-foreground: hsl(0 0% 40%);
-    --accent: hsl(160 50% 88%);
-    --accent-foreground: hsl(160 100% 15%);
-    --destructive: hsl(0 84.2% 50%);
+    --secondary: hsl(0 0% 96%);
+    --secondary-foreground: hsl(0 0% 9%);
+    --muted: hsl(0 0% 96%);
+    --muted-foreground: hsl(0 0% 45%);
+    --accent: hsl(0 0% 96%);
+    --accent-foreground: hsl(0 0% 9%);
+    --destructive: hsl(0 84.2% 60%);
     --destructive-foreground: hsl(0 0% 98%);
-    --border: hsl(0 0% 85%);
-    --input: hsl(0 0% 90%);
-    --ring: hsl(160 100% 30%);
-    --chart-1: hsl(160 70% 45%);
-    --chart-2: hsl(180 65% 40%);
-    --chart-3: hsl(200 60% 35%);
-    --chart-4: hsl(45 80% 50%);
-    --chart-5: hsl(300 70% 55%);
-    --radius: 0px; /* Square corners for gaming aesthetic */
-    --sidebar-background: hsl(0 0% 96%);
-    --sidebar-foreground: hsl(0 0% 20%);
-    --sidebar-primary: hsl(160 100% 25%);
+    --border: hsl(0 0% 90%);
+    --input: hsl(0 0% 96%);
+    --ring: hsl(0 0% 60%);
+    --chart-1: hsl(220 70% 50%);
+    --chart-2: hsl(160 60% 45%);
+    --chart-3: hsl(30 80% 55%);
+    --chart-4: hsl(280 65% 60%);
+    --chart-5: hsl(340 75% 55%);
+    --radius: 8px; /* Subtle rounded corners */
+    --sidebar-background: hsl(0 0% 98%);
+    --sidebar-foreground: hsl(0 0% 9%);
+    --sidebar-primary: hsl(0 0% 9%);
     --sidebar-primary-foreground: hsl(0 0% 98%);
-    --sidebar-accent: hsl(0 0% 90%);
-    --sidebar-accent-foreground: hsl(0 0% 25%);
-    --sidebar-border: hsl(0 0% 80%);
-    --sidebar-ring: hsl(160 100% 35%);
-    --sidebar: hsl(0 0% 96%);
+    --sidebar-accent: hsl(0 0% 96%);
+    --sidebar-accent-foreground: hsl(0 0% 9%);
+    --sidebar-border: hsl(0 0% 90%);
+    --sidebar-ring: hsl(0 0% 60%);
+    --sidebar: hsl(0 0% 98%);
 }
 
 .dark {
-    /* Dark mode - Enhanced gaming aesthetic */
-    --background: hsl(0 0% 5%);
-    --foreground: hsl(0 0% 95%);
-    --card: hsl(0 0% 8%);
-    --card-foreground: hsl(0 0% 92%);
-    --popover: hsl(0 0% 5%);
-    --popover-foreground: hsl(0 0% 95%);
-    --primary: hsl(160 100% 40%); /* Bright emerald for contrast */
-    --primary-foreground: hsl(0 0% 5%);
-    --secondary: hsl(0 0% 18%);
-    --secondary-foreground: hsl(0 0% 85%);
-    --muted: hsl(0 0% 12%);
-    --muted-foreground: hsl(0 0% 60%);
-    --accent: hsl(160 60% 15%);
-    --accent-foreground: hsl(160 100% 60%);
-    --destructive: hsl(0 85% 55%);
-    --destructive-foreground: hsl(0 0% 95%);
-    --border: hsl(0 0% 20%);
-    --input: hsl(0 0% 15%);
-    --ring: hsl(160 100% 45%);
-    --chart-1: hsl(160 80% 50%);
-    --chart-2: hsl(180 70% 45%);
-    --chart-3: hsl(200 65% 40%);
-    --chart-4: hsl(45 85% 55%);
-    --chart-5: hsl(300 75% 60%);
-    --sidebar-background: hsl(0 0% 8%);
-    --sidebar-foreground: hsl(0 0% 90%);
-    --sidebar-primary: hsl(160 100% 45%);
-    --sidebar-primary-foreground: hsl(0 0% 5%);
-    --sidebar-accent: hsl(0 0% 15%);
-    --sidebar-accent-foreground: hsl(0 0% 85%);
-    --sidebar-border: hsl(0 0% 22%);
-    --sidebar-ring: hsl(160 100% 50%);
-    --sidebar: hsl(0 0% 10%);
+    /* Dark mode - Clean minimal aesthetic */
+    --background: hsl(0 0% 3%);
+    --foreground: hsl(0 0% 98%);
+    --card: hsl(0 0% 4%);
+    --card-foreground: hsl(0 0% 98%);
+    --popover: hsl(0 0% 3%);
+    --popover-foreground: hsl(0 0% 98%);
+    --primary: hsl(0 0% 98%); /* Clean white primary */
+    --primary-foreground: hsl(0 0% 9%);
+    --secondary: hsl(0 0% 10%);
+    --secondary-foreground: hsl(0 0% 98%);
+    --muted: hsl(0 0% 8%);
+    --muted-foreground: hsl(0 0% 65%);
+    --accent: hsl(0 0% 10%);
+    --accent-foreground: hsl(0 0% 98%);
+    --destructive: hsl(0 85% 65%);
+    --destructive-foreground: hsl(0 0% 98%);
+    --border: hsl(0 0% 15%);
+    --input: hsl(0 0% 8%);
+    --ring: hsl(0 0% 40%);
+    --chart-1: hsl(220 70% 50%);
+    --chart-2: hsl(160 60% 45%);
+    --chart-3: hsl(30 80% 55%);
+    --chart-4: hsl(280 65% 60%);
+    --chart-5: hsl(340 75% 55%);
+    --sidebar-background: hsl(0 0% 4%);
+    --sidebar-foreground: hsl(0 0% 98%);
+    --sidebar-primary: hsl(0 0% 98%);
+    --sidebar-primary-foreground: hsl(0 0% 9%);
+    --sidebar-accent: hsl(0 0% 10%);
+    --sidebar-accent-foreground: hsl(0 0% 98%);
+    --sidebar-border: hsl(0 0% 15%);
+    --sidebar-ring: hsl(0 0% 40%);
+    --sidebar: hsl(0 0% 4%);
 }
 
 @layer base {
@@ -170,6 +170,8 @@
     }
     body {
         @apply bg-background text-foreground;
+        font-size: 16px;
+        line-height: 1.7;
     }
     
     /* Smooth theme transitions */
@@ -182,133 +184,119 @@
     }
 }
 
-/* Gaming UI Components */
-.cyber-border {
-    position: relative;
+/* Clean UI Components */
+.clean-card {
     border: 1px solid hsl(var(--border));
-    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
-}
-
-.cyber-border::before {
-    content: '';
-    position: absolute;
-    inset: -1px;
-    background: linear-gradient(45deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
-    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
-    z-index: -1;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.cyber-border:hover::before {
-    opacity: 0.1;
-}
-
-.cyber-button {
-    position: relative;
-    overflow: hidden;
-    border: 1px solid hsl(var(--border));
-    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
-    background: linear-gradient(135deg, hsl(var(--secondary)) 0%, hsl(var(--secondary) / 0.8) 100%);
+    border-radius: var(--radius);
+    background: hsl(var(--card));
     transition: all 0.2s ease;
 }
 
-.cyber-button::before {
-    content: '';
-    position: absolute;
-    inset: -1px;
-    background: linear-gradient(45deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
+.clean-card:hover {
+    border-color: hsl(var(--border) / 0.8);
+    box-shadow: 0 4px 12px -4px hsl(var(--foreground) / 0.1);
+}
+
+.clean-button {
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.clean-button:hover {
+    background: hsl(var(--accent));
+    border-color: hsl(var(--border) / 0.8);
+}
+
+.clean-button:active {
+    transform: translateY(1px);
+}
+
+.clean-button.primary {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    border-color: hsl(var(--primary));
+}
+
+.clean-button.primary:hover {
+    background: hsl(var(--primary) / 0.9);
+    border-color: hsl(var(--primary) / 0.9);
+}
+
+.minimal-text {
+    color: hsl(var(--foreground));
+    line-height: 1.6;
+}
+
+.subtle-text {
+    color: hsl(var(--muted-foreground));
+}
+
+/* Gaming design system classes - cyber aesthetic */
+.cyber-border {
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    background: hsl(var(--card));
+    transition: all 0.2s ease;
     clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
-    z-index: -1;
-    opacity: 0;
-    transition: opacity 0.3s ease;
 }
 
-.cyber-button:hover {
-    transform: scale(1.02);
-    box-shadow: 0 8px 25px -8px hsl(var(--primary) / 0.3);
+.cyber-border:hover {
+    border-color: hsl(var(--border) / 0.8);
+    box-shadow: 0 4px 12px -4px hsl(var(--foreground) / 0.1);
+    transform: translateY(-2px);
 }
 
-.cyber-button:hover::before {
-    opacity: 0.1;
-}
-
-.cyber-button:active {
-    transform: scale(0.98);
-}
-
-.glow-text {
-    text-shadow: 0 0 10px hsl(var(--primary) / 0.5);
-}
-
-.scan-line {
+.cyber-button {
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+    transition: all 0.2s ease;
+    font-weight: 500;
+    clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
     position: relative;
     overflow: hidden;
 }
 
-.scan-line::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, hsl(var(--primary)), transparent);
-    animation: scan 3s linear infinite;
+.cyber-button:hover {
+    background: hsl(var(--accent));
+    border-color: hsl(var(--border) / 0.8);
+    transform: translateY(-1px);
 }
 
-@keyframes scan {
-    0% {
-        left: -100%;
-    }
-    100% {
-        left: 100%;
-    }
+.cyber-button:active {
+    transform: translateY(1px);
 }
 
-.glitch-text {
-    position: relative;
+.cyber-button.primary {
+    background: linear-gradient(135deg, #10b981, #06b6d4);
+    color: white;
+    border-color: #10b981;
+}
+
+.cyber-button.primary:hover {
+    background: linear-gradient(135deg, #059669, #0891b2);
+    border-color: #059669;
+}
+
+.glow-text {
     color: hsl(var(--foreground));
+    font-weight: 600;
+    line-height: 1.4;
+    text-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+    background: linear-gradient(135deg, #10b981, #06b6d4, #8b5cf6);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: glow-shift 3s ease-in-out infinite;
 }
 
-.glitch-text::before,
-.glitch-text::after {
-    content: attr(data-text);
-    position: absolute;
-    top: 0;
-    left: 0;
-    opacity: 0.8;
-    pointer-events: none;
-}
-
-.glitch-text::before {
-    color: hsl(160 100% 50%);
-    animation: glitch-1 0.5s infinite linear alternate-reverse;
-}
-
-.glitch-text::after {
-    color: hsl(300 100% 50%);
-    animation: glitch-2 0.5s infinite linear alternate-reverse;
-}
-
-@keyframes glitch-1 {
-    0% {
-        clip-path: inset(20% 0 60% 0);
-        transform: translateX(2px);
-    }
-    100% {
-        clip-path: inset(40% 0 30% 0);
-        transform: translateX(-2px);
-    }
-}
-
-@keyframes glitch-2 {
-    0% {
-        clip-path: inset(60% 0 10% 0);
-        transform: translateX(-2px);
-    }
-    100% {
-        clip-path: inset(10% 0 70% 0);
-        transform: translateX(2px);
-    }
+@keyframes glow-shift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
 }

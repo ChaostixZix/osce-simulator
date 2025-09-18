@@ -1,74 +1,90 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Head, Link } from '@inertiajs/react';
 import { Button } from '@vibe-kanban/ui-kit';
-import { ThemeProvider } from '@/contexts/ThemeContext';
 import ThemeToggle from '@/components/react/ThemeToggle';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
 
 function Landing({ auth }) {
-    // Animation variants
+    const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+    const { scrollYProgress } = useScroll();
+    const backgroundY = useTransform(scrollYProgress, [0, 1], ['0%', '50%']);
+    const heroOpacity = useTransform(scrollYProgress, [0, 0.3, 0.5], [1, 0.5, 0]);
+
+    useEffect(() => {
+        const updateMousePosition = (e) => {
+            setMousePosition({ x: e.clientX, y: e.clientY });
+        };
+        window.addEventListener('mousemove', updateMousePosition);
+        return () => window.removeEventListener('mousemove', updateMousePosition);
+    }, []);
+
+    // Advanced Animation Variants
     const containerVariants = {
         hidden: { opacity: 0 },
         visible: {
             opacity: 1,
             transition: {
-                duration: 0.6,
-                staggerChildren: 0.1
-            }
-        }
-    };
-
-    const itemVariants = {
-        hidden: { opacity: 0, y: 20 },
-        visible: {
-            opacity: 1,
-            y: 0,
-            transition: {
-                duration: 0.6,
-                ease: [0.25, 0.46, 0.45, 0.94]
+                duration: 0.8,
+                staggerChildren: 0.15,
+                delayChildren: 0.2
             }
         }
     };
 
     const heroVariants = {
-        hidden: { opacity: 0, y: 30 },
-        visible: {
-            opacity: 1,
-            y: 0,
-            transition: {
-                duration: 0.8,
-                ease: [0.25, 0.46, 0.45, 0.94]
-            }
-        }
-    };
-
-    const cardVariants = {
-        hidden: { opacity: 0, y: 40, scale: 0.95 },
+        hidden: { opacity: 0, y: 60, scale: 0.95 },
         visible: {
             opacity: 1,
             y: 0,
             scale: 1,
             transition: {
-                duration: 0.6,
-                ease: [0.25, 0.46, 0.45, 0.94]
+                duration: 1.2,
+                ease: [0.23, 1, 0.32, 1]
+            }
+        }
+    };
+
+    const itemVariants = {
+        hidden: { opacity: 0, y: 40 },
+        visible: {
+            opacity: 1,
+            y: 0,
+            transition: {
+                duration: 0.8,
+                ease: [0.23, 1, 0.32, 1]
+            }
+        }
+    };
+
+    const cardVariants = {
+        hidden: { opacity: 0, y: 60, rotateX: 15 },
+        visible: {
+            opacity: 1,
+            y: 0,
+            rotateX: 0,
+            transition: {
+                duration: 0.8,
+                ease: [0.23, 1, 0.32, 1]
             }
         },
         hover: {
-            scale: 1.02,
-            y: -5,
+            scale: 1.03,
+            y: -8,
+            rotateX: 5,
             transition: {
-                duration: 0.3,
-                ease: [0.25, 0.46, 0.45, 0.94]
+                duration: 0.4,
+                ease: [0.23, 1, 0.32, 1]
             }
         }
     };
 
     const buttonVariants = {
+        rest: { scale: 1 },
         hover: {
             scale: 1.05,
             transition: {
-                duration: 0.2,
-                ease: [0.25, 0.46, 0.45, 0.94]
+                duration: 0.3,
+                ease: [0.23, 1, 0.32, 1]
             }
         },
         tap: {
@@ -79,719 +95,790 @@ function Landing({ auth }) {
         }
     };
 
+    const staggerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.1,
+                delayChildren: 0.2
+            }
+        }
+    };
+
+    const slideInVariants = {
+        hidden: { opacity: 0, x: -60 },
+        visible: {
+            opacity: 1,
+            x: 0,
+            transition: {
+                duration: 0.8,
+                ease: [0.23, 1, 0.32, 1]
+            }
+        }
+    };
+
+    const fadeInVariants = {
+        hidden: { opacity: 0, scale: 0.9 },
+        visible: {
+            opacity: 1,
+            scale: 1,
+            transition: {
+                duration: 0.6,
+                ease: [0.23, 1, 0.32, 1]
+            }
+        }
+    };
+
+    // Simplified content - only key features and testimonials
+    const keyFeatures = [
+        {
+            icon: "🤖",
+            title: "AI-Powered Training",
+            description: "Advanced AI provides real-time feedback on your clinical reasoning and decision-making process."
+        },
+        {
+            icon: "📊",
+            title: "Progress Analytics",
+            description: "Track your improvement with comprehensive analytics and personalized study recommendations."
+        },
+        {
+            icon: "⚡",
+            title: "Instant Feedback",
+            description: "Get immediate, detailed feedback to accelerate your learning and identify knowledge gaps."
+        }
+    ];
+
+    const testimonials = [
+        {
+            content: "This platform revolutionized my OSCE preparation. The AI feedback helped me identify blind spots I never knew I had.",
+            name: "Sarah Chen",
+            role: "Medical Student, Johns Hopkins"
+        },
+        {
+            content: "The realistic simulations made me feel confident and prepared for my actual OSCE exams. Absolutely game-changing.",
+            name: "Marcus Rodriguez",
+            role: "Resident, Mayo Clinic"
+        },
+        {
+            content: "None come close to the depth and quality of training provided here. It's like having a personal clinical mentor.",
+            name: "Dr. Aisha Patel",
+            role: "Clinical Educator, Harvard Medical"
+        }
+    ];
+
     return (
-        <ThemeProvider>
-            <motion.div 
-                className="min-h-screen relative overflow-hidden bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-200 font-mono transition-colors duration-300"
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-            >
-                <Head title="osce simulator" />
+        <motion.div
+            className="relative bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-200"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+        >
+                <Head title="OSCE Simulator - Revolutionary Medical Training Platform" />
 
-                {/* Enhanced grid background */}
-                <div
-                    aria-hidden
-                    className="pointer-events-none absolute inset-0 opacity-[0.03] dark:opacity-[0.07]"
-                    style={{
-                        backgroundImage:
-                            "repeating-linear-gradient(0deg, transparent, transparent 23px, #22c55e44 24px), repeating-linear-gradient(90deg, transparent, transparent 23px, #22c55e44 24px)",
-                    }}
-                />
-
-                {/* Animated scan lines */}
-                <div
-                    aria-hidden
-                    className="pointer-events-none absolute inset-0 opacity-[0.02] dark:opacity-[0.05]"
-                    style={{
-                        backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 1px, #00ff0022 2px)"
-                    }}
-                />
-
-                {/* Enhanced header */}
-                <motion.header 
-                    className="border-b border-neutral-300 dark:border-neutral-800/80 bg-neutral-100/80 dark:bg-neutral-950/60 backdrop-blur supports-[backdrop-filter]:bg-neutral-100/40 supports-[backdrop-filter]:dark:bg-neutral-950/40 transition-colors duration-300"
-                    variants={itemVariants}
+                {/* Advanced Background Effects */}
+                <motion.div
+                    className="fixed inset-0 pointer-events-none"
+                    style={{ y: backgroundY }}
                 >
-                    <div className="max-w-7xl mx-auto px-4 py-4">
-                        <nav className="flex justify-between items-center">
-                            <motion.div 
-                                className="flex items-center gap-4"
+                    {/* Dynamic gradient mesh */}
+                    <div className="absolute inset-0 opacity-30">
+                        <motion.div
+                            className="absolute inset-0"
+                            animate={{
+                                background: [
+                                    "radial-gradient(circle at 20% 50%, rgba(34, 197, 94, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 30%, rgba(59, 130, 246, 0.1) 0%, transparent 50%)",
+                                    "radial-gradient(circle at 80% 50%, rgba(34, 197, 94, 0.1) 0%, transparent 50%), radial-gradient(circle at 20% 70%, rgba(168, 85, 247, 0.1) 0%, transparent 50%)",
+                                    "radial-gradient(circle at 20% 50%, rgba(34, 197, 94, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 30%, rgba(59, 130, 246, 0.1) 0%, transparent 50%)"
+                                ]
+                            }}
+                            transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                        />
+                    </div>
+
+                    {/* Floating particles */}
+                    <div className="absolute inset-0">
+                        {[...Array(30)].map((_, i) => (
+                            <motion.div
+                                key={i}
+                                className="absolute w-1 h-1 bg-gradient-to-r from-emerald-400/60 to-cyan-400/60 rounded-full"
+                                style={{
+                                    left: `${Math.random() * 100}%`,
+                                    top: `${Math.random() * 100}%`,
+                                }}
+                                animate={{
+                                    y: [0, -30, 0],
+                                    opacity: [0, 1, 0],
+                                    scale: [0, 1.5, 0],
+                                    rotate: [0, 180, 360]
+                                }}
+                                transition={{
+                                    duration: 3 + Math.random() * 2,
+                                    repeat: Infinity,
+                                    delay: Math.random() * 2,
+                                    ease: "easeInOut"
+                                }}
+                            />
+                        ))}
+                    </div>
+
+                    {/* Interactive cursor effect */}
+                    <motion.div
+                        className="absolute w-80 h-80 rounded-full opacity-20"
+                        style={{
+                            background: "radial-gradient(circle, rgba(34, 197, 94, 0.1) 0%, transparent 70%)",
+                            x: mousePosition.x - 160,
+                            y: mousePosition.y - 160,
+                        }}
+                        transition={{ type: "spring", damping: 30, stiffness: 200 }}
+                    />
+
+                    {/* Neural network pattern */}
+                    <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]">
+                        <svg width="100%" height="100%" className="absolute inset-0">
+                            <defs>
+                                <pattern id="neuralPattern" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
+                                    <circle cx="25" cy="25" r="1" fill="currentColor" />
+                                    <circle cx="75" cy="75" r="1" fill="currentColor" />
+                                    <line x1="25" y1="25" x2="75" y2="75" stroke="currentColor" strokeWidth="0.5" opacity="0.3" />
+                                </pattern>
+                            </defs>
+                            <rect width="100%" height="100%" fill="url(#neuralPattern)" />
+                        </svg>
+                    </div>
+                </motion.div>
+
+                {/* Modern Floating Header */}
+                <motion.header
+                    className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 cyber-border bg-white/80 dark:bg-neutral-950/80 backdrop-blur-md border-emerald-500/20 px-6 py-3"
+                    variants={itemVariants}
+                    initial={{ y: -100, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ duration: 0.8, delay: 0.2 }}
+                >
+                    <nav className="flex items-center justify-between gap-8">
+                        <motion.div
+                            className="flex items-center gap-4"
+                            variants={itemVariants}
+                        >
+                            {/* Premium logo */}
+                            <motion.div
+                                className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold relative"
+                                whileHover={{ scale: 1.05 }}
+                                transition={{ duration: 0.3 }}
+                            >
+                                <motion.div
+                                    className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-cyan-500 rounded-full flex items-center justify-center"
+                                    animate={{ rotate: [0, 360] }}
+                                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                                >
+                                    <span className="text-white text-sm font-bold">O</span>
+                                </motion.div>
+                                <span className="text-lg font-mono tracking-tight">osce.ai</span>
+                                <motion.div
+                                    className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-400 rounded-full"
+                                    animate={{ scale: [1, 1.2, 1], opacity: [0.7, 1, 0.7] }}
+                                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                                />
+                            </motion.div>
+                        </motion.div>
+
+                        <motion.div
+                            className="flex items-center gap-4"
+                            variants={itemVariants}
+                        >
+                            <ThemeToggle />
+                            {auth && auth.user ? (
+                                <Link href={route('dashboard')}>
+                                    <motion.button
+                                        className="cyber-button px-6 py-2 text-sm font-semibold text-emerald-600 dark:text-emerald-300 uppercase tracking-wide bg-gradient-to-r from-emerald-500/10 to-cyan-500/10"
+                                        variants={buttonVariants}
+                                        initial="rest"
+                                        whileHover="hover"
+                                        whileTap="tap"
+                                    >
+                                        Dashboard
+                                    </motion.button>
+                                </Link>
+                            ) : (
+                                <div className="flex items-center gap-3">
+                                    <Link href={route('login')}>
+                                        <motion.button
+                                            className="px-4 py-2 text-sm font-medium text-neutral-600 dark:text-neutral-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+                                            variants={buttonVariants}
+                                            initial="rest"
+                                            whileHover="hover"
+                                            whileTap="tap"
+                                        >
+                                            Sign In
+                                        </motion.button>
+                                    </Link>
+                                    <Link href={route('login')}>
+                                        <motion.button
+                                            className="cyber-button px-6 py-2 text-sm font-semibold text-white bg-gradient-to-r from-emerald-500 to-cyan-500"
+                                            variants={buttonVariants}
+                                            initial="rest"
+                                            whileHover="hover"
+                                            whileTap="tap"
+                                        >
+                                            Get Started
+                                        </motion.button>
+                                    </Link>
+                                </div>
+                            )}
+                        </motion.div>
+                    </nav>
+                </motion.header>
+
+                {/* Revolutionary Hero Section */}
+                <motion.section
+                    className="relative flex items-center justify-center py-20 min-h-[80vh]"
+                    variants={heroVariants}
+                    style={{ opacity: heroOpacity }}
+                >
+                    <div className="max-w-6xl mx-auto px-4 text-center relative z-10">
+                        {/* Hero Badge */}
+                        <motion.div
+                            className="inline-flex items-center gap-2 cyber-border px-4 py-2 mb-8 bg-gradient-to-r from-emerald-500/10 to-cyan-500/10"
+                            variants={itemVariants}
+                        >
+                            <motion.div
+                                className="w-2 h-2 bg-emerald-500 rounded-full"
+                                animate={{ scale: [1, 1.2, 1], opacity: [0.7, 1, 0.7] }}
+                                transition={{ duration: 2, repeat: Infinity }}
+                            />
+                            <span className="text-sm font-mono text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                                Revolutionary AI-Powered Training
+                            </span>
+                        </motion.div>
+
+                        {/* Hero Title with Advanced Typography */}
+                        <motion.h1
+                            className="text-4xl md:text-6xl lg:text-7xl font-bold mb-8 leading-[1.1]"
+                            variants={heroVariants}
+                        >
+                            <motion.span
+                                className="block text-foreground"
+                                animate={{
+                                    backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+                                }}
+                                style={{
+                                    background: "linear-gradient(90deg, currentColor 0%, #10b981 25%, #06b6d4 50%, #8b5cf6 75%, currentColor 100%)",
+                                    backgroundSize: "200% 100%",
+                                    WebkitBackgroundClip: "text",
+                                    WebkitTextFillColor: "transparent",
+                                    backgroundClip: "text",
+                                }}
+                                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                            >
+                                Master Clinical
+                            </motion.span>
+                            <motion.span
+                                className="block glow-text text-emerald-500"
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: 0.5, duration: 0.8 }}
+                            >
+                                Excellence
+                            </motion.span>
+                            <motion.span
+                                className="block text-2xl md:text-3xl lg:text-4xl text-muted-foreground font-normal mt-4"
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.8, duration: 0.8 }}
+                            >
+                                with AI-Powered OSCE Simulation
+                            </motion.span>
+                        </motion.h1>
+
+                        {/* Hero Description */}
+                        <motion.p
+                            className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-4xl mx-auto leading-relaxed"
+                            variants={itemVariants}
+                        >
+                            Master clinical skills with AI-powered OSCE simulations. Get instant feedback, track progress, and prepare for real exams with confidence.
+                        </motion.p>
+
+                        {/* Enhanced CTA Section */}
+                        <motion.div
+                            className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16"
+                            variants={staggerVariants}
+                        >
+                            {auth && auth.user ? (
+                                <Link href={route('dashboard')}>
+                                    <motion.button
+                                        className="cyber-button px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-emerald-500 to-cyan-500 shadow-lg relative overflow-hidden group"
+                                        variants={buttonVariants}
+                                        initial="rest"
+                                        whileHover="hover"
+                                        whileTap="tap"
+                                    >
+                                        <motion.div
+                                            className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            transition={{ duration: 0.3 }}
+                                        />
+                                        <span className="relative z-10">Continue Training</span>
+                                    </motion.button>
+                                </Link>
+                            ) : (
+                                <>
+                                    <Link href={route('login')}>
+                                        <motion.button
+                                            className="cyber-button px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-emerald-500 to-cyan-500 shadow-lg relative overflow-hidden group"
+                                            variants={buttonVariants}
+                                            initial="rest"
+                                            whileHover="hover"
+                                            whileTap="tap"
+                                        >
+                                            <motion.div
+                                                className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                transition={{ duration: 0.3 }}
+                                            />
+                                            <span className="relative z-10">Start Free Trial</span>
+                                        </motion.button>
+                                    </Link>
+                                    <motion.button
+                                        className="cyber-button px-8 py-4 text-lg font-semibold text-foreground bg-transparent border-2 border-emerald-500/30"
+                                        variants={buttonVariants}
+                                        initial="rest"
+                                        whileHover="hover"
+                                        whileTap="tap"
+                                    >
+                                        Watch Demo
+                                    </motion.button>
+                                </>
+                            )}
+                        </motion.div>
+
+                        {/* Social Proof Stats */}
+                        <motion.div
+                            className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto"
+                            variants={staggerVariants}
+                        >
+                            {[
+                                { number: "50K+", label: "Medical Students" },
+                                { number: "94%", label: "Pass Rate Improvement" },
+                                { number: "500+", label: "OSCE Cases" },
+                                { number: "24/7", label: "AI Support" }
+                            ].map((stat, idx) => (
+                                <motion.div
+                                    key={idx}
+                                    className="text-center"
+                                    variants={fadeInVariants}
+                                >
+                                    <motion.div
+                                        className="text-2xl md:text-3xl font-bold text-emerald-500 mb-2"
+                                        initial={{ scale: 0.5, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        transition={{ delay: 1 + idx * 0.1, duration: 0.5, type: "spring" }}
+                                    >
+                                        {stat.number}
+                                    </motion.div>
+                                    <div className="text-sm text-muted-foreground font-mono uppercase tracking-wider">
+                                        {stat.label}
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </motion.div>
+                    </div>
+
+                    {/* Floating Hero Elements */}
+                    <motion.div
+                        className="absolute top-1/4 left-10 w-20 h-20 cyber-border bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 hidden lg:block"
+                        animate={{
+                            y: [0, -20, 0],
+                            rotate: [0, 5, 0]
+                        }}
+                        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                        <div className="w-full h-full flex items-center justify-center text-2xl">🩺</div>
+                    </motion.div>
+
+                    <motion.div
+                        className="absolute top-1/3 right-10 w-16 h-16 cyber-border bg-gradient-to-br from-blue-500/20 to-purple-500/20 hidden lg:block"
+                        animate={{
+                            y: [0, 20, 0],
+                            rotate: [0, -5, 0]
+                        }}
+                        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                    >
+                        <div className="w-full h-full flex items-center justify-center text-xl">🧠</div>
+                    </motion.div>
+
+                    <motion.div
+                        className="absolute bottom-1/4 left-1/4 w-12 h-12 cyber-border bg-gradient-to-br from-purple-500/20 to-pink-500/20 hidden lg:block"
+                        animate={{
+                            y: [0, -15, 0],
+                            rotate: [0, 10, 0]
+                        }}
+                        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+                    >
+                        <div className="w-full h-full flex items-center justify-center text-lg">📊</div>
+                    </motion.div>
+                </motion.section>
+
+                {/* Key Features Section - Compact */}
+                <motion.section
+                    className="py-16 relative"
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, margin: "-50px" }}
+                >
+                    <div className="max-w-6xl mx-auto px-4">
+                        <motion.div className="text-center mb-12" variants={staggerVariants}>
+                            <motion.h2
+                                className="text-3xl md:text-4xl font-bold mb-4 glow-text"
+                                variants={heroVariants}
+                            >
+                                Everything You Need to Excel
+                            </motion.h2>
+                            <motion.p
+                                className="text-lg text-muted-foreground max-w-2xl mx-auto"
                                 variants={itemVariants}
                             >
-                                {/* Enhanced logo */}
-                                <motion.div 
-                                    className="text-xl tracking-tight text-emerald-600 dark:text-emerald-400 font-bold relative"
+                                AI-powered training platform designed for medical students preparing for OSCE exams
+                            </motion.p>
+                        </motion.div>
+
+                        <motion.div
+                            className="grid md:grid-cols-3 gap-8"
+                            variants={staggerVariants}
+                        >
+                            {keyFeatures.map((feature, idx) => (
+                                <motion.div
+                                    key={idx}
+                                    className="cyber-border p-6 bg-gradient-to-br from-emerald-500/5 to-blue-500/5 relative group text-center"
+                                    variants={cardVariants}
+                                    whileHover="hover"
+                                >
+                                    <motion.div className="text-4xl mb-4" variants={itemVariants}>
+                                        {feature.icon}
+                                    </motion.div>
+
+                                    <motion.h3
+                                        className="text-xl font-semibold mb-3 text-foreground"
+                                        variants={itemVariants}
+                                    >
+                                        {feature.title}
+                                    </motion.h3>
+
+                                    <motion.p
+                                        className="text-muted-foreground leading-relaxed"
+                                        variants={itemVariants}
+                                    >
+                                        {feature.description}
+                                    </motion.p>
+                                </motion.div>
+                            ))}
+                        </motion.div>
+                    </div>
+                </motion.section>
+
+                {/* Testimonials Section - Compact */}
+                <motion.section
+                    className="py-16 relative"
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, margin: "-50px" }}
+                >
+                    <div className="max-w-6xl mx-auto px-4">
+                        <motion.div className="text-center mb-12" variants={staggerVariants}>
+                            <motion.h2
+                                className="text-3xl md:text-4xl font-bold mb-4 glow-text"
+                                variants={heroVariants}
+                            >
+                                Loved by Medical Students
+                            </motion.h2>
+                        </motion.div>
+
+                        <motion.div
+                            className="grid md:grid-cols-3 gap-6"
+                            variants={staggerVariants}
+                        >
+                            {testimonials.map((testimonial, idx) => (
+                                <motion.div
+                                    key={idx}
+                                    className="cyber-border p-6 bg-gradient-to-br from-muted/20 to-card/30 relative group"
+                                    variants={cardVariants}
+                                    whileHover="hover"
+                                >
+                                    <div className="text-emerald-400 text-2xl mb-3 font-serif">"</div>
+                                    <motion.p
+                                        className="text-muted-foreground mb-4 leading-relaxed text-sm"
+                                        variants={itemVariants}
+                                    >
+                                        {testimonial.content}
+                                    </motion.p>
+                                    <motion.div className="flex items-center gap-3" variants={itemVariants}>
+                                        <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-cyan-400 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                                            {testimonial.name.split(' ').map(n => n[0]).join('')}
+                                        </div>
+                                        <div>
+                                            <div className="font-semibold text-foreground text-sm">{testimonial.name}</div>
+                                            <div className="text-xs text-muted-foreground">{testimonial.role}</div>
+                                        </div>
+                                    </motion.div>
+                                </motion.div>
+                            ))}
+                        </motion.div>
+                    </div>
+                </motion.section>
+
+                {/* Final CTA Section - Compact */}
+                <motion.section
+                    className="py-16 relative"
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, margin: "-50px" }}
+                >
+                    <div className="max-w-4xl mx-auto px-4 text-center">
+                        <motion.div
+                            className="cyber-border p-10 bg-gradient-to-br from-emerald-500/10 via-blue-500/10 to-purple-500/10"
+                            variants={cardVariants}
+                        >
+                            <motion.h2
+                                className="text-3xl md:text-4xl font-bold mb-4 glow-text"
+                                variants={heroVariants}
+                            >
+                                Ready to Excel in OSCE?
+                            </motion.h2>
+
+                            <motion.p
+                                className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto"
+                                variants={itemVariants}
+                            >
+                                Join thousands of medical students preparing with AI-powered simulations
+                            </motion.p>
+
+                            <motion.div
+                                className="flex flex-col sm:flex-row gap-4 justify-center mb-6"
+                                variants={staggerVariants}
+                            >
+                                {auth && auth.user ? (
+                                    <Link href={route('dashboard')}>
+                                        <motion.button
+                                            className="cyber-button px-8 py-3 text-lg font-semibold text-white bg-gradient-to-r from-emerald-500 to-cyan-500"
+                                            variants={buttonVariants}
+                                            initial="rest"
+                                            whileHover="hover"
+                                            whileTap="tap"
+                                        >
+                                            Continue Learning
+                                        </motion.button>
+                                    </Link>
+                                ) : (
+                                    <>
+                                        <Link href={route('login')}>
+                                            <motion.button
+                                                className="cyber-button px-8 py-3 text-lg font-semibold text-white bg-gradient-to-r from-emerald-500 to-cyan-500"
+                                                variants={buttonVariants}
+                                                initial="rest"
+                                                whileHover="hover"
+                                                whileTap="tap"
+                                            >
+                                                Start Free Trial
+                                            </motion.button>
+                                        </Link>
+                                        <motion.button
+                                            className="cyber-button px-8 py-3 text-lg font-semibold text-foreground bg-transparent border-2 border-emerald-500/30"
+                                            variants={buttonVariants}
+                                            initial="rest"
+                                            whileHover="hover"
+                                            whileTap="tap"
+                                        >
+                                            View Demo
+                                        </motion.button>
+                                    </>
+                                )}
+                            </motion.div>
+
+                            <motion.div
+                                className="flex items-center justify-center gap-6 text-sm text-muted-foreground"
+                                variants={itemVariants}
+                            >
+                                <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-emerald-500 rounded-full" />
+                                    <span>Free trial</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                                    <span>No credit card</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-purple-500 rounded-full" />
+                                    <span>Cancel anytime</span>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    </div>
+                </motion.section>
+
+                {/* Modern Footer */}
+                <motion.footer
+                    className="border-t border-emerald-500/20 bg-gradient-to-b from-neutral-50/50 to-neutral-100/50 dark:from-neutral-950/50 dark:to-neutral-900/50 py-20 relative overflow-hidden"
+                    variants={itemVariants}
+                >
+                    {/* Footer background effects */}
+                    <div className="absolute inset-0 opacity-10">
+                        <div className="absolute top-0 left-1/4 w-64 h-64 bg-gradient-to-br from-emerald-500 to-cyan-500 rounded-full blur-3xl"></div>
+                        <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full blur-3xl"></div>
+                    </div>
+
+                    <div className="max-w-7xl mx-auto px-4 relative z-10">
+                        <motion.div
+                            className="grid md:grid-cols-4 gap-8 mb-12"
+                            variants={staggerVariants}
+                        >
+                            {/* Company Info */}
+                            <motion.div className="col-span-2" variants={itemVariants}>
+                                <motion.div className="flex items-center gap-3 mb-6">
+                                    <motion.div
+                                        className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-cyan-500 rounded-full flex items-center justify-center"
+                                        animate={{ rotate: [0, 360] }}
+                                        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                                    >
+                                        <span className="text-white text-lg font-bold">O</span>
+                                    </motion.div>
+                                    <span className="text-2xl font-mono font-bold text-foreground">osce.ai</span>
+                                </motion.div>
+                                <p className="text-muted-foreground mb-6 leading-relaxed max-w-md">
+                                    Revolutionizing medical education through AI-powered OSCE simulations.
+                                    Empowering the next generation of healthcare professionals with cutting-edge training technology.
+                                </p>
+                                <div className="flex items-center gap-4">
+                                    <motion.div
+                                        className="flex items-center gap-2 text-sm text-emerald-500"
+                                        animate={{ opacity: [0.7, 1, 0.7] }}
+                                        transition={{ duration: 2, repeat: Infinity }}
+                                    >
+                                        <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                                        <span className="font-mono">System Online</span>
+                                    </motion.div>
+                                    <div className="text-sm text-muted-foreground">•</div>
+                                    <div className="text-sm text-muted-foreground font-mono">99.9% Uptime</div>
+                                </div>
+                            </motion.div>
+
+                            {/* Quick Links */}
+                            <motion.div variants={itemVariants}>
+                                <h4 className="font-semibold text-foreground mb-4 text-sm uppercase tracking-wider">Platform</h4>
+                                <ul className="space-y-3 text-sm text-muted-foreground">
+                                    <li><a href="#features" className="hover:text-emerald-400 transition-colors">Features</a></li>
+                                    <li><a href="#pricing" className="hover:text-emerald-400 transition-colors">Pricing</a></li>
+                                    <li><a href="#demo" className="hover:text-emerald-400 transition-colors">Live Demo</a></li>
+                                    <li><a href="#api" className="hover:text-emerald-400 transition-colors">API Docs</a></li>
+                                </ul>
+                            </motion.div>
+
+                            {/* Support */}
+                            <motion.div variants={itemVariants}>
+                                <h4 className="font-semibold text-foreground mb-4 text-sm uppercase tracking-wider">Support</h4>
+                                <ul className="space-y-3 text-sm text-muted-foreground">
+                                    <li><Link href={route('contact')} className="hover:text-emerald-400 transition-colors">Contact Us</Link></li>
+                                    <li><a href="#help" className="hover:text-emerald-400 transition-colors">Help Center</a></li>
+                                    <li><Link href={route('privacy-policy')} className="hover:text-emerald-400 transition-colors">Privacy Policy</Link></li>
+                                    <li><a href="#terms" className="hover:text-emerald-400 transition-colors">Terms of Service</a></li>
+                                </ul>
+                            </motion.div>
+                        </motion.div>
+
+                        {/* Footer Bottom */}
+                        <motion.div
+                            className="border-t border-emerald-500/10 pt-8 flex flex-col md:flex-row items-center justify-between gap-4"
+                            variants={itemVariants}
+                        >
+                            <motion.div
+                                className="flex items-center gap-4 text-sm text-muted-foreground"
+                                variants={itemVariants}
+                            >
+                                <motion.div
+                                    className="w-1 h-6 bg-emerald-500"
+                                    animate={{
+                                        scaleY: [1, 1.2, 1],
+                                        opacity: [0.7, 1, 0.7]
+                                    }}
+                                    transition={{
+                                        duration: 2,
+                                        repeat: Infinity,
+                                        ease: "easeInOut"
+                                    }}
+                                />
+                                <span className="font-mono">Built by</span>
+                                <Link
+                                    href={route('made-by')}
+                                    className="text-emerald-400 hover:text-emerald-300 transition-colors font-medium"
+                                >
+                                    Bintang Putra
+                                </Link>
+                            </motion.div>
+
+                            <motion.div
+                                className="flex items-center gap-6 text-sm text-muted-foreground"
+                                variants={itemVariants}
+                            >
+                                <motion.a
+                                    href="http://dev.bintangputra.my.id"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="font-mono uppercase tracking-wider hover:text-emerald-400 transition-colors"
                                     whileHover={{ scale: 1.05 }}
                                     transition={{ duration: 0.2 }}
                                 >
-                                    <span className="relative z-10">▌ osce simulator ▐</span>
-                                    <motion.div 
-                                        className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-emerald-500 to-cyan-400 opacity-60"
-                                        style={{
-                                            clipPath: 'polygon(0 0, 95% 0, 100% 100%, 5% 100%)'
+                                    Portfolio
+                                </motion.a>
+                                <motion.a
+                                    href="https://github.com/ChaostixZix"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="font-mono uppercase tracking-wider hover:text-emerald-400 transition-colors"
+                                    whileHover={{ scale: 1.05 }}
+                                    transition={{ duration: 0.2 }}
+                                >
+                                    GitHub
+                                </motion.a>
+                                <div className="font-mono text-xs">
+                                    © 2024 OSCE.AI •
+                                    <motion.span
+                                        className="text-emerald-500 ml-1"
+                                        animate={{
+                                            opacity: [0.7, 1, 0.7]
                                         }}
-                                        animate={{ 
-                                            opacity: [0.6, 1, 0.6],
-                                        }}
-                                        transition={{ 
+                                        transition={{
                                             duration: 2,
                                             repeat: Infinity,
                                             ease: "easeInOut"
                                         }}
-                                    />
-                                </motion.div>
-                                
-                                {/* Status indicator */}
-                                <motion.div 
-                                    className="flex items-center gap-1"
-                                    variants={itemVariants}
-                                >
-                                    <motion.div 
-                                        className="w-2 h-2 bg-emerald-500 rounded-full"
-                                        animate={{ 
-                                            scale: [1, 1.2, 1],
-                                            opacity: [0.7, 1, 0.7]
-                                        }}
-                                        transition={{ 
-                                            duration: 1.5,
-                                            repeat: Infinity,
-                                            ease: "easeInOut"
-                                        }}
-                                    />
-                                    <span className="text-xs text-neutral-600 dark:text-neutral-400 uppercase tracking-wide">Live</span>
-                                </motion.div>
+                                    >
+                                        v3.0
+                                    </motion.span>
+                                </div>
                             </motion.div>
-                            <motion.div 
-                                className="flex items-center gap-3"
-                                variants={itemVariants}
-                            >
-                                <ThemeToggle />
-                                {auth && auth.user ? (
-                                    <Link href={route('dashboard')}>
-                                        <motion.button 
-                                            className="cyber-button px-4 py-2 text-sm font-mono text-emerald-600 dark:text-emerald-300 uppercase tracking-wide"
-                                            variants={buttonVariants}
-                                            whileHover="hover"
-                                            whileTap="tap"
-                                        >
-                                            go to dashboard
-                                        </motion.button>
-                                    </Link>
-                                ) : (
-                                    <Link href={route('login')}>
-                                        <motion.button 
-                                            className="cyber-button px-4 py-2 text-sm font-mono text-emerald-600 dark:text-emerald-300 uppercase tracking-wide"
-                                            variants={buttonVariants}
-                                            whileHover="hover"
-                                            whileTap="tap"
-                                        >
-                                            login
-                                        </motion.button>
-                                    </Link>
-                                )}
-                            </motion.div>
-                        </nav>
+                        </motion.div>
                     </div>
-                </motion.header>
 
-            {/* Enhanced hero */}
-            <motion.main 
-                className="max-w-7xl mx-auto px-4 py-20 relative"
-                variants={heroVariants}
-            >
-                <div className="text-center max-w-4xl mx-auto">
-                    {/* Animated title */}
-                    <motion.h1 
-                        className="text-4xl md:text-5xl font-medium mb-4 leading-tight glow-text"
-                        variants={heroVariants}
-                        whileHover={{ scale: 1.02 }}
-                        transition={{ duration: 0.3 }}
-                    >
-                        a flat, techy osce training interface
-                    </motion.h1>
-                    <motion.p 
-                        className="text-base md:text-lg text-neutral-600 dark:text-neutral-400 mb-10 leading-relaxed"
-                        variants={heroVariants}
-                    >
-                        build clinical skill through structured, simulated sessions. fast. minimal. no noise.
-                    </motion.p>
-
-                    {/* Enhanced CTA */}
-                    <motion.div 
-                        className="flex flex-col sm:flex-row gap-3 justify-center mb-16"
-                        variants={heroVariants}
-                    >
-                        {auth && auth.user ? (
-                            <Link href={route('dashboard')}>
-                                <motion.button 
-                                    className="cyber-button px-8 py-3 text-emerald-600 dark:text-emerald-300 font-mono uppercase tracking-wider text-sm"
-                                    variants={buttonVariants}
-                                    whileHover="hover"
-                                    whileTap="tap"
-                                >
-                                    start training
-                                </motion.button>
-                            </Link>
-                        ) : (
-                            <Link href={route('login')}>
-                                <motion.button 
-                                    className="cyber-button px-8 py-3 text-emerald-600 dark:text-emerald-300 font-mono uppercase tracking-wider text-sm"
-                                    variants={buttonVariants}
-                                    whileHover="hover"
-                                    whileTap="tap"
-                                >
-                                    start training
-                                </motion.button>
-                            </Link>
-                        )}
-                    </motion.div>
-
-                    {/* Enhanced feature grid */}
-                    <motion.div 
-                        className="grid md:grid-cols-3 gap-6 mt-16 mb-8"
-                        variants={containerVariants}
-                    >
-                        {[
-                            { 
-                                k: 'skills', 
-                                d: 'simulated patient flow and procedures',
-                                color: 'border-emerald-500/20 bg-emerald-500/5',
-                                accent: 'text-emerald-500'
-                            },
-                            { 
-                                k: 'reasoning', 
-                                d: 'clinical decision scaffolding',
-                                color: 'border-blue-500/20 bg-blue-500/5',
-                                accent: 'text-blue-500'
-                            },
-                            { 
-                                k: 'tracking', 
-                                d: 'progress metrics that matter',
-                                color: 'border-purple-500/20 bg-purple-500/5',
-                                accent: 'text-purple-500'
-                            },
-                        ].map((f, idx) => (
-                            <motion.div
-                                key={f.k}
-                                className={`cyber-border p-6 text-left ${f.color} relative group`}
-                                variants={cardVariants}
-                                whileHover="hover"
-                                custom={idx}
-                            >
-                                {/* Animated corner accent */}
-                                <motion.div 
-                                    className="absolute top-2 right-2 w-2 h-2 bg-gradient-to-br from-emerald-400 to-cyan-400 opacity-60"
-                                    animate={{ 
-                                        opacity: [0.6, 1, 0.6],
-                                        scale: [1, 1.1, 1]
-                                    }}
-                                    transition={{ 
-                                        duration: 2,
-                                        repeat: Infinity,
-                                        delay: idx * 0.3,
-                                        ease: "easeInOut"
-                                    }}
-                                />
-                                
-                                <motion.div 
-                                    className={`text-sm ${f.accent} mb-2 font-mono uppercase tracking-wider`}
-                                    variants={itemVariants}
-                                >
-                                    {f.k}
-                                </motion.div>
-                                <motion.div 
-                                    className="text-neutral-700 dark:text-neutral-300 text-sm leading-relaxed"
-                                    variants={itemVariants}
-                                >
-                                    {f.d}
-                                </motion.div>
-                                
-                                {/* Animated hover indicator */}
-                                <motion.div 
-                                    className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-emerald-400 to-cyan-400"
-                                    initial={{ scaleX: 0 }}
-                                    whileHover={{ scaleX: 1 }}
-                                    transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-                                    style={{ originX: 0 }}
-                                />
-                            </motion.div>
-                        ))}
-                    </motion.div>
-
-                    {/* Enhanced status bar */}
-                    <motion.div 
-                        className="mx-auto max-w-xl mt-10 cyber-border bg-card/50 px-6 py-4 text-left text-sm text-neutral-600 dark:text-neutral-400 relative overflow-hidden"
-                        variants={itemVariants}
-                    >
-                        {/* Animated scan line */}
-                        <motion.div 
-                            className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent opacity-50"
-                            animate={{ 
-                                opacity: [0.3, 0.8, 0.3]
-                            }}
-                            transition={{ 
-                                duration: 2,
-                                repeat: Infinity,
-                                ease: "easeInOut"
-                            }}
-                        >
-                            <motion.div 
-                                className="w-20 h-full bg-gradient-to-r from-transparent via-emerald-400 to-transparent"
-                                animate={{ 
-                                    x: ['-100%', '100%']
-                                }}
-                                transition={{ 
-                                    duration: 3,
-                                    repeat: Infinity,
-                                    ease: "linear"
-                                }}
-                            />
-                        </motion.div>
-                        
-                        <motion.div 
-                            className="flex items-center justify-between"
-                            variants={itemVariants}
-                        >
-                            <span className="text-emerald-500 font-mono">status:</span>
-                            <div className="flex items-center gap-2 text-xs">
-                                <motion.div 
-                                    className="w-2 h-2 bg-emerald-500 rounded-full"
-                                    animate={{ 
-                                        scale: [1, 1.2, 1],
-                                        opacity: [0.7, 1, 0.7]
-                                    }}
-                                    transition={{ 
-                                        duration: 1.5,
-                                        repeat: Infinity,
-                                        ease: "easeInOut"
-                                    }}
-                                />
-                                <span>ready • secure • minimal interface • terminal font</span>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                </div>
-            </motion.main>
-
-            {/* Comprehensive Explanation Section */}
-            <motion.section 
-                className="max-w-7xl mx-auto px-4 py-20 relative"
-                variants={containerVariants}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, margin: "-100px" }}
-            >
-                <div className="text-center max-w-4xl mx-auto mb-16">
-                    <motion.div 
-                        className="flex items-center justify-center gap-3 mb-4"
-                        variants={itemVariants}
-                    >
-                        <div className="w-8 h-0.5 bg-gradient-to-r from-emerald-400 to-cyan-400"></div>
-                        <span className="text-xs text-emerald-500 font-mono uppercase tracking-wider">comprehensive guide</span>
-                        <div className="w-8 h-0.5 bg-gradient-to-l from-emerald-400 to-cyan-400"></div>
-                    </motion.div>
-                    
-                    <motion.h2 
-                        className="text-3xl md:text-4xl font-medium mb-6 leading-tight glow-text"
-                        variants={heroVariants}
-                    >
-                        everything you need to know
-                    </motion.h2>
-                    
-                    <motion.p 
-                        className="text-lg text-neutral-600 dark:text-neutral-400 leading-relaxed"
-                        variants={heroVariants}
-                    >
-                        a complete breakdown of our osce training platform, features, and methodology
-                    </motion.p>
-                </div>
-
-                {/* Detailed Feature Explanations */}
-                <div className="grid lg:grid-cols-2 gap-8 mb-16">
-                    {/* What is OSCE */}
+                    {/* Floating footer elements */}
                     <motion.div
-                        className="cyber-border p-8 bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-500/30 relative group"
-                        variants={cardVariants}
-                        whileHover="hover"
+                        className="absolute bottom-10 left-10 w-6 h-6 cyber-border bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 hidden lg:block"
+                        animate={{
+                            y: [0, -10, 0],
+                            rotate: [0, 5, 0]
+                        }}
+                        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
                     >
-                        <motion.div 
-                            className="absolute top-3 right-3 w-3 h-3 bg-gradient-to-br from-emerald-400 to-cyan-400 opacity-60 group-hover:opacity-100 transition-opacity"
-                            animate={{ 
-                                opacity: [0.6, 1, 0.6],
-                                scale: [1, 1.1, 1]
-                            }}
-                            transition={{ 
-                                duration: 2,
-                                repeat: Infinity,
-                                ease: "easeInOut"
-                            }}
-                        />
-                        
-                        <motion.div 
-                            className="text-sm text-emerald-500 mb-4 font-mono uppercase tracking-wider"
-                            variants={itemVariants}
-                        >
-                            what is osce?
-                        </motion.div>
-                        
-                        <motion.h3 
-                            className="text-xl font-medium mb-4 text-foreground"
-                            variants={itemVariants}
-                        >
-                            objective structured clinical examination
-                        </motion.h3>
-                        
-                        <motion.div 
-                            className="text-neutral-700 dark:text-neutral-300 leading-relaxed space-y-3"
-                            variants={itemVariants}
-                        >
-                            <p>
-                                OSCE is a modern approach to clinical skills assessment that breaks down complex medical scenarios into structured, measurable components. Unlike traditional exams, OSCE evaluates both knowledge and practical application in realistic clinical settings.
-                            </p>
-                            <p>
-                                Our platform simulates real patient interactions, allowing you to practice history-taking, physical examinations, clinical reasoning, and communication skills in a controlled, feedback-rich environment.
-                            </p>
-                        </motion.div>
+                        <div className="w-full h-full flex items-center justify-center text-xs">✨</div>
                     </motion.div>
 
-                    {/* How It Works */}
                     <motion.div
-                        className="cyber-border p-8 bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/30 relative group"
-                        variants={cardVariants}
-                        whileHover="hover"
+                        className="absolute bottom-16 right-10 w-8 h-8 cyber-border bg-gradient-to-br from-blue-500/20 to-purple-500/20 hidden lg:block"
+                        animate={{
+                            y: [0, 15, 0],
+                            rotate: [0, -5, 0]
+                        }}
+                        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 1 }}
                     >
-                        <motion.div 
-                            className="absolute top-3 right-3 w-3 h-3 bg-gradient-to-br from-blue-400 to-cyan-400 opacity-60 group-hover:opacity-100 transition-opacity"
-                            animate={{ 
-                                opacity: [0.6, 1, 0.6],
-                                scale: [1, 1.1, 1]
-                            }}
-                            transition={{ 
-                                duration: 2,
-                                repeat: Infinity,
-                                ease: "easeInOut",
-                                delay: 0.3
-                            }}
-                        />
-                        
-                        <motion.div 
-                            className="text-sm text-blue-500 mb-4 font-mono uppercase tracking-wider"
-                            variants={itemVariants}
-                        >
-                            how it works
-                        </motion.div>
-                        
-                        <motion.h3 
-                            className="text-xl font-medium mb-4 text-foreground"
-                            variants={itemVariants}
-                        >
-                            structured learning workflow
-                        </motion.h3>
-                        
-                        <motion.div 
-                            className="text-neutral-700 dark:text-neutral-300 leading-relaxed space-y-3"
-                            variants={itemVariants}
-                        >
-                            <div className="space-y-2">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                    <span className="font-medium">Case Selection</span>
-                                </div>
-                                <p className="text-sm ml-4">Choose from diverse clinical scenarios covering various medical specialties and difficulty levels.</p>
-                            </div>
-                            <div className="space-y-2">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                    <span className="font-medium">Timed Sessions</span>
-                                </div>
-                                <p className="text-sm ml-4">Practice under realistic time constraints with built-in timers and progress tracking.</p>
-                            </div>
-                            <div className="space-y-2">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                    <span className="font-medium">AI Assessment</span>
-                                </div>
-                                <p className="text-sm ml-4">Receive detailed feedback and scoring based on clinical reasoning and communication skills.</p>
-                            </div>
-                        </motion.div>
+                        <div className="w-full h-full flex items-center justify-center text-sm">🚀</div>
                     </motion.div>
-                </div>
-
-                {/* Key Features Deep Dive */}
-                <motion.div 
-                    className="mb-16"
-                    variants={containerVariants}
-                >
-                    <motion.div 
-                        className="flex items-center gap-3 mb-8"
-                        variants={itemVariants}
-                    >
-                        <div className="w-1 h-8 bg-gradient-to-b from-emerald-400 to-cyan-400"></div>
-                        <h3 className="text-2xl font-medium lowercase text-foreground font-mono">key features</h3>
-                        <div className="flex-1 h-px bg-gradient-to-r from-border to-transparent"></div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
-                            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                            <span>comprehensive</span>
-                        </div>
-                    </motion.div>
-
-                    <div className="grid md:grid-cols-3 gap-6">
-                        {[
-                            {
-                                title: "Clinical Reasoning Engine",
-                                description: "Advanced AI-powered system that evaluates your diagnostic thinking, differential diagnosis formation, and clinical decision-making process.",
-                                details: [
-                                    "Real-time assessment of clinical reasoning patterns",
-                                    "Identification of knowledge gaps and biases",
-                                    "Personalized feedback on diagnostic accuracy",
-                                    "Evidence-based recommendations for improvement"
-                                ],
-                                color: "border-emerald-500/20 bg-emerald-500/5",
-                                accent: "text-emerald-500"
-                            },
-                            {
-                                title: "Interactive Patient Simulation",
-                                description: "Immersive patient encounters with dynamic responses, realistic symptoms, and adaptive scenarios based on your clinical approach.",
-                                details: [
-                                    "Dynamic patient responses to your questions",
-                                    "Realistic symptom presentation and progression",
-                                    "Adaptive scenarios based on your clinical approach",
-                                    "Multiple patient types and demographics"
-                                ],
-                                color: "border-blue-500/20 bg-blue-500/5",
-                                accent: "text-blue-500"
-                            },
-                            {
-                                title: "Comprehensive Assessment",
-                                description: "Multi-dimensional evaluation covering clinical skills, communication, professionalism, and evidence-based practice.",
-                                details: [
-                                    "Communication skills assessment",
-                                    "Professionalism and ethics evaluation",
-                                    "Evidence-based practice scoring",
-                                    "Detailed performance analytics"
-                                ],
-                                color: "border-purple-500/20 bg-purple-500/5",
-                                accent: "text-purple-500"
-                            }
-                        ].map((feature, idx) => (
-                            <motion.div
-                                key={feature.title}
-                                className={`cyber-border p-6 ${feature.color} relative group`}
-                                variants={cardVariants}
-                                whileHover="hover"
-                                custom={idx}
-                            >
-                                <motion.div 
-                                    className="absolute top-2 right-2 w-2 h-2 bg-gradient-to-br from-emerald-400 to-cyan-400 opacity-60 group-hover:opacity-100 transition-opacity"
-                                    animate={{ 
-                                        opacity: [0.6, 1, 0.6],
-                                        scale: [1, 1.1, 1]
-                                    }}
-                                    transition={{ 
-                                        duration: 2,
-                                        repeat: Infinity,
-                                        ease: "easeInOut",
-                                        delay: idx * 0.2
-                                    }}
-                                />
-                                
-                                <motion.h4 
-                                    className={`text-lg font-medium mb-3 ${feature.accent}`}
-                                    variants={itemVariants}
-                                >
-                                    {feature.title}
-                                </motion.h4>
-                                
-                                <motion.p 
-                                    className="text-neutral-700 dark:text-neutral-300 text-sm mb-4 leading-relaxed"
-                                    variants={itemVariants}
-                                >
-                                    {feature.description}
-                                </motion.p>
-                                
-                                <motion.div 
-                                    className="space-y-2"
-                                    variants={itemVariants}
-                                >
-                                    {feature.details.map((detail, detailIdx) => (
-                                        <motion.div 
-                                            key={detailIdx}
-                                            className="flex items-start gap-2 text-xs text-neutral-600 dark:text-neutral-400"
-                                            variants={itemVariants}
-                                        >
-                                            <div className="w-1 h-1 bg-emerald-500 rounded-full mt-2 flex-shrink-0"></div>
-                                            <span>{detail}</span>
-                                        </motion.div>
-                                    ))}
-                                </motion.div>
-                            </motion.div>
-                        ))}
-                    </div>
-                </motion.div>
-
-                {/* Technology Stack */}
-                <motion.div 
-                    className="mb-16"
-                    variants={containerVariants}
-                >
-                    <motion.div 
-                        className="flex items-center gap-3 mb-8"
-                        variants={itemVariants}
-                    >
-                        <div className="w-1 h-8 bg-gradient-to-b from-blue-400 to-cyan-400"></div>
-                        <h3 className="text-2xl font-medium lowercase text-foreground font-mono">technology stack</h3>
-                        <div className="flex-1 h-px bg-gradient-to-r from-border to-transparent"></div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
-                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                            <span>modern</span>
-                        </div>
-                    </motion.div>
-
-                    <div className="grid md:grid-cols-2 gap-8">
-                        <motion.div
-                            className="cyber-border p-6 bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/30"
-                            variants={cardVariants}
-                        >
-                            <motion.h4 
-                                className="text-lg font-medium mb-4 text-blue-500"
-                                variants={itemVariants}
-                            >
-                                Backend Infrastructure
-                            </motion.h4>
-                            <motion.div 
-                                className="space-y-3 text-sm text-neutral-700 dark:text-neutral-300"
-                                variants={itemVariants}
-                            >
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                    <span><strong>Laravel 12:</strong> Robust PHP framework with advanced features</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                    <span><strong>PostgreSQL:</strong> Enterprise-grade database for reliability</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                    <span><strong>Laravel Reverb:</strong> Real-time WebSocket communication</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                    <span><strong>WorkOS:</strong> Secure authentication and session management</span>
-                                </div>
-                            </motion.div>
-                        </motion.div>
-
-                        <motion.div
-                            className="cyber-border p-6 bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/30"
-                            variants={cardVariants}
-                        >
-                            <motion.h4 
-                                className="text-lg font-medium mb-4 text-purple-500"
-                                variants={itemVariants}
-                            >
-                                Frontend Experience
-                            </motion.h4>
-                            <motion.div 
-                                className="space-y-3 text-sm text-neutral-700 dark:text-neutral-300"
-                                variants={itemVariants}
-                            >
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                                    <span><strong>React 19:</strong> Latest React with concurrent features</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                                    <span><strong>Inertia.js:</strong> SPA experience without API complexity</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                                    <span><strong>Framer Motion:</strong> Smooth, professional animations</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                                    <span><strong>Tailwind CSS:</strong> Utility-first styling with custom design system</span>
-                                </div>
-                            </motion.div>
-                        </motion.div>
-                    </div>
-                </motion.div>
-
-                {/* Getting Started Guide */}
-                <motion.div 
-                    className="cyber-border p-8 bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-500/30"
-                    variants={cardVariants}
-                >
-                    <motion.div 
-                        className="flex items-center gap-3 mb-6"
-                        variants={itemVariants}
-                    >
-                        <div className="w-1 h-6 bg-gradient-to-b from-emerald-400 to-cyan-400"></div>
-                        <h3 className="text-xl font-medium lowercase text-foreground font-mono">getting started</h3>
-                        <div className="flex-1 h-px bg-gradient-to-r from-border to-transparent"></div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
-                            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                            <span>quick start</span>
-                        </div>
-                    </motion.div>
-
-                    <div className="grid md:grid-cols-3 gap-6">
-                        {[
-                            {
-                                step: "01",
-                                title: "Create Account",
-                                description: "Sign up using WorkOS authentication for secure, enterprise-grade access management.",
-                                details: "Quick registration with email verification and secure session handling."
-                            },
-                            {
-                                step: "02", 
-                                title: "Choose Your Case",
-                                description: "Select from our curated library of OSCE cases covering various medical specialties and difficulty levels.",
-                                details: "Cases range from basic clinical skills to complex diagnostic scenarios."
-                            },
-                            {
-                                step: "03",
-                                title: "Start Training",
-                                description: "Begin your timed session with real-time AI assessment and comprehensive feedback.",
-                                details: "Track your progress and identify areas for improvement with detailed analytics."
-                            }
-                        ].map((item, idx) => (
-                            <motion.div 
-                                key={item.step}
-                                className="text-center"
-                                variants={itemVariants}
-                            >
-                                <motion.div 
-                                    className="text-2xl font-mono text-emerald-500 mb-3"
-                                    variants={itemVariants}
-                                >
-                                    {item.step}
-                                </motion.div>
-                                <motion.h4 
-                                    className="text-lg font-medium mb-2 text-foreground"
-                                    variants={itemVariants}
-                                >
-                                    {item.title}
-                                </motion.h4>
-                                <motion.p 
-                                    className="text-sm text-neutral-700 dark:text-neutral-300 mb-2"
-                                    variants={itemVariants}
-                                >
-                                    {item.description}
-                                </motion.p>
-                                <motion.p 
-                                    className="text-xs text-neutral-600 dark:text-neutral-400"
-                                    variants={itemVariants}
-                                >
-                                    {item.details}
-                                </motion.p>
-                            </motion.div>
-                        ))}
-                    </div>
-                </motion.div>
-            </motion.section>
-
-            {/* Enhanced footer */}
+                </motion.footer>
             <motion.footer 
                 className="border-t border-neutral-300 dark:border-neutral-800 bg-neutral-100/80 dark:bg-neutral-950 py-10 transition-colors duration-300"
                 variants={itemVariants}
@@ -886,7 +973,6 @@ function Landing({ auth }) {
                 </div>
             </motion.footer>
         </motion.div>
-        </ThemeProvider>
     );
 }
 
