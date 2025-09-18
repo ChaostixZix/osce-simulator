@@ -141,7 +141,7 @@ Key capabilities include:
 - **WorkOS login loops** – confirm callback URL matches `WORKOS_REDIRECT_URL` and `APP_URL`.
 - **Missing realtime updates** – check `php artisan reverb:start` output, confirm Reverb app credentials, and ensure `VITE_DEV_SERVER_URL` is set when accessing from non-localhost devices.
 - **Queue stalls** – verify Redis connectivity and that `queue:work` is running on the `assessments` queue; clear failed jobs with `php artisan queue:flush`.
-- **AI provider errors** – confirm `AI_PROVIDER` matches configured credentials; review `storage/logs/laravel.log` for provider-specific messages.
+- **AI provider errors** – confirm `AI_PROVIDER` matches configured credentials; review `storage/logs/laravel.log` for provider-specific messages. The `UniversalAIService` now includes detailed logging for Gemini chat failures, including HTTP errors, raw provider bodies, and safety blocks. Check for "Gemini chat"/"OpenAI Azure" messages to diagnose patient chat issues. To mitigate Gemini `MAX_TOKENS` fallbacks, patient chat now uses `maxOutputTokens=1024`.
 - **Cache/config drift** – clear caches after env changes:
   ```bash
   php artisan config:clear
