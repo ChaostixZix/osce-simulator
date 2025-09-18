@@ -12,6 +12,23 @@ Key capabilities include:
 - Post-session rationalization workflows and result review pages.
 - WorkOS-based authentication and multi-tenant friendly session management.
 
+## Documentation Strategy
+
+This project uses two primary documentation files to serve different needs:
+
+- **`documentation.md` (This File):** Serves as a **quick reference and setup guide**. Use this document for:
+    - Initial project setup and installation.
+    - Day-to-day development commands and workflows.
+    - A high-level overview of the architecture and key files.
+    - Troubleshooting common issues.
+
+- **`CONCEPT_DOCUMENTATION.md`:** Serves as a **comprehensive, deep-dive guide** to the application's architecture and core mechanisms. Use this document when you need to:
+    - Understand the detailed implementation of a specific feature (e.g., the AI assessment pipeline or session lifecycle).
+    - See code examples and database schema relationships.
+    - Gain a thorough understanding of the "why" behind architectural decisions.
+
+In short: use **this file** for *how* to work on the project, and use **`CONCEPT_DOCUMENTATION.md`** for *how the project works*.
+
 ## Architecture
 
 ### Backend (Laravel)
@@ -97,7 +114,8 @@ Key capabilities include:
 - `resources/js/components` – Shared UI pieces (mix of Vue + React) including design-system compliant elements.
 - `resources/js/layouts` – Layout wrappers and navigation shells.
 - `config/reverb.php`, `config/broadcasting.php` – Real-time server configuration.
-- `documentation.md` – This file; keep updated when architecture changes.
+- `CONCEPT_DOCUMENTATION.md` – The deep-dive guide to application architecture and mechanisms.
+- `documentation.md` – This file; the quick reference and setup guide.
 
 ## Development Workflow
 - **Full stack dev server** – orchestrated via Composer script:
