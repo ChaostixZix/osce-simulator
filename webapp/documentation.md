@@ -34,6 +34,15 @@ Key capabilities include:
 - **Realtime:** `php artisan reverb:start` hosts the WebSocket server; frontend connects with Laravel Echo and Pusher-compatible clients.
 - **Storage:** Local filesystem in development; configure S3-compatible storage via `.env` for production.
 
+### Technology Stack Summary
+*   **Backend:** Laravel 12
+*   **Frontend:** React with Inertia.js, Framer Motion for animations
+*   **UI Kit:** Vibe UI KIT
+*   **Styling:** Tailwind CSS
+*   **Database:** PostgreSQL (production), SQLite (development)
+*   **Real-time:** Laravel Reverb (WebSocket server)
+*   **Authentication:** WorkOS
+
 ## Setup
 
 ### Prerequisites
@@ -138,5 +147,37 @@ Key capabilities include:
   php artisan cache:clear
   php artisan route:clear
   ```
+
+## Frontend Animations & Landing Page Features
+
+The landing page of the application leverages **Framer Motion** to provide a rich and engaging user experience through various animations:
+
+*   **Staggered Children Animations:** Elements within sections animate in sequence, creating a dynamic and visually appealing entrance.
+*   **Hover Effects:** Interactive elements respond to user interaction with smooth hover animations, enhancing usability and visual feedback.
+*   **Continuous Subtle Animations:** Status indicators and decorative elements feature continuous, subtle animations to convey activity and add a polished feel to the interface.
+
+### Comprehensive Explanation Section
+
+The landing page now includes an exhaustive explanation section that provides detailed information about:
+
+*   **OSCE Methodology:** Complete explanation of Objective Structured Clinical Examination approach and benefits.
+*   **Key Features Deep Dive:** Detailed breakdown of Clinical Reasoning Engine, Interactive Patient Simulation, and Comprehensive Assessment capabilities.
+*   **Technology Stack:** Comprehensive overview of backend infrastructure (Laravel 12, PostgreSQL, Laravel Reverb, WorkOS) and frontend experience (React 19, Inertia.js, Framer Motion, Tailwind CSS).
+*   **Getting Started Guide:** Step-by-step instructions for account creation, case selection, and training initiation.
+*   **Animated Cards:** Interactive sections with smooth animations that explain complex features in an engaging, accessible format.
+
+## API Endpoints
+
+The application exposes several API endpoints for interacting with the OSCE features. These endpoints are defined in `routes/web.php`.
+
+*   `/api/osce/cases`: Get a list of OSCE cases.
+*   `/api/osce/sessions`: Get a list of user sessions.
+*   `/api/osce/sessions/start`: Start a new OSCE session.
+*   `/api/osce/sessions/{session}/assess`: Trigger an assessment for a session.
+*   `/api/osce/sessions/{session}/status`: Get the assessment status for a session.
+*   `/api/osce/sessions/{session}/results`: Get the assessment results for a session.
+*   `/api/osce/chat/message`: Send a message in the chat.
+
+## Maintenance Notes
 
 Keep this documentation current when adding features, adjusting infrastructure, or modifying developer workflows. When new knowledge is captured, update this file before initiating fresh Gemini CLI indexing to avoid redundant reprocessing.
