@@ -170,14 +170,15 @@ function Landing({ auth }) {
                             <div className="w-1 h-4 bg-emerald-500"></div>
                         </div>
                         <div className="flex gap-6">
-                            <a
-                                href="http://dev.bintangputra.my.id"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="hover:text-emerald-500 transition-colors duration-200 font-mono text-xs uppercase tracking-wider"
-                            >
-                                personal site
-                            </a>
+                            <Link href={route('contact')} className="hover:text-emerald-500 transition-colors duration-200 font-mono text-xs uppercase tracking-wider">
+                                contact
+                            </Link>
+                            <Link href={route('privacy-policy')} className="hover:text-emerald-500 transition-colors duration-200 font-mono text-xs uppercase tracking-wider">
+                                privacy
+                            </Link>
+                            <Link href={route('made-by')} className="hover:text-emerald-500 transition-colors duration-200 font-mono text-xs uppercase tracking-wider">
+                                made by
+                            </Link>
                             <a
                                 href="https://github.com/ChaostixZix"
                                 target="_blank"
