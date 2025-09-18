@@ -1,8 +1,12 @@
 import React from 'react';
+import { Link, usePage } from '@inertiajs/react';
 import Breadcrumbs from '@/components/react/Breadcrumbs';
 import ThemeToggle from '@/components/react/ThemeToggle';
 
 export default function AppLayout({ children, breadcrumbs = [] }) {
+    const { props } = usePage();
+    const user = props?.auth?.user;
+
     return (
         <div className="relative min-h-screen bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-200 flex flex-col transition-colors duration-300">
             {/* Simplified background */}
@@ -18,7 +22,7 @@ export default function AppLayout({ children, breadcrumbs = [] }) {
             {/* Header with enhanced gaming aesthetic */}
             <header className="relative border-b border-neutral-300 dark:border-neutral-800/80 bg-neutral-100/80 dark:bg-neutral-950/60 backdrop-blur supports-[backdrop-filter]:bg-neutral-100/40 supports-[backdrop-filter]:dark:bg-neutral-950/40 transition-colors duration-300">
                 <div className="max-w-7xl mx-auto px-4 py-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-6">
                         <div className="flex items-center gap-4">
                             {/* Simplified logo */}
                             <h1 className="text-2xl font-semibold text-emerald-600 dark:text-emerald-400">
@@ -32,8 +36,33 @@ export default function AppLayout({ children, breadcrumbs = [] }) {
                             </div>
                         </div>
 
-                        {/* Theme toggle */}
-                        <ThemeToggle />
+                        <div className="flex items-center gap-3">
+                            {user?.is_admin && (
+                                <nav className="flex items-center gap-2">
+                                    <Link
+                                        href={route('admin.osce-cases.index')}
+                                        className="clean-button px-3 py-1 text-sm"
+                                    >
+                                        OSCE Cases
+                                    </Link>
+                                    <Link
+                                        href={route('admin.osce-cases.create')}
+                                        className="clean-button primary px-3 py-1 text-sm"
+                                    >
+                                        New Case
+                                    </Link>
+                                    <Link
+                                        href={route('admin.users.index')}
+                                        className="clean-button px-3 py-1 text-sm"
+                                    >
+                                        Users
+                                    </Link>
+                                </nav>
+                            )}
+
+                            {/* Theme toggle */}
+                            <ThemeToggle />
+                        </div>
                     </div>
                 </div>
             </header>

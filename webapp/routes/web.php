@@ -4,6 +4,8 @@ use Laravel\WorkOS\Http\Middleware\ValidateSessionWithWorkOS;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\OsceAssessmentController;
+use App\Http\Controllers\Admin\AdminOsceCaseController;
+use App\Http\Controllers\Admin\AdminUserController;
 
 // use App\Http\Controllers\PatientController;
 // use App\Http\Controllers\OsceAssessmentController;
@@ -18,6 +20,7 @@ Route::get('/made-by', [LandingController::class, 'madeBy'])->name('made-by');
 
 Route::middleware([
     'auth',
+    'not-banned',
     ValidateSessionWithWorkOS::class,
 ])->group(function () {
 
@@ -77,6 +80,14 @@ Route::middleware([
 	Route::get('rationalization/{rationalization}/progress', [App\Http\Controllers\RationalizationController::class, 'progress'])->name('rationalization.progress');
 	Route::post('rationalization/{rationalization}/complete', [App\Http\Controllers\RationalizationController::class, 'complete'])->name('rationalization.complete');
 	
+	// Admin routes
+	Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
+		Route::resource('osce-cases', AdminOsceCaseController::class)->except(['show']);
+		Route::get('users', [AdminUserController::class, 'index'])->name('users.index');
+		Route::put('users/{user}/toggle-admin', [AdminUserController::class, 'toggleAdminStatus'])->name('users.toggle-admin');
+		Route::put('users/{user}/toggle-ban', [AdminUserController::class, 'toggleBanStatus'])->name('users.toggle-ban');
+	});
+
     // Removed MCQ, Forum, and SOAP routes
 
 });

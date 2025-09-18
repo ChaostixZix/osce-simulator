@@ -17,14 +17,14 @@ Key capabilities include:
 ### Backend (Laravel)
 - **Framework:** Laravel 12 with Inertia.js adapter (`inertiajs/inertia-laravel`).
 - **Domain layer:** Service classes in `app/Services` orchestrate AI providers, assessment queues, and result reduction (e.g. `AiPatientService`, `AiAssessorService`, `AssessmentQueueService`).
-- **Controllers:** HTTP endpoints live in `app/Http/Controllers`, including `OsceController`, `OsceChatController`, `OsceAssessmentController`, `RationalizationController`, and settings controllers.
+- **Controllers:** HTTP endpoints live in `app/Http/Controllers`, including `OsceController`, `OsceChatController`, `OsceAssessmentController`, `RationalizationController`, settings controllers, plus the admin namespace (`Admin\AdminOsceCaseController`, `Admin\AdminUserController`) for dashboard case/user management.
 - **Authentication:** WorkOS integration (`laravel/workos`) handles SSO/login flows.
 - **Messaging:** Laravel Reverb provides WebSocket broadcasting for chat and presence; Redis backs queues, cache, and sessions (`QUEUE_CONNECTION=redis`).
 - **AI Providers:** Gemini (default) and Azure OpenAI are configured through `UniversalAIService` / `GeminiService` with provider selection via the `AI_PROVIDER` env variable.
 
 ### Frontend (Inertia + React)
 - **Entry point:** `resources/js/app.jsx` boots the Inertia React app and resolves pages from `resources/js/pages`.
-- **UI kit:** Components leverage Vibe UI KIT primitives plus the custom gaming design system documented in `CLAUDE.md` / `DESIGN_SYSTEM.md` (cyber borders, gradient cards, etc.).
+- **UI kit:** Components leverage Vibe UI KIT primitives alongside the minimal design system (clean cards, theme-aware colors, typography hierarchy) documented in `CLAUDE.md` / `DESIGN_SYSTEM.md`.
 - **State & hooks:** Shared contexts and hooks reside under `resources/js/contexts`, `resources/js/hooks`, and `resources/js/lib`.
 - **Legacy Vue:** Existing Vue components remain under `resources/js/components` and related folders; keep them stable until migrated to React.
 
@@ -91,7 +91,8 @@ Key capabilities include:
 ## Key Directories & Files
 - `app/Models` – Eloquent models for users, OSCE entities (cases, sessions, messages, ordered tests, rationalizations).
 - `app/Services` – AI orchestration, assessment queue management, and result reducers.
-- `app/Http/Controllers` – Entry points for dashboard, OSCE session flow, chat, assessments, rationalizations, and settings.
+- `app/Http/Controllers` – Entry points for dashboard, OSCE session flow, chat, assessments, rationalizations, settings, and admin management (case & user controllers).
+- `app/Http/Middleware` – Shared middleware such as appearance handling, Inertia sharing, admin gatekeeping, and the ban guard.
 - `routes/web.php` – Inertia routes for landing, dashboard, OSCE flows, and settings sections.
 - `resources/js/pages` – React Inertia pages (Dashboard, OSCE session, chat, rationalization, settings).
 - `resources/js/components` – Shared UI pieces (mix of Vue + React) including design-system compliant elements.
