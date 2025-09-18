@@ -28,6 +28,10 @@ Key capabilities include:
 - **State & hooks:** Shared contexts and hooks reside under `resources/js/contexts`, `resources/js/hooks`, and `resources/js/lib`.
 - **Legacy Vue:** Existing Vue components remain under `resources/js/components` and related folders; keep them stable until migrated to React.
 
+#### Styling Refresh
+- `clean-card` now layers a subtle backdrop blur and twin highlight shells to give cards more depth while staying minimal.
+- `clean-button` adds an ambient highlight overlay and refined shadows for clearer interaction feedback.
+
 ### Data & Infrastructure
 - **Database:** PostgreSQL in production (SQLite supported locally). Migrations live in `database/migrations`.
 - **Queues & cache:** Redis via Predis powers queues, sessions, and cache layers.
