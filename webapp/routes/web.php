@@ -11,6 +11,10 @@ use App\Http\Controllers\OsceRationalizationController;
 
 
 Route::get('/', [LandingController::class, 'index'])->name('home');
+Route::get('/privacy-policy', [LandingController::class, 'privacyPolicy'])->name('privacy-policy');
+Route::get('/contact', [LandingController::class, 'contact'])->name('contact');
+Route::post('/contact', [LandingController::class, 'submitContact'])->name('contact.submit');
+Route::get('/made-by', [LandingController::class, 'madeBy'])->name('made-by');
 
 Route::middleware([
     'auth',
