@@ -83,7 +83,7 @@ class OsceSessionFactory extends Factory
                 'score' => rand(60, 100),
                 'max_score' => 100,
                 'assessed_at' => now()->subMinutes(rand(1, 30)),
-                'assessor_model' => 'gemini-2.5-flash',
+                'assessor_model' => 'gemini-1.5-flash',
                 'assessor_output' => [
                     'assessment_type' => 'test_assessment',
                     'total_score' => rand(60, 100),
