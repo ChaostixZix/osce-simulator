@@ -170,7 +170,7 @@
     }
     body {
         @apply bg-background text-foreground;
-        font-size: 16px;
+        font-size: 18px;
         line-height: 1.7;
     }
     
@@ -235,19 +235,17 @@
     color: hsl(var(--muted-foreground));
 }
 
-/* Gaming design system classes - cyber aesthetic */
+/* Simplified design system classes */
 .cyber-border {
     border: 1px solid hsl(var(--border));
     border-radius: var(--radius);
     background: hsl(var(--card));
     transition: all 0.2s ease;
-    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
 }
 
 .cyber-border:hover {
     border-color: hsl(var(--border) / 0.8);
     box-shadow: 0 4px 12px -4px hsl(var(--foreground) / 0.1);
-    transform: translateY(-2px);
 }
 
 .cyber-button {
@@ -257,15 +255,11 @@
     color: hsl(var(--foreground));
     transition: all 0.2s ease;
     font-weight: 500;
-    clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
-    position: relative;
-    overflow: hidden;
 }
 
 .cyber-button:hover {
     background: hsl(var(--accent));
     border-color: hsl(var(--border) / 0.8);
-    transform: translateY(-1px);
 }
 
 .cyber-button:active {
@@ -273,30 +267,12 @@
 }
 
 .cyber-button.primary {
-    background: linear-gradient(135deg, #10b981, #06b6d4);
-    color: white;
-    border-color: #10b981;
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    border-color: hsl(var(--primary));
 }
 
 .cyber-button.primary:hover {
-    background: linear-gradient(135deg, #059669, #0891b2);
-    border-color: #059669;
-}
-
-.glow-text {
-    color: hsl(var(--foreground));
-    font-weight: 600;
-    line-height: 1.4;
-    text-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
-    background: linear-gradient(135deg, #10b981, #06b6d4, #8b5cf6);
-    background-size: 200% 200%;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: glow-shift 3s ease-in-out infinite;
-}
-
-@keyframes glow-shift {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
+    background: hsl(var(--primary) / 0.9);
+    border-color: hsl(var(--primary) / 0.9);
 }
