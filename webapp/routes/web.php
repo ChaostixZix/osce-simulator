@@ -27,6 +27,56 @@ Route::middleware([
 	Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 	
 	Route::get('osce', [App\Http\Controllers\OsceController::class, 'index'])->name('osce');
+
+	// Onboarding routes
+	Route::get('osce/onboarding/{caseId}', [App\Http\Controllers\OnboardingController::class, 'show'])->name('onboarding.show');
+	Route::post('osce/onboarding/{caseId}/complete', [App\Http\Controllers\OnboardingController::class, 'complete'])->name('onboarding.complete');
+	Route::post('osce/onboarding/{caseId}/skip', [App\Http\Controllers\OnboardingController::class, 'skip'])->name('onboarding.skip');
+	Route::post('osce/onboarding/{caseId}/practice-chat', [App\Http\Controllers\OnboardingController::class, 'practiceChat'])->name('onboarding.practice-chat');
+
+	// Patient Visualizer routes
+	Route::get('osce/visualizer/{caseId?}', [App\Http\Controllers\PatientVisualizerController::class, 'show'])->name('visualizer.show');
+	Route::post('api/visualizer/generate', [App\Http\Controllers\PatientVisualizerController::class, 'generate'])->name('visualizer.generate');
+	Route::post('api/visualizer/generate-common/{promptKey}', [App\Http\Controllers\PatientVisualizerController::class, 'generateFromCommon'])->name('visualizer.generate-common');
+	Route::get('api/visualizer/gallery', [App\Http\Controllers\PatientVisualizerController::class, 'gallery'])->name('visualizer.gallery');
+	Route::delete('api/visualizer/{visualizationId}', [App\Http\Controllers\PatientVisualizerController::class, 'delete'])->name('visualizer.delete');
+
+	// Case Primer routes
+	Route::get('api/case-primer/{caseId}', [App\Http\Controllers\CasePrimerController::class, 'show'])->name('case-primer.show');
+	Route::get('api/case-primer/{caseId}/quick', [App\Http\Controllers\CasePrimerController::class, 'quick'])->name('case-primer.quick');
+	Route::get('api/case-primer/{caseId}/complexity', [App\Http\Controllers\CasePrimerController::class, 'complexity'])->name('case-primer.complexity');
+	Route::post('api/case-primer/compare', [App\Http\Controllers\CasePrimerController::class, 'compare'])->name('case-primer.compare');
+
+	// Microskills Coach routes
+	Route::get('api/microskills/{sessionId}/status', [App\Http\Controllers\MicroskillsCoachController::class, 'status'])->name('microskills.status');
+	Route::get('api/microskills/{sessionId}/analyze', [App\Http\Controllers\MicroskillsCoachController::class, 'analyze'])->name('microskills.analyze');
+	Route::get('api/microskills/{sessionId}/quiz', [App\Http\Controllers\MicroskillsCoachController::class, 'quiz'])->name('microskills.quiz');
+	Route::post('api/microskills/{sessionId}/quiz-answer', [App\Http\Controllers\MicroskillsCoachController::class, 'submitQuizAnswer'])->name('microskills.submit-quiz');
+	Route::post('api/microskills/{sessionId}/interventions/{interventionId}/displayed', [App\Http\Controllers\MicroskillsCoachController::class, 'markDisplayed'])->name('microskills.mark-displayed');
+	Route::post('api/microskills/{sessionId}/interventions/{interventionId}/respond', [App\Http\Controllers\MicroskillsCoachController::class, 'respond'])->name('microskills.respond');
+	Route::get('api/microskills/{sessionId}/history', [App\Http\Controllers\MicroskillsCoachController::class, 'history'])->name('microskills.history');
+	Route::get('api/microskills/preferences', [App\Http\Controllers\MicroskillsCoachController::class, 'getPreferences'])->name('microskills.preferences');
+	Route::post('api/microskills/preferences', [App\Http\Controllers\MicroskillsCoachController::class, 'updatePreferences'])->name('microskills.update-preferences');
+
+	// Replay Studio routes
+	Route::get('osce/replay/{sessionId}', [App\Http\Controllers\ReplayStudioController::class, 'show'])->name('replay.show');
+	Route::post('api/replay/{sessionId}/generate', [App\Http\Controllers\ReplayStudioController::class, 'generate'])->name('replay.generate');
+	Route::get('api/replay/{sessionId}', [App\Http\Controllers\ReplayStudioController::class, 'get'])->name('replay.get');
+	Route::post('api/replay/{sessionId}/feedback', [App\Http\Controllers\ReplayStudioController::class, 'feedback'])->name('replay.feedback');
+	Route::get('api/replay/{sessionId}/stats', [App\Http\Controllers\ReplayStudioController::class, 'stats'])->name('replay.stats');
+	Route::post('api/replay/{sessionId}/export', [App\Http\Controllers\ReplayStudioController::class, 'export'])->name('replay.export');
+	Route::delete('api/replay/{sessionId}', [App\Http\Controllers\ReplayStudioController::class, 'delete'])->name('replay.delete');
+
+	// Longitudinal Growth routes
+	Route::get('growth', [App\Http\Controllers\GrowthController::class, 'dashboard'])->name('growth.dashboard');
+	Route::get('growth/cards', [App\Http\Controllers\GrowthController::class, 'cards'])->name('growth.cards');
+	Route::get('growth/milestones', [App\Http\Controllers\GrowthController::class, 'milestones'])->name('growth.milestones');
+	Route::get('growth/analytics', [App\Http\Controllers\GrowthController::class, 'analytics'])->name('growth.analytics');
+	Route::get('growth/cards/{card}/review', [App\Http\Controllers\GrowthController::class, 'reviewCard'])->name('growth.card.review');
+	Route::post('growth/cards/{card}/review', [App\Http\Controllers\GrowthController::class, 'submitCardReview'])->name('growth.card.review.submit');
+	Route::get('growth/refresher/{refresher}', [App\Http\Controllers\GrowthController::class, 'showRefresher'])->name('growth.refresher.show');
+	Route::post('growth/refresher/{refresher}', [App\Http\Controllers\GrowthController::class, 'submitRefresher'])->name('growth.refresher.submit');
+
 	Route::post('osce/sessions/start', [App\Http\Controllers\OsceController::class, 'startSessionInertia'])->name('osce.sessions.start');
 	Route::get('osce/chat/{session}', [App\Http\Controllers\OsceController::class, 'showChat'])->name('osce.chat');
 	Route::get('api/osce/cases', [App\Http\Controllers\OsceController::class, 'getCases']);

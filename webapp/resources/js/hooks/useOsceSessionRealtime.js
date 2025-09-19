@@ -1,51 +1,66 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useToast } from '../Components/Notifications/ToastContainer';
 
-// Initialize Echo only if broadcast is configured
-let Echo = null;
+export function useOsceSessionRealtime(sessionId) {
+  const { toast } = useToast();
+  const channelRef = useRef(null);
+  const echoRef = useRef(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-try {
-  // Check if broadcasting is configured (not 'log' driver)
-  if (window?.Laravel?.broadcasting?.driver && window.Laravel.broadcasting.driver !== 'log') {
-    import('laravel-echo')
-      .then((module) => {
-        const LaravelEcho = module.default;
-        
-        // Import Pusher if needed
+  useEffect(() => {
+    // Skip if no session ID
+    if (!sessionId) {
+      return;
+    }
+
+    // Initialize Echo if not already done
+    const initializeEcho = async () => {
+      // Check if broadcasting is configured (not 'log' driver)
+      if (!window?.Laravel?.broadcasting?.driver || window.Laravel.broadcasting.driver === 'log') {
+        console.log('Broadcasting not configured or using log driver, skipping Echo initialization');
+        return;
+      }
+
+      // Skip if already initialized
+      if (echoRef.current) {
+        return;
+      }
+
+      try {
+        const LaravelEcho = (await import('laravel-echo')).default;
+
         if (window.Laravel.broadcasting.driver === 'pusher') {
-          import('pusher-js').then((PusherModule) => {
-            const Pusher = PusherModule.default;
-            
-            Echo = new LaravelEcho({
-              broadcaster: 'pusher',
-              key: window.Laravel.broadcasting.key,
-              cluster: window.Laravel.broadcasting.cluster,
-              forceTLS: true,
-              authorizer: (channel, options) => {
-                return {
-                  authorize: (socketId, callback) => {
-                    fetch('/broadcasting/auth', {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-                      },
-                      credentials: 'same-origin',
-                      body: JSON.stringify({
-                        socket_id: socketId,
-                        channel_name: channel.name,
-                      })
+          const Pusher = (await import('pusher-js')).default;
+
+          echoRef.current = new LaravelEcho({
+            broadcaster: 'pusher',
+            key: window.Laravel.broadcasting.key,
+            cluster: window.Laravel.broadcasting.cluster,
+            forceTLS: true,
+            authorizer: (channel, options) => {
+              return {
+                authorize: (socketId, callback) => {
+                  fetch('/broadcasting/auth', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                      socket_id: socketId,
+                      channel_name: channel.name,
                     })
-                    .then(response => response.json())
-                    .then(data => callback(null, data))
-                    .catch(error => callback(error, null));
-                  }
-                };
-              }
-            });
+                  })
+                  .then(response => response.json())
+                  .then(data => callback(null, data))
+                  .catch(error => callback(error, null));
+                }
+              };
+            }
           });
         } else if (window.Laravel.broadcasting.driver === 'reverb') {
-          Echo = new LaravelEcho({
+          echoRef.current = new LaravelEcho({
             broadcaster: 'reverb',
             key: window.Laravel.broadcasting.key,
             wsHost: window.Laravel.broadcasting.wsHost,
@@ -76,31 +91,30 @@ try {
             }
           });
         }
-      });
-  }
-} catch (error) {
-  console.warn('Laravel Echo initialization failed:', error);
-}
 
-export function useOsceSessionRealtime(sessionId) {
-  const { toast } = useToast();
-  const channelRef = useRef(null);
-  const listenerAttachedRef = useRef(false);
+        setIsInitialized(true);
+      } catch (error) {
+        console.warn('Laravel Echo initialization failed:', error);
+      }
+    };
+
+    initializeEcho();
+  }, []);
 
   useEffect(() => {
-    // Skip if no Echo instance or no session ID
-    if (!Echo || !sessionId) {
+    // Skip if not initialized or no session ID
+    if (!isInitialized || !echoRef.current || !sessionId) {
       return;
     }
 
     // Prevent duplicate subscriptions
-    if (channelRef.current || listenerAttachedRef.current) {
+    if (channelRef.current) {
       return;
     }
 
     try {
       // Subscribe to the private channel
-      const channel = Echo.private(`osce.sessions.${sessionId}`);
+      const channel = echoRef.current.private(`osce.sessions.${sessionId}`);
       channelRef.current = channel;
 
       // Listen for test ready notifications
@@ -113,8 +127,6 @@ export function useOsceSessionRealtime(sessionId) {
         });
       });
 
-      listenerAttachedRef.current = true;
-
       console.log(`Subscribed to OSCE session ${sessionId} realtime notifications`);
 
     } catch (error) {
@@ -123,24 +135,24 @@ export function useOsceSessionRealtime(sessionId) {
 
     // Cleanup function
     return () => {
-      if (channelRef.current) {
+      if (channelRef.current && echoRef.current) {
         try {
           channelRef.current.stopListening('TestOrderReady');
-          Echo.leave(`osce.sessions.${sessionId}`);
+          echoRef.current.leave(`osce.sessions.${sessionId}`);
           console.log(`Unsubscribed from OSCE session ${sessionId} realtime notifications`);
         } catch (error) {
           console.warn('Error during realtime cleanup:', error);
         }
-        
+
         channelRef.current = null;
-        listenerAttachedRef.current = false;
       }
     };
-  }, [sessionId, toast]);
+  }, [sessionId, toast, isInitialized]);
 
   // Return connection status for debugging
   return {
     isConnected: !!channelRef.current,
-    hasEcho: !!Echo
+    hasEcho: !!echoRef.current,
+    isInitialized
   };
 }

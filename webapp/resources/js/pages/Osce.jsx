@@ -9,9 +9,8 @@ export default function Osce({ cases = [], userSessions = [], user }) {
 
   const startSession = (osce_case_id) => {
     setStartingId(osce_case_id);
-    // Use Ziggy-named route to avoid hard-coded paths
-    router.post(route('osce.sessions.start'), { osce_case_id }, {
-      preserveScroll: true,
+    // Redirect to onboarding first
+    router.visit(route('onboarding.show', osce_case_id), {
       onFinish: () => setStartingId(null),
     });
   };
