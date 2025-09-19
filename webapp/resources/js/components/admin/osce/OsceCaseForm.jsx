@@ -14,6 +14,8 @@ const urgencyLevels = [
     { label: '5 · Critical', value: 5 },
 ];
 
+const fieldClass = 'w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground';
+
 export default function OsceCaseForm({
     form,
     title,
@@ -35,6 +37,16 @@ export default function OsceCaseForm({
 
     const [generatorNotice, setGeneratorNotice] = React.useState(null);
     const fileInputRef = React.useRef(null);
+    const hasAppliedFlash = React.useRef(false);
+
+    const clearGeneratorForm = React.useCallback(() => {
+        generatorForm.setData('sources', []);
+        generatorForm.setData('instructions', '');
+        generatorForm.clearErrors();
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    }, [generatorForm]);
 
     const handleGeneratedPayload = React.useCallback(
         (payload) => {
@@ -53,16 +65,14 @@ export default function OsceCaseForm({
     );
 
     React.useEffect(() => {
-        if (generatedCase) {
+        if (generatedCase && !hasAppliedFlash.current) {
             handleGeneratedPayload(generatedCase);
-            generatorForm.setData('sources', []);
-            generatorForm.setData('instructions', '');
-            generatorForm.clearErrors();
-            if (fileInputRef.current) {
-                fileInputRef.current.value = '';
-            }
+            clearGeneratorForm();
+            hasAppliedFlash.current = true;
+        } else if (!generatedCase) {
+            hasAppliedFlash.current = false;
         }
-    }, [generatedCase, handleGeneratedPayload, generatorForm]);
+    }, [generatedCase, handleGeneratedPayload, clearGeneratorForm]);
 
     const handleSubmit = (event) => {
         event.preventDefault();
@@ -74,8 +84,9 @@ export default function OsceCaseForm({
     const handleGeneratorSubmit = (event) => {
         event.preventDefault();
         setGeneratorNotice(null);
+        generatorForm.clearErrors();
 
-        generatorForm.transform((formData) => {
+        generatorForm.transform(() => {
             const payload = new FormData();
             generatorForm.data.sources.forEach((file) => {
                 payload.append('sources[]', file);
@@ -91,10 +102,29 @@ export default function OsceCaseForm({
         generatorForm.post(route('admin.osce-cases.generate'), {
             forceFormData: true,
             preserveScroll: true,
+            preserveState: true,
+            onSuccess: (page) => {
+                const payload = page?.props?.flash?.generated_case;
+
+                if (payload) {
+                    hasAppliedFlash.current = true;
+                    handleGeneratedPayload(payload);
+                    clearGeneratorForm();
+                } else {
+                    setGeneratorNotice(
+                        'No generated content was returned. Please review your uploads and try again.'
+                    );
+                }
+            },
             onError: () => {
+                setGeneratorNotice(null);
+                generatorForm.setData('sources', []);
                 if (fileInputRef.current) {
                     fileInputRef.current.value = '';
                 }
+            },
+            onFinish: () => {
+                generatorForm.transform((data) => data);
             },
         });
     };
@@ -146,7 +176,7 @@ export default function OsceCaseForm({
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="text-center space-y-2">
+            <div className="text-center space-y-2 mb-8">
                 <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
                 <p className="text-muted-foreground">{description}</p>
             </div>
@@ -154,8 +184,8 @@ export default function OsceCaseForm({
             <SectionNav sections={sections} />
 
             <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr),minmax(0,1fr)]">
-                <div className="space-y-6">
-                    <section id="overview" className="clean-card bg-card p-6 space-y-5">
+                <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                    <section id="overview" className="clean-card bg-card p-6 space-y-4 xl:col-span-2">
                         <header className="border-b border-border pb-3">
                             <h2 className="text-lg font-medium text-foreground">Case Overview</h2>
                             <p className="text-sm text-muted-foreground">
@@ -163,7 +193,7 @@ export default function OsceCaseForm({
                             </p>
                         </header>
 
-                        <div className="grid gap-4 md:grid-cols-2">
+                        <div className="grid gap-3 md:grid-cols-2">
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-foreground" htmlFor="osce-title">
                                     Title
@@ -174,7 +204,7 @@ export default function OsceCaseForm({
                                     value={data.title}
                                     onChange={(event) => setData('title', event.target.value)}
                                     required
-                                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground"
+                                    className={fieldClass}
                                 />
                                 {errors.title && <p className="text-sm text-red-500">{errors.title}</p>}
                             </div>
@@ -187,7 +217,7 @@ export default function OsceCaseForm({
                                     id="osce-difficulty"
                                     value={data.difficulty}
                                     onChange={(event) => setData('difficulty', event.target.value)}
-                                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground"
+                                    className={fieldClass}
                                 >
                                     <option value="easy">Easy</option>
                                     <option value="medium">Medium</option>
@@ -197,7 +227,7 @@ export default function OsceCaseForm({
                             </div>
                         </div>
 
-                        <div className="grid gap-4 md:grid-cols-2">
+                        <div className="grid gap-3 md:grid-cols-2">
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-foreground" htmlFor="osce-duration">
                                     Duration (minutes)
@@ -209,7 +239,7 @@ export default function OsceCaseForm({
                                     max={480}
                                     value={data.duration_minutes}
                                     onChange={(event) => handleNumberChange('duration_minutes', event)}
-                                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground"
+                                    className={fieldClass}
                                 />
                                 {errors.duration_minutes && (
                                     <p className="text-sm text-red-500">{errors.duration_minutes}</p>
@@ -240,17 +270,17 @@ export default function OsceCaseForm({
                             <label className="text-sm font-medium text-foreground" htmlFor="osce-description">
                                 Description
                             </label>
-                            <textarea
-                                id="osce-description"
-                                value={data.description}
-                                onChange={(event) => setData('description', event.target.value)}
-                                rows={3}
-                                className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground"
-                            />
+                                <textarea
+                                    id="osce-description"
+                                    value={data.description}
+                                    onChange={(event) => setData('description', event.target.value)}
+                                    rows={3}
+                                    className={fieldClass}
+                                />
                             {errors.description && <p className="text-sm text-red-500">{errors.description}</p>}
                         </div>
 
-                        <div className="grid gap-4 md:grid-cols-2">
+                        <div className="grid gap-3 md:grid-cols-2">
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-foreground" htmlFor="osce-scenario">
                                     Scenario Overview
@@ -260,7 +290,7 @@ export default function OsceCaseForm({
                                     value={data.scenario}
                                     onChange={(event) => setData('scenario', event.target.value)}
                                     rows={4}
-                                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground"
+                                    className={fieldClass}
                                 />
                                 {errors.scenario && <p className="text-sm text-red-500">{errors.scenario}</p>}
                             </div>
@@ -273,14 +303,14 @@ export default function OsceCaseForm({
                                     value={data.objectives}
                                     onChange={(event) => setData('objectives', event.target.value)}
                                     rows={4}
-                                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground"
+                                    className={fieldClass}
                                 />
                                 {errors.objectives && <p className="text-sm text-red-500">{errors.objectives}</p>}
                             </div>
                         </div>
                     </section>
 
-                    <section id="stations" className="clean-card bg-card p-6 space-y-5">
+                    <section id="stations" className="clean-card bg-card p-6 space-y-4 xl:col-span-1">
                         <header className="border-b border-border pb-3">
                             <h2 className="text-lg font-medium text-foreground">Stations & Checklist</h2>
                             <p className="text-sm text-muted-foreground">
@@ -309,7 +339,7 @@ export default function OsceCaseForm({
                         </div>
                     </section>
 
-                    <section id="persona" className="clean-card bg-card p-6 space-y-5">
+                    <section id="persona" className="clean-card bg-card p-6 space-y-4 xl:col-span-1">
                         <header className="border-b border-border pb-3">
                             <h2 className="text-lg font-medium text-foreground">Patient Persona</h2>
                             <p className="text-sm text-muted-foreground">Craft the character and clinical presentation for the AI patient.</p>
@@ -325,7 +355,7 @@ export default function OsceCaseForm({
                                     value={data.ai_patient_profile}
                                     onChange={(event) => setData('ai_patient_profile', event.target.value)}
                                     rows={3}
-                                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground"
+                                    className={fieldClass}
                                 />
                                 {errors.ai_patient_profile && (
                                     <p className="text-sm text-red-500">{errors.ai_patient_profile}</p>
@@ -341,7 +371,7 @@ export default function OsceCaseForm({
                                     value={data.ai_patient_instructions}
                                     onChange={(event) => setData('ai_patient_instructions', event.target.value)}
                                     rows={3}
-                                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground"
+                                    className={fieldClass}
                                 />
                                 {errors.ai_patient_instructions && (
                                     <p className="text-sm text-red-500">{errors.ai_patient_instructions}</p>
@@ -379,7 +409,7 @@ export default function OsceCaseForm({
                         />
                     </section>
 
-                    <section id="reasoning" className="clean-card bg-card p-6 space-y-5">
+                    <section id="reasoning" className="clean-card bg-card p-6 space-y-4 xl:col-span-2">
                         <header className="border-b border-border pb-3">
                             <h2 className="text-lg font-medium text-foreground">Clinical Reasoning</h2>
                             <p className="text-sm text-muted-foreground">
@@ -462,7 +492,7 @@ export default function OsceCaseForm({
                         </div>
                     </section>
 
-                    <section id="setting" className="clean-card bg-card p-6 space-y-5">
+                    <section id="setting" className="clean-card bg-card p-6 space-y-4 xl:col-span-2">
                         <header className="border-b border-border pb-3">
                             <h2 className="text-lg font-medium text-foreground">Setting & Results</h2>
                             <p className="text-sm text-muted-foreground">
@@ -480,7 +510,7 @@ export default function OsceCaseForm({
                                     type="text"
                                     value={data.clinical_setting}
                                     onChange={(event) => setData('clinical_setting', event.target.value)}
-                                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground"
+                                    className={fieldClass}
                                     placeholder="e.g. Emergency department"
                                 />
                                 {errors.clinical_setting && (
@@ -496,7 +526,7 @@ export default function OsceCaseForm({
                                     id="osce-urgency"
                                     value={data.urgency_level ?? 3}
                                     onChange={(event) => handleNumberChange('urgency_level', event)}
-                                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground"
+                                    className={fieldClass}
                                 >
                                     {urgencyLevels.map((item) => (
                                         <option key={item.value} value={item.value}>
@@ -539,7 +569,7 @@ export default function OsceCaseForm({
                                         }
                                         setData('case_budget', Number(raw));
                                     }}
-                                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground"
+                                    className={fieldClass}
                                 />
                                 {errors.case_budget && <p className="text-sm text-red-500">{errors.case_budget}</p>}
                             </div>
@@ -610,7 +640,7 @@ export default function OsceCaseForm({
                                     rows={3}
                                     value={generatorForm.data.instructions}
                                     onChange={(event) => generatorForm.setData('instructions', event.target.value)}
-                                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground"
+                                    className={fieldClass}
                                     placeholder="Highlight specific learning goals, patient persona, or scoring focus."
                                 />
                                 {generatorForm.errors.instructions && (

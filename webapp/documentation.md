@@ -31,6 +31,7 @@ Key capabilities include:
 ### Frontend (Inertia + React)
 - **Entry point:** `resources/js/app.jsx` boots the Inertia React app and resolves pages from `resources/js/pages`.
 - **UI kit:** Components leverage Vibe UI KIT primitives alongside the minimal design system (clean cards, theme-aware colors, typography hierarchy) documented in `CLAUDE.md` / `DESIGN_SYSTEM.md`.
+- **Admin OSCE form:** `resources/js/components/admin/osce/OsceCaseForm.jsx` presents a compact two-column grid on xl breakpoints, leans on `text-sm` inputs for density, and auto-populates fields from the PDF generator using Inertia flash payloads.
 - **State & hooks:** Shared contexts and hooks reside under `resources/js/contexts`, `resources/js/hooks`, and `resources/js/lib`.
 - **Legacy Vue:** Existing Vue components remain under `resources/js/components` and related folders; keep them stable until migrated to React.
 

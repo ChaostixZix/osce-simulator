@@ -77,7 +77,7 @@ export default function KeyValueField({
     };
 
     return (
-        <div className="space-y-3">
+        <div className="space-y-2">
             <div>
                 <label className="text-sm font-medium text-foreground" htmlFor={id}>
                     {label}
@@ -85,7 +85,7 @@ export default function KeyValueField({
                 {helper && <p className="text-sm text-muted-foreground">{helper}</p>}
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
                 {rows.map((row, index) => (
                     <div key={row.id} className="grid gap-2 sm:grid-cols-[1fr_auto_1fr_auto]">
                         <input
@@ -94,7 +94,7 @@ export default function KeyValueField({
                             value={row.key}
                             placeholder={keyPlaceholder}
                             onChange={(event) => handleChange(index, 'key', event.target.value)}
-                            className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground"
+                            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
                         />
                         <span className="hidden sm:block self-center text-sm text-muted-foreground">→</span>
                         <input
@@ -102,7 +102,7 @@ export default function KeyValueField({
                             value={row.value}
                             placeholder={valuePlaceholder}
                             onChange={(event) => handleChange(index, 'value', event.target.value)}
-                            className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground"
+                            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
                         />
                         <button
                             type="button"
