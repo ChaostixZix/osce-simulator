@@ -132,6 +132,7 @@ Route::middleware([
 	
 	// Admin routes
 	Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
+		Route::post('osce-cases/generate', [AdminOsceCaseController::class, 'generate'])->name('osce-cases.generate');
 		Route::resource('osce-cases', AdminOsceCaseController::class)->except(['show']);
 		Route::get('users', [AdminUserController::class, 'index'])->name('users.index');
 		Route::put('users/{user}/toggle-admin', [AdminUserController::class, 'toggleAdminStatus'])->name('users.toggle-admin');

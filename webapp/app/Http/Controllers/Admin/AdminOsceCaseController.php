@@ -4,10 +4,15 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\OsceCase;
+use App\Http\Requests\Admin\GenerateOsceCaseRequest;
+use App\Services\OsceCaseGeneratorService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use RuntimeException;
+use stdClass;
 
 class AdminOsceCaseController extends Controller
 {
@@ -32,6 +37,27 @@ class AdminOsceCaseController extends Controller
                 'scenario' => '',
                 'objectives' => '',
                 'is_active' => true,
+                'stations' => [],
+                'checklist' => [],
+                'ai_patient_profile' => '',
+                'ai_patient_instructions' => '',
+                'ai_patient_vitals' => new stdClass(),
+                'ai_patient_symptoms' => [],
+                'ai_patient_responses' => new stdClass(),
+                'expected_anamnesis_questions' => [],
+                'red_flags' => [],
+                'common_differentials' => [],
+                'highly_appropriate_tests' => [],
+                'appropriate_tests' => [],
+                'acceptable_tests' => [],
+                'inappropriate_tests' => [],
+                'contraindicated_tests' => [],
+                'required_tests' => [],
+                'clinical_setting' => '',
+                'urgency_level' => 3,
+                'setting_limitations' => new stdClass(),
+                'case_budget' => null,
+                'test_results_templates' => new stdClass(),
             ],
         ]);
     }
@@ -45,6 +71,34 @@ class AdminOsceCaseController extends Controller
         return redirect()
             ->route('admin.osce-cases.index')
             ->with('success', 'OSCE case created.');
+    }
+
+    public function generate(GenerateOsceCaseRequest $request, OsceCaseGeneratorService $generator)
+    {
+        try {
+            $data = $generator->generateFromUploads(
+                $request->file('sources', []),
+                $request->filled('instructions') ? (string) $request->input('instructions') : null
+            );
+        } catch (RuntimeException $exception) {
+            if ($request->header('X-Inertia')) {
+                return redirect()->back()->withErrors([
+                    'generator' => $exception->getMessage(),
+                ]);
+            }
+
+            return response()->json([
+                'message' => $exception->getMessage(),
+            ], 422);
+        }
+
+        if ($request->header('X-Inertia')) {
+            return redirect()->back()->with('generated_case', $data);
+        }
+
+        return response()->json([
+            'data' => $data,
+        ]);
     }
 
     public function edit(OsceCase $osceCase): Response
@@ -97,8 +151,8 @@ class AdminOsceCaseController extends Controller
             'inappropriate_tests' => ['nullable', 'array'],
             'contraindicated_tests' => ['nullable', 'array'],
             'required_tests' => ['nullable', 'array'],
-            'clinical_setting' => ['nullable', 'string'],
-            'urgency_level' => ['nullable', 'string'],
+            'clinical_setting' => ['nullable', 'string', 'max:255'],
+            'urgency_level' => ['nullable', 'integer', 'min:1', 'max:5'],
             'setting_limitations' => ['nullable', 'array'],
             'case_budget' => ['nullable', 'numeric'],
             'test_results_templates' => ['nullable', 'array'],
@@ -109,6 +163,70 @@ class AdminOsceCaseController extends Controller
 
         $validated['is_active'] = $request->boolean('is_active', true);
 
+        $validated['stations'] = $this->sanitizeStringArray($validated['stations'] ?? []);
+        $validated['checklist'] = $this->sanitizeStringArray($validated['checklist'] ?? []);
+        $validated['ai_patient_symptoms'] = $this->sanitizeStringArray($validated['ai_patient_symptoms'] ?? []);
+        $validated['expected_anamnesis_questions'] = $this->sanitizeStringArray($validated['expected_anamnesis_questions'] ?? []);
+        $validated['red_flags'] = $this->sanitizeStringArray($validated['red_flags'] ?? []);
+        $validated['common_differentials'] = $this->sanitizeStringArray($validated['common_differentials'] ?? []);
+        $validated['highly_appropriate_tests'] = $this->sanitizeStringArray($validated['highly_appropriate_tests'] ?? []);
+        $validated['appropriate_tests'] = $this->sanitizeStringArray($validated['appropriate_tests'] ?? []);
+        $validated['acceptable_tests'] = $this->sanitizeStringArray($validated['acceptable_tests'] ?? []);
+        $validated['inappropriate_tests'] = $this->sanitizeStringArray($validated['inappropriate_tests'] ?? []);
+        $validated['contraindicated_tests'] = $this->sanitizeStringArray($validated['contraindicated_tests'] ?? []);
+        $validated['required_tests'] = $this->sanitizeStringArray($validated['required_tests'] ?? []);
+
+        $validated['ai_patient_vitals'] = $this->sanitizeAssociativeArray($validated['ai_patient_vitals'] ?? []);
+        $validated['ai_patient_responses'] = $this->sanitizeAssociativeArray($validated['ai_patient_responses'] ?? []);
+        $validated['setting_limitations'] = $this->sanitizeAssociativeArray($validated['setting_limitations'] ?? []);
+        $validated['test_results_templates'] = $this->sanitizeAssociativeArray($validated['test_results_templates'] ?? []);
+
+        if (array_key_exists('case_budget', $validated) && $validated['case_budget'] === null) {
+            $validated['case_budget'] = null;
+        }
+
         return $validated;
+    }
+
+    private function sanitizeStringArray(array $items): array
+    {
+        return collect($items)
+            ->filter(fn ($value) => is_string($value) && trim($value) !== '')
+            ->map(fn ($value) => trim($value))
+            ->values()
+            ->all();
+    }
+
+    private function sanitizeAssociativeArray(array $items): array
+    {
+        $clean = [];
+
+        foreach ($items as $key => $value) {
+            $stringKey = is_string($key) ? trim($key) : '';
+
+            if ($stringKey === '') {
+                continue;
+            }
+
+            if (is_bool($value)) {
+                $clean[$stringKey] = $value;
+                continue;
+            }
+
+            if (is_scalar($value)) {
+                $stringValue = trim((string) $value);
+                if ($stringValue !== '') {
+                    $clean[$stringKey] = $stringValue;
+                }
+
+                continue;
+            }
+
+            if (is_array($value)) {
+                $clean[$stringKey] = $value;
+            }
+        }
+
+        return $clean;
     }
 }

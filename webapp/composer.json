@@ -19,6 +19,7 @@
     "laravel/workos": "^0.1.0",
     "openai-php/laravel": "^0.16.0",
     "predis/predis": "^2.2",
+    "smalot/pdfparser": "^2.12",
     "tightenco/ziggy": "^2.4"
   },
   "require-dev": {
