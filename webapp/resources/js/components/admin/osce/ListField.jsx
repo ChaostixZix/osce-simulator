@@ -54,7 +54,7 @@ export default function ListField({
     };
 
     return (
-        <div className="space-y-3">
+        <div className="space-y-2">
             <div>
                 <label className="text-sm font-medium text-foreground" htmlFor={id}>
                     {label}
@@ -62,7 +62,7 @@ export default function ListField({
                 {helper && <p className="text-sm text-muted-foreground">{helper}</p>}
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
                 {items.map((item, index) => (
                     <div key={`${index}`} className="flex items-start gap-2">
                         <input
@@ -71,7 +71,7 @@ export default function ListField({
                             value={item}
                             onChange={(event) => handleItemChange(index, event.target.value)}
                             placeholder={placeholder}
-                            className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground"
+                            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
                         />
                         <button
                             type="button"
