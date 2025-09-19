@@ -194,9 +194,8 @@
     background: hsl(var(--card) / 0.96);
     transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease, background-color 0.25s ease;
     box-shadow:
-        inset 0 1px 0 hsl(var(--foreground) / 0.05),
-        0 22px 42px -28px hsl(var(--foreground) / 0.5),
-        0 1px 2px hsl(var(--foreground) / 0.12);
+        0 1px 3px 0 hsl(var(--foreground) / 0.08),
+        0 1px 2px -1px hsl(var(--foreground) / 0.08);
     backdrop-filter: blur(16px) saturate(140%);
     -webkit-backdrop-filter: blur(16px) saturate(140%);
     overflow: hidden;
@@ -226,9 +225,8 @@
     transform: translateY(-3px);
     border-color: hsl(var(--border) / 0.65);
     box-shadow:
-        inset 0 1px 0 hsl(var(--foreground) / 0.06),
-        0 28px 52px -28px hsl(var(--foreground) / 0.58),
-        0 10px 20px -12px hsl(var(--foreground) / 0.3);
+        0 4px 6px -1px hsl(var(--foreground) / 0.16),
+        0 2px 4px -1px hsl(var(--foreground) / 0.12);
 }
 
 .clean-card:hover::before {
@@ -242,9 +240,8 @@
 .clean-card:focus-within {
     border-color: hsl(var(--ring));
     box-shadow:
-        inset 0 1px 0 hsl(var(--foreground) / 0.06),
-        0 0 0 2px hsl(var(--ring) / 0.18),
-        0 22px 42px -28px hsl(var(--foreground) / 0.5);
+        0 0 0 1px hsl(var(--ring) / 0.3),
+        0 8px 16px -6px hsl(var(--foreground) / 0.18);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -253,6 +250,56 @@
         transition-duration: 0.01ms;
         transform: none;
     }
+}
+
+.card-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid hsl(var(--border) / 0.7);
+    background: hsl(var(--muted) / 0.35);
+    color: hsl(var(--muted-foreground));
+}
+
+.card-header-primary {
+    background: hsl(var(--chart-1) / 0.12);
+    color: hsl(var(--chart-1));
+    border-bottom-color: hsl(var(--chart-1) / 0.3);
+}
+
+.card-header-secondary {
+    background: hsl(var(--secondary) / 0.55);
+    color: hsl(var(--secondary-foreground));
+    border-bottom-color: hsl(var(--secondary) / 0.4);
+}
+
+.card-header-accent {
+    background: hsl(var(--chart-4) / 0.12);
+    color: hsl(var(--chart-4));
+    border-bottom-color: hsl(var(--chart-4) / 0.28);
+}
+
+.dark .card-header {
+    background: hsl(var(--muted) / 0.2);
+    color: hsl(var(--muted-foreground));
+}
+
+.dark .card-header-primary {
+    background: hsl(var(--chart-1) / 0.2);
+    color: hsl(var(--chart-1));
+}
+
+.dark .card-header-secondary {
+    background: hsl(var(--secondary) / 0.35);
+    color: hsl(var(--secondary-foreground));
+}
+
+.dark .card-header-accent {
+    background: hsl(var(--chart-4) / 0.22);
+    color: hsl(var(--chart-4));
 }
 
 .clean-button {

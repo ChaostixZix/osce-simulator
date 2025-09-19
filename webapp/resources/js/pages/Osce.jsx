@@ -22,7 +22,7 @@ export default function Osce({ cases = [], userSessions = [], user }) {
       <AppLayout breadcrumbs={breadcrumbs}>
         <div className="space-y-8">
           {/* Welcome header */}
-          <div className="clean-card bg-card p-8 text-center space-y-5 hover:shadow-sm transition-all duration-300 relative overflow-hidden">
+          <div className="clean-card bg-card p-8 text-center space-y-5 transition-all duration-300 relative overflow-hidden">
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" aria-hidden="true"></div>
             <div className="flex justify-center">
               <span className="rounded-full bg-primary/10 text-primary px-3 py-1 text-xs font-medium uppercase tracking-wide">
@@ -61,11 +61,13 @@ export default function Osce({ cases = [], userSessions = [], user }) {
               {cases.map((c) => (
                 <div
                   key={c.id}
-                  className="clean-card bg-card p-6 border border-border/60 hover:shadow-sm transition-all duration-200 space-y-4"
+                  className="clean-card bg-card border border-border/60 transition-all duration-200 overflow-hidden flex flex-col"
                 >
-                  <div className="flex items-start justify-between">
+                  <div className="card-header card-header-accent items-start">
                     <div className="space-y-1">
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Case #{c.id}</p>
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                        Case #{c.id}
+                      </p>
                       <h3 className="text-lg font-medium text-foreground">{c.title}</h3>
                     </div>
                     <div className="text-right text-xs text-muted-foreground space-y-1">
@@ -74,31 +76,33 @@ export default function Osce({ cases = [], userSessions = [], user }) {
                     </div>
                   </div>
 
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {c.chief_complaint}
-                  </p>
+                  <div className="flex flex-1 flex-col gap-4 p-6">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {c.chief_complaint}
+                    </p>
 
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span className="capitalize">{c.clinical_setting || 'adaptive setting'}</span>
-                    <span>{c.urgency_level ? `Urgency: ${c.urgency_level}` : 'Dynamic triage enabled'}</span>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span className="capitalize">{c.clinical_setting || 'adaptive setting'}</span>
+                      <span>{c.urgency_level ? `Urgency: ${c.urgency_level}` : 'Dynamic triage enabled'}</span>
+                    </div>
+
+                    <button
+                      onClick={() => startSession(c.id)}
+                      disabled={startingId === c.id}
+                      className="clean-button primary w-full px-4 py-2 text-sm flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed mt-auto"
+                    >
+                      {startingId === c.id ? (
+                        <>
+                          <span className="h-4 w-4 rounded-full border-2 border-primary/60 border-t-transparent animate-spin" aria-hidden="true"></span>
+                          <span>Preparing session…</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Enter simulation</span>
+                        </>
+                      )}
+                    </button>
                   </div>
-
-                  <button
-                    onClick={() => startSession(c.id)}
-                    disabled={startingId === c.id}
-                    className="clean-button primary w-full px-4 py-2 text-sm flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {startingId === c.id ? (
-                      <>
-                        <span className="h-4 w-4 rounded-full border-2 border-primary/60 border-t-transparent animate-spin" aria-hidden="true"></span>
-                        <span>Preparing session…</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Enter simulation</span>
-                      </>
-                    )}
-                  </button>
                 </div>
               ))}
 
@@ -128,24 +132,36 @@ export default function Osce({ cases = [], userSessions = [], user }) {
               {userSessions.map((s) => (
                 <div
                   key={s.id}
-                  className="clean-card bg-card p-5 border border-border/60 hover:shadow-sm transition-all duration-200"
+                  className="clean-card bg-card border border-border/60 transition-all duration-200 overflow-hidden flex flex-col"
                 >
-                  <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div className="card-header card-header-secondary">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-medium text-foreground">Session #{s.id}</span>
+                      <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                        {s.status === 'active' ? 'Live simulation' : s.status.replace(/_/g, ' ')}
+                      </span>
+                      <SessionStatusBadge session={s} />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Started {new Date(s.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-1 flex-col gap-4 p-5 md:p-6 md:flex-row md:items-center md:justify-between">
                     <div className="space-y-2">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <span className="text-base font-medium text-foreground">{s.osce_case?.title}</span>
-                        <SessionStatusBadge session={s} />
-                        <span className="text-xs uppercase tracking-wide text-muted-foreground">
-                          Session #{s.id}
-                        </span>
-                      </div>
+                      <span className="text-base font-medium text-foreground block">
+                        {s.osce_case?.title}
+                      </span>
                       <p className="text-sm text-muted-foreground">
-                        Created {new Date(s.created_at).toLocaleDateString()} •{' '}
-                        {s.status === 'active' ? 'Live simulation' : `Status: ${s.status.replace(/_/g, ' ')}`}
+                        {s.status === 'active'
+                          ? 'Rejoin your adaptive encounter to continue clinical reasoning.'
+                          : s.status === 'completed'
+                            ? 'Review generated insights, rationalize findings, or inspect results.'
+                            : 'Pick up where you left off and maintain your assessment momentum.'}
                       </p>
                     </div>
 
-                    <div className="flex flex-wrap gap-3">
+                    <div className="flex flex-wrap gap-3 md:justify-end">
                       {s.status !== 'completed' ? (
                         <Link className="clean-button primary px-4 py-2 text-sm" href={route('osce.chat', s.id)}>
                           Resume session
