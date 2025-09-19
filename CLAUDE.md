@@ -20,7 +20,36 @@ When working on ANY frontend component or page, you MUST follow the established 
 // Use clean-card class for ALL containers, cards
 <div className="clean-card bg-card p-6">
 ```
-**Rule:** Always use subtle borders and rounded corners via clean-card class
+**Rule:** Always use subtle borders and rounded corners via `clean-card` — the class now ships with a soft shadow + lift on hover. Do **not** stack additional `shadow-*` utilities unless explicitly required for emphasis.
+
+```css
+/* Shadow standard (light + dark friendly) */
+.clean-card {
+  box-shadow: 0 1px 3px 0 hsl(var(--foreground) / 0.08),
+              0 1px 2px -1px hsl(var(--foreground) / 0.08);
+}
+.clean-card:hover {
+  box-shadow: 0 4px 6px -1px hsl(var(--foreground) / 0.16),
+              0 2px 4px -1px hsl(var(--foreground) / 0.12);
+}
+```
+
+#### 1b. **Card Headers**
+```jsx
+<div className="card-header card-header-primary">
+  <div>
+    <p className="text-xs uppercase tracking-wide">Case #12</p>
+    <h3 className="text-lg font-medium">Acute abdominal pain</h3>
+  </div>
+  <span className="text-xs">~15 min</span>
+</div>
+```
+**Rule:** Use the semantic header tint helpers for hierarchy:
+- `card-header-primary` → soft blue highlight (chart-1 palette)
+- `card-header-secondary` → soft neutral highlight (`--secondary` palette)
+- `card-header-accent` → soft purple highlight (chart-4 palette)
+
+Headers inherit card typography rules; keep body copy in a separate padded container.
 
 #### 2. **Minimal Color Palette**
 ```jsx
@@ -42,8 +71,8 @@ className="text-muted-foreground" // for secondary text
 <button className="clean-button px-4 py-2">
 <button className="clean-button primary px-4 py-2"> // for primary actions
 
-// Cards should have subtle hover effects
-className="hover:shadow-sm transition-all duration-200"
+// Cards lift on hover automatically — keep transitions minimal
+className="transition-all duration-200"
 ```
 
 #### 5. **Layout Patterns**
@@ -83,7 +112,7 @@ className="hover:shadow-sm transition-all duration-200"
 Before submitting any UI work, verify:
 - [ ] All containers use `clean-card` or proper background classes
 - [ ] Colors use theme-aware CSS variables
-- [ ] Hover effects are subtle (`hover:shadow-sm`)
+- [ ] Hover lift uses the built-in `clean-card` shadow (no extra neon glows)
 - [ ] Typography follows the hierarchy
 - [ ] Spacing is consistent using Tailwind classes
 - [ ] No gaming/cyber aesthetic elements

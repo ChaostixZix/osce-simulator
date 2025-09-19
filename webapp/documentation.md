@@ -35,7 +35,8 @@ Key capabilities include:
 - **Legacy Vue:** Existing Vue components remain under `resources/js/components` and related folders; keep them stable until migrated to React.
 
 #### Styling Refresh
-- `clean-card` now layers a subtle backdrop blur and twin highlight shells to give cards more depth while staying minimal.
+- `clean-card` now standardizes on a low-elevation drop shadow (0 1px 3px + 0 1px 2px) with a gentle hover lift so cards feel tactile without heavy glassmorphism.
+- `card-header-primary`, `card-header-secondary`, and `card-header-accent` add soft, theme-aware header tints for organizing content blocks while keeping text accessible in light/dark mode.
 - `clean-button` adds an ambient highlight overlay and refined shadows for clearer interaction feedback.
 
 ### Data & Infrastructure
