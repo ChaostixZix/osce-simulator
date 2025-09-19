@@ -177,6 +177,15 @@ The landing page now includes an exhaustive explanation section that provides de
 *   **Getting Started Guide:** Step-by-step instructions for account creation, case selection, and training initiation.
 *   **Animated Cards:** Interactive sections with smooth animations that explain complex features in an engaging, accessible format.
 
+## OSCE React Page Refresh
+
+The main OSCE dashboard has been redesigned for a cleaner, futurist SaaS experience that still follows the minimal design system.
+
+* **Clean card layout:** The page now leans on layered `clean-card` containers, tighter spacing, and hover elevations to improve legibility.
+* **Mission control hero:** A stats-forward hero surfaces active case and session counts while offering quick navigation back to the dashboard.
+* **Modern case cards:** Case tiles highlight duration, difficulty, and setting details with concise typography and `clean-button` call-to-actions for starting simulations.
+* **Session timeline cards:** Recent sessions use consistent `clean-card` shells with status badges, quick actions, and subdued metadata for calmer retrospectives.
+
 ## API Endpoints
 
 The application exposes several API endpoints for interacting with the OSCE features. These endpoints are defined in `routes/web.php`.
