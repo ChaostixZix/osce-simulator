@@ -60,4 +60,9 @@ class User extends Authenticatable
     }
 
     // Removed forum-related relationships (posts, comments)
+
+    public function onboardingCompletions()
+    {
+        return $this->hasMany(OnboardingCompletion::class);
+    }
 }

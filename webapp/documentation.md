@@ -11,6 +11,12 @@ Key capabilities include:
 - AI-driven patient personas and assessment pipelines that score and summarize trainee performance.
 - Post-session rationalization workflows and result review pages.
 - WorkOS-based authentication and multi-tenant friendly session management.
+- **NEW:** Pre-session onboarding runway with interactive tutorials and practice sessions.
+- **NEW:** AI-powered patient visualizer using Gemini 2.5 Flash Image API for medical training imagery.
+- **NEW:** Adaptive case primers that generate tailored briefings and clinical reasoning guidance.
+- **NEW:** In-session microskills coach providing real-time feedback and interventions.
+- **NEW:** Post-session replay studio with timeline analysis and alternative scenario generation.
+- **NEW:** Longitudinal growth loops with spaced repetition, learning streaks, and milestone tracking.
 
 ## Architecture
 
@@ -182,6 +188,66 @@ The application exposes several API endpoints for interacting with the OSCE feat
 *   `/api/osce/sessions/{session}/status`: Get the assessment status for a session.
 *   `/api/osce/sessions/{session}/results`: Get the assessment results for a session.
 *   `/api/osce/chat/message`: Send a message in the chat.
+
+## New OSCE Features (2024)
+
+### 1. Pre-Session Onboarding Runway ("OSCE Flight Check")
+- **Location:** `resources/js/pages/Onboarding/OSCEFlightCheck.jsx`
+- **Controller:** `app/Http/Controllers/OnboardingController.php`
+- **Features:** 4-step interactive tutorial with practice chat, case primer integration, and patient visualization
+- **Routes:** `/osce/onboarding/{caseId}` with complete, skip, and practice-chat endpoints
+
+### 2. AI-Powered Patient Visualizer ("Nano Banana")
+- **Service:** `app/Services/PatientVisualizerService.php`
+- **Controller:** `app/Http/Controllers/PatientVisualizerController.php`
+- **Database:** `patient_visualizations` table with caching for AI-generated medical imagery
+- **API:** Uses Gemini 2.5 Flash Image API with safety filtering and content enhancement
+- **Routes:** `/osce/visualizer/{caseId}` with generation and gallery management
+
+### 3. Adaptive Case Primers
+- **Service:** `app/Services/CasePrimerService.php`
+- **Controller:** `app/Http/Controllers/CasePrimerController.php`
+- **Database:** `case_primers` table with structured JSON content
+- **Features:** AI-generated briefings, complexity analysis, and case comparison tools
+- **Routes:** `/api/case-primer/{caseId}` with quick, complexity, and compare endpoints
+
+### 4. In-Session Microskills Coach
+- **Service:** `app/Services/MicroskillsCoachService.php`
+- **Controller:** `app/Http/Controllers/MicroskillsCoachController.php`
+- **Database:** `coaching_interventions` table for real-time feedback
+- **Features:** Decision fatigue detection, quiz interventions, and performance analytics
+- **Integration:** Tabbed interface in OsceChat.jsx with WebSocket support
+
+### 5. Post-Session Replay Studio
+- **Service:** `app/Services/ReplayStudioService.php`
+- **Controller:** `app/Http/Controllers/ReplayStudioController.php`
+- **Database:** `session_replays` table with comprehensive analysis data
+- **Features:** Timeline analysis, alternative scenarios, and "what-if" AI insights
+- **Routes:** `/osce/replay/{sessionId}` with generation, feedback, and export capabilities
+
+### 6. Longitudinal Growth Loops
+- **Service:** `app/Services/LongitudinalGrowthService.php`
+- **Controller:** `app/Http/Controllers/GrowthController.php`
+- **Models:** `LearningStreak`, `SpacedRepetitionCard`, `GrowthMilestone`, `RefresherCase`
+- **Features:** SM-2 spaced repetition algorithm, milestone tracking, achievement notifications
+- **Dashboard:** `resources/js/pages/Growth/Dashboard.jsx` with progress visualization
+- **Routes:** `/growth` with analytics, milestones, card reviews, and refresher cases
+
+### AI Integration Details
+- **Image Generation:** Gemini 2.5 Flash Image API for patient visualizations with medical context enhancement
+- **Content Generation:** Structured prompts for case primers, coaching interventions, and refresher content
+- **Safety Measures:** Content filtering, response validation, and caching strategies
+- **Provider Support:** Universal AI service supports both Gemini and Azure OpenAI
+
+### Database Schema Extensions
+- New tables: `onboarding_completions`, `patient_visualizations`, `case_primers`, `coaching_interventions`, `session_replays`, `learning_streaks`, `spaced_repetition_cards`, `growth_milestones`, `refresher_cases`
+- Foreign key relationships to existing `users`, `osce_cases`, and `osce_sessions` tables
+- JSON columns for flexible AI-generated content storage
+
+### Notification System
+- **Classes:** `MilestoneAchieved`, `RefresherCaseReady`, `LearningStreakAlert`
+- **Channels:** Email and database notifications for user engagement
+- **Triggers:** Automatic notifications for achievements, streak reminders, and refresher availability
 
 ## Maintenance Notes
 

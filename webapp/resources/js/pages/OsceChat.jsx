@@ -5,6 +5,7 @@ import Modal from '@/components/react/Modal.jsx';
 import FinalizeSessionModal from '@/components/react/FinalizeSessionModal.jsx';
 import { ToastProvider } from '@/Components/Notifications/ToastContainer';
 import { useOsceSessionRealtime } from '@/hooks/useOsceSessionRealtime';
+import MicroskillsCoach from '@/components/MicroskillsCoach';
 
 function OsceChatContent({ session, user, sessionData = {}, examCatalog = {} }) {
   const [messages, setMessages] = useState([]);
@@ -36,12 +37,18 @@ function OsceChatContent({ session, user, sessionData = {}, examCatalog = {} }) 
   
   // Add state for expandable results
   const [expandedResults, setExpandedResults] = useState({});
-  
+  const [activeTab, setActiveTab] = useState('chat'); // 'chat' | 'coach'
+
   const toggleResultExpansion = (testId) => {
     setExpandedResults(prev => ({
       ...prev,
       [testId]: !prev[testId]
     }));
+  };
+
+  const handleInterventionDisplayed = (intervention) => {
+    // Could show toast notification or other UI feedback
+    console.log('Coaching intervention displayed:', intervention);
   };
 
   // Order Tests: tabs, categories, available tests
@@ -661,7 +668,34 @@ const refreshResults = async () => {
 
           {/* Main Chat Area */}
           <div className="lg:col-span-3 flex flex-col h-full min-h-0">
-            <div ref={messagesRef} className="flex-1 overflow-y-auto border p-3 space-y-2 min-h-0">
+            {/* Tab Navigation */}
+            <div className="flex border-b border-border mb-4">
+              <button
+                onClick={() => setActiveTab('chat')}
+                className={`px-4 py-2 font-medium text-sm transition-colors ${
+                  activeTab === 'chat'
+                    ? 'text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                💬 Patient Chat
+              </button>
+              <button
+                onClick={() => setActiveTab('coach')}
+                className={`px-4 py-2 font-medium text-sm transition-colors ${
+                  activeTab === 'coach'
+                    ? 'text-purple-600 border-b-2 border-purple-600 bg-purple-50'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                🤖 AI Coach
+              </button>
+            </div>
+
+            {/* Tab Content */}
+            {activeTab === 'chat' ? (
+              <>
+                <div ref={messagesRef} className="flex-1 overflow-y-auto border p-3 space-y-2 min-h-0">
               {messages.map((m, idx) => (
                 <div key={idx} className={m.role === 'user' ? 'text-right' : 'text-left'}>
                   <div className={`inline-block px-3 py-2 rounded ${m.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'}`}>
@@ -688,6 +722,15 @@ const refreshResults = async () => {
                 {sending ? 'Sending…' : 'Send'}
               </button>
             </div>
+              </>
+            ) : (
+              <div className="flex-1 min-h-0">
+                <MicroskillsCoach
+                  sessionId={session?.id}
+                  onInterventionDisplayed={handleInterventionDisplayed}
+                />
+              </div>
+            )}
           </div>
         </div>
 
