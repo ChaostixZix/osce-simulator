@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Head, Link } from '@inertiajs/react';
-import { Button } from '@vibe-kanban/ui-kit';
 import ThemeToggle from '@/components/react/ThemeToggle';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { AnimatePresence, motion, useScroll, useTransform } from 'framer-motion';
 
 function Landing({ auth }) {
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
     const { scrollYProgress } = useScroll();
     const backgroundY = useTransform(scrollYProgress, [0, 1], ['0%', '50%']);
     const heroOpacity = useTransform(scrollYProgress, [0, 0.3, 0.5], [1, 0.5, 0]);
@@ -17,6 +17,20 @@ function Landing({ auth }) {
         window.addEventListener('mousemove', updateMousePosition);
         return () => window.removeEventListener('mousemove', updateMousePosition);
     }, []);
+
+    useEffect(() => {
+        const mediaQuery = window.matchMedia('(min-width: 768px)');
+        const handleChange = (event) => {
+            if (event.matches) {
+                setIsMenuOpen(false);
+            }
+        };
+
+        mediaQuery.addEventListener('change', handleChange);
+        return () => mediaQuery.removeEventListener('change', handleChange);
+    }, []);
+
+    const isAuthenticated = Boolean(auth?.user);
 
     // Advanced Animation Variants
     const containerVariants = {
@@ -250,84 +264,161 @@ function Landing({ auth }) {
 
                 {/* Modern Floating Header */}
                 <motion.header
-                    className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 cyber-border bg-white/80 dark:bg-neutral-950/80 backdrop-blur-md border-emerald-500/20 px-6 py-3"
+                    className="fixed top-4 left-1/2 z-50 w-full max-w-5xl -translate-x-1/2 px-4"
                     variants={itemVariants}
                     initial={{ y: -100, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ duration: 0.8, delay: 0.2 }}
                 >
-                    <nav className="flex items-center justify-between gap-8">
-                        <motion.div
-                            className="flex items-center gap-4"
+                    <div className="relative">
+                        <motion.nav
+                            className="clean-card bg-card px-4 py-3 flex items-center justify-between gap-4 transition-all duration-200"
                             variants={itemVariants}
                         >
-                            {/* Premium logo */}
                             <motion.div
-                                className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold relative"
-                                whileHover={{ scale: 1.05 }}
-                                transition={{ duration: 0.3 }}
+                                className="flex items-center gap-3 text-emerald-600 dark:text-emerald-400 font-semibold"
+                                variants={itemVariants}
+                                whileHover={{ scale: 1.02 }}
+                                transition={{ duration: 0.2 }}
                             >
-                                <motion.div
-                                    className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-cyan-500 rounded-full flex items-center justify-center"
-                                    animate={{ rotate: [0, 360] }}
-                                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                                >
-                                    <span className="text-white text-sm font-bold">O</span>
-                                </motion.div>
-                                <span className="text-lg font-mono tracking-tight">osce.ai</span>
-                                <motion.div
-                                    className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-400 rounded-full"
-                                    animate={{ scale: [1, 1.2, 1], opacity: [0.7, 1, 0.7] }}
-                                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                                />
-                            </motion.div>
-                        </motion.div>
-
-                        <motion.div
-                            className="flex items-center gap-4"
-                            variants={itemVariants}
-                        >
-                            <ThemeToggle />
-                            {auth && auth.user ? (
-                                <Link href={route('dashboard')}>
-                                    <motion.button
-                                        className="cyber-button px-6 py-2 text-sm font-semibold text-emerald-600 dark:text-emerald-300 uppercase tracking-wide bg-gradient-to-r from-emerald-500/10 to-cyan-500/10"
-                                        variants={buttonVariants}
-                                        initial="rest"
-                                        whileHover="hover"
-                                        whileTap="tap"
-                                    >
-                                        Dashboard
-                                    </motion.button>
-                                </Link>
-                            ) : (
-                                <div className="flex items-center gap-3">
-                                    <Link href={route('login')}>
-                                        <motion.button
-                                            className="px-4 py-2 text-sm font-medium text-neutral-600 dark:text-neutral-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
-                                            variants={buttonVariants}
-                                            initial="rest"
-                                            whileHover="hover"
-                                            whileTap="tap"
-                                        >
-                                            Sign In
-                                        </motion.button>
-                                    </Link>
-                                    <Link href={route('login')}>
-                                        <motion.button
-                                            className="cyber-button px-6 py-2 text-sm font-semibold text-white bg-gradient-to-r from-emerald-500 to-cyan-500"
-                                            variants={buttonVariants}
-                                            initial="rest"
-                                            whileHover="hover"
-                                            whileTap="tap"
-                                        >
-                                            Get Started
-                                        </motion.button>
-                                    </Link>
+                                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500 text-white text-sm font-bold">
+                                    O
                                 </div>
+                                <span className="text-lg tracking-tight text-foreground">osce.ai</span>
+                            </motion.div>
+
+                            <div className="hidden md:flex items-center gap-3">
+                                <ThemeToggle />
+                                {isAuthenticated ? (
+                                    <Link href={route('dashboard')}>
+                                        <motion.button
+                                            className="clean-button primary px-4 py-2 text-sm font-semibold"
+                                            variants={buttonVariants}
+                                            initial="rest"
+                                            whileHover="hover"
+                                            whileTap="tap"
+                                        >
+                                            Dashboard
+                                        </motion.button>
+                                    </Link>
+                                ) : (
+                                    <>
+                                        <Link href={route('login')}>
+                                            <motion.button
+                                                className="clean-button px-4 py-2 text-sm font-medium"
+                                                variants={buttonVariants}
+                                                initial="rest"
+                                                whileHover="hover"
+                                                whileTap="tap"
+                                            >
+                                                Sign In
+                                            </motion.button>
+                                        </Link>
+                                        <Link href={route('login')}>
+                                            <motion.button
+                                                className="clean-button primary px-4 py-2 text-sm font-semibold"
+                                                variants={buttonVariants}
+                                                initial="rest"
+                                                whileHover="hover"
+                                                whileTap="tap"
+                                            >
+                                                Get Started
+                                            </motion.button>
+                                        </Link>
+                                    </>
+                                )}
+                            </div>
+
+                            <div className="flex items-center gap-2 md:hidden">
+                                <button
+                                    type="button"
+                                    className="clean-button px-2 py-2"
+                                    aria-expanded={isMenuOpen}
+                                    aria-controls="landing-nav-menu"
+                                    onClick={() => setIsMenuOpen((prev) => !prev)}
+                                >
+                                    <span className="sr-only">Toggle navigation</span>
+                                    {isMenuOpen ? (
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            className="h-5 w-5 text-foreground"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                            strokeWidth="1.5"
+                                        >
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    ) : (
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            className="h-5 w-5 text-foreground"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                            strokeWidth="1.5"
+                                        >
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                                        </svg>
+                                    )}
+                                </button>
+                            </div>
+                        </motion.nav>
+
+                        <AnimatePresence>
+                            {isMenuOpen && (
+                                <motion.div
+                                    id="landing-nav-menu"
+                                    initial={{ opacity: 0, y: -8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -8 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="absolute left-0 right-0 mt-3 md:hidden"
+                                >
+                                    <div className="clean-card bg-card p-4 space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm font-medium text-muted-foreground">Appearance</span>
+                                            <ThemeToggle />
+                                        </div>
+                                        <div className="border-t border-border pt-3 space-y-3">
+                                            {isAuthenticated ? (
+                                                <Link
+                                                    href={route('dashboard')}
+                                                    className="block"
+                                                    onClick={() => setIsMenuOpen(false)}
+                                                >
+                                                    <span className="clean-button primary flex w-full justify-center px-4 py-2 text-sm font-semibold">
+                                                        Dashboard
+                                                    </span>
+                                                </Link>
+                                            ) : (
+                                                <>
+                                                    <Link
+                                                        href={route('login')}
+                                                        className="block"
+                                                        onClick={() => setIsMenuOpen(false)}
+                                                    >
+                                                        <span className="clean-button flex w-full justify-center px-4 py-2 text-sm font-medium">
+                                                            Sign In
+                                                        </span>
+                                                    </Link>
+                                                    <Link
+                                                        href={route('login')}
+                                                        className="block"
+                                                        onClick={() => setIsMenuOpen(false)}
+                                                    >
+                                                        <span className="clean-button primary flex w-full justify-center px-4 py-2 text-sm font-semibold">
+                                                            Get Started
+                                                        </span>
+                                                    </Link>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                </motion.div>
                             )}
-                        </motion.div>
-                    </nav>
+                        </AnimatePresence>
+                    </div>
                 </motion.header>
 
                 {/* Revolutionary Hero Section */}
