@@ -15,5 +15,8 @@
 				"OLLAMA_API_KEY": "YOUR_OLLAMA_API_KEY_HERE"
 			}
 		}
-	}
+	},"appwrite-docs": {
+      "url": "https://mcp-for-docs.appwrite.io",
+      "headers": {}
+    }
 }
