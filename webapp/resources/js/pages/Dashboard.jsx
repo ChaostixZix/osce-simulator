@@ -1,8 +1,284 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 
-export default function Dashboard({ stats, welcome }) {
+const tabs = [
+    {
+        id: 'overview',
+        label: 'Overview',
+        description: 'Mission control for your OSCE preparation.',
+    },
+    {
+        id: 'cases',
+        label: 'Cases',
+        description: 'Browse, filter, and plan the scenarios you want to run.',
+    },
+    {
+        id: 'progress',
+        label: 'Progress',
+        description: 'Track trends, milestones, and skill development.',
+    },
+    {
+        id: 'history',
+        label: 'History',
+        description: 'Review session outcomes and export your performance.',
+    },
+];
+
+const statusStyles = {
+    available: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+    in_progress: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+    completed: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+    locked: 'bg-border/60 text-muted-foreground',
+};
+
+const difficultyStyles = {
+    Beginner: 'bg-sky-500/10 text-sky-600 dark:text-sky-400',
+    Intermediate: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
+    Advanced: 'bg-rose-500/10 text-rose-600 dark:text-rose-400',
+};
+
+const formatStatusLabel = (status) => (status ? status.replace(/_/g, ' ') : 'unknown');
+
+function formatDate(iso) {
+    if (!iso) return '—';
+    const date = new Date(iso);
+    return date.toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+    });
+}
+
+function formatRelative(iso) {
+    if (!iso) return '—';
+    const formatter = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+    const now = new Date();
+    const date = new Date(iso);
+    const diff = date.getTime() - now.getTime();
+    const diffDays = Math.round(diff / (1000 * 60 * 60 * 24));
+
+    if (Math.abs(diffDays) >= 1) {
+        return formatter.format(diffDays, 'day');
+    }
+
+    const diffHours = Math.round(diff / (1000 * 60 * 60));
+    if (Math.abs(diffHours) >= 1) {
+        return formatter.format(diffHours, 'hour');
+    }
+
+    const diffMinutes = Math.round(diff / (1000 * 60));
+    return formatter.format(diffMinutes, 'minute');
+}
+
+function formatDuration(minutes) {
+    if (!minutes) return '—';
+    if (minutes < 60) {
+        return `${minutes} min`;
+    }
+
+    const hours = Math.floor(minutes / 60);
+    const remaining = minutes % 60;
+
+    return remaining === 0 ? `${hours} hr` : `${hours} hr ${remaining} min`;
+}
+
+function TrendChart({ dataset }) {
+    if (!dataset || dataset.length === 0) {
+        return <p className="text-sm text-muted-foreground">No assessed sessions yet.</p>;
+    }
+
+    const maxScore = dataset.reduce((acc, point) => {
+        return Math.max(acc, point.max_score ?? point.score ?? 0);
+    }, 0) || 100;
+
+    return (
+        <div className="flex items-end gap-3 h-40">
+            {dataset.map((point) => {
+                const score = point.score ?? 0;
+                const height = Math.max(12, (score / maxScore) * 100);
+
+                return (
+                    <div key={`${point.label}-${score}`} className="flex-1 flex flex-col items-center gap-2">
+                        <div className="w-full bg-primary/20 dark:bg-primary/30 rounded-t-md transition-all duration-200" style={{ height: `${height}%` }} />
+                        <div className="text-center">
+                            <p className="text-xs font-medium text-foreground">{score ?? '—'}</p>
+                            <p className="text-[11px] text-muted-foreground">{point.label}</p>
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
+function ProgressBar({ value, label }) {
+    const safeValue = Math.min(100, Math.max(0, value ?? 0));
+
+    return (
+        <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>{label}</span>
+                <span className="font-medium text-foreground">{safeValue}%</span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-border overflow-hidden">
+                <div className="h-full bg-primary/70 transition-all duration-300" style={{ width: `${safeValue}%` }} />
+            </div>
+        </div>
+    );
+}
+
+function FlowIndicator({ flow }) {
+    if (!flow) return null;
+
+    const statusIcon = {
+        completed: '✅',
+        current: '✨',
+        upcoming: '•',
+    };
+
+    return (
+        <div className="clean-card p-6">
+            <div className="card-header card-header-primary">
+                <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Session flow</p>
+                    <h3 className="text-lg font-medium text-foreground">Guide your next encounter</h3>
+                </div>
+                <span className="text-xs text-muted-foreground">4 steps</span>
+            </div>
+            <div className="mt-6 grid gap-4 md:grid-cols-4">
+                {flow.map((step) => (
+                    <div
+                        key={step.id}
+                        className={`clean-card p-4 transition-all duration-200 ${
+                            step.status === 'current'
+                                ? 'ring-2 ring-primary/40'
+                                : step.status === 'completed'
+                                ? 'opacity-90'
+                                : 'opacity-75'
+                        }`}
+                    >
+                        <div className="flex items-center gap-2">
+                            <span className="text-lg" aria-hidden>
+                                {statusIcon[step.status]}
+                            </span>
+                            <div>
+                                <p className="text-sm font-medium text-foreground">{step.title}</p>
+                                <p className="text-xs text-muted-foreground">{step.description}</p>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function QuickStats({ stats }) {
+    if (!stats) return null;
+
+    const accents = ['card-header-primary', 'card-header-accent', 'card-header-secondary', 'card-header-primary'];
+
+    return (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {stats.map((stat, index) => (
+                <div key={stat.label} className="clean-card p-6 space-y-4">
+                    <div className={`card-header ${accents[index % accents.length]} items-start`}>
+                        <div>
+                            <p className="text-xs uppercase tracking-wide text-muted-foreground">{stat.badge}</p>
+                            <h3 className="text-lg font-medium text-foreground">{stat.label}</h3>
+                        </div>
+                        <span className="text-xs text-muted-foreground">Live</span>
+                    </div>
+                    <div className="space-y-2">
+                        <p className="text-3xl font-semibold text-foreground">
+                            {stat.value !== null && stat.value !== undefined ? stat.value.toLocaleString() : '—'}
+                            {stat.suffix ?? ''}
+                        </p>
+                        <p className="text-sm text-muted-foreground">{stat.description}</p>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+function RecentActivity({ sessions }) {
+    if (!sessions || sessions.length === 0) {
+        return (
+            <div className="clean-card p-6">
+                <div className="card-header card-header-secondary">
+                    <div>
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Recent activity</p>
+                        <h3 className="text-lg font-medium text-foreground">History will appear here</h3>
+                    </div>
+                </div>
+                <p className="mt-4 text-sm text-muted-foreground">Run a session to start building your activity timeline.</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="clean-card p-6">
+            <div className="card-header card-header-secondary">
+                <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Recent activity</p>
+                    <h3 className="text-lg font-medium text-foreground">Latest session highlights</h3>
+                </div>
+                <span className="text-xs text-muted-foreground">Updated {formatRelative(sessions[0]?.started_at)}</span>
+            </div>
+            <div className="mt-4 space-y-4">
+                {sessions.map((session) => (
+                    <div key={session.id} className="flex flex-col gap-2 rounded-lg border border-border/60 bg-background/90 p-4">
+                        <div className="flex items-center justify-between gap-3">
+                            <div>
+                                <p className="text-sm font-medium text-foreground">{session.case_title}</p>
+                                <p className="text-xs text-muted-foreground">{formatDate(session.started_at)}</p>
+                            </div>
+                                <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
+                                statusStyles[session.status] ?? 'bg-border/60 text-muted-foreground'
+                            }`}>
+                                {formatStatusLabel(session.status)}
+                            </span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+                            <span>Started {formatRelative(session.started_at)}</span>
+                            {session.completed_at && <span>Completed {formatRelative(session.completed_at)}</span>}
+                            {session.score !== null && session.score !== undefined && (
+                                <span className="text-foreground font-medium">Score {session.score}{session.max_score ? `/${session.max_score}` : ''}</span>
+                            )}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function SystemStatus({ items }) {
+    if (!items) return null;
+
+    return (
+        <div className="clean-card p-6">
+            <div className="card-header card-header-accent">
+                <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Platform health</p>
+                    <h3 className="text-lg font-medium text-foreground">Everything ready for lift-off</h3>
+                </div>
+            </div>
+            <div className="mt-4 space-y-3">
+                {items.map((item) => (
+                    <div key={item.label} className="flex items-center justify-between rounded-lg border border-border/60 bg-background/90 px-4 py-3">
+                        <span className="text-sm text-muted-foreground">{item.label}</span>
+                        <span className="text-sm font-medium text-foreground">{item.value}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+export default function Dashboard({ overview, cases, progress, history, meta, welcome }) {
     const breadcrumbs = [
         {
             title: 'dashboard',
@@ -10,272 +286,387 @@ export default function Dashboard({ stats, welcome }) {
         },
     ];
 
-    const primaryStats = [
-        {
-            label: 'Active OSCE Cases',
-            value: stats?.osce_cases_active || 0,
-            description: 'Realistic clinical scenarios ready to run',
-            accent: 'text-emerald-600 dark:text-emerald-400',
-            badge: 'Live'
-        },
-        {
-            label: 'Learners Registered',
-            value: stats?.users_total || 0,
-            description: 'Participants collaborating across cohorts',
-            accent: 'text-blue-600 dark:text-blue-400',
-            badge: 'Community'
-        }
-    ];
+    const [activeTab, setActiveTab] = useState(meta?.active_tab ?? 'overview');
+    const [search, setSearch] = useState('');
+    const [selectedDifficulty, setSelectedDifficulty] = useState('all');
+    const [selectedStatus, setSelectedStatus] = useState('all');
+    const [selectedSetting, setSelectedSetting] = useState('all');
 
-    const focusTracks = [
-        {
-            title: 'Clinical Reasoning Sprint',
-            description: 'Walk through a full patient journey to sharpen diagnostics.',
-            icon: '🧠',
-            action: () => router.visit(route('osce')),
-            cta: 'Resume training',
-            status: 'In progress'
-        },
-        {
-            title: 'Communication Warm-Up',
-            description: 'Practice difficult conversations with simulated actors.',
-            icon: '💬',
-            action: null,
-            cta: 'Opens soon',
-            status: 'Coming soon'
-        }
-    ];
+    useEffect(() => {
+        setActiveTab(meta?.active_tab ?? 'overview');
+    }, [meta?.active_tab]);
 
-    const navigationShortcuts = [
+    const handleTabChange = (tabId) => {
+        setActiveTab(tabId);
+        router.get(route('dashboard'), { tab: tabId }, { preserveScroll: true, preserveState: true, replace: true });
+    };
+
+    const filteredCases = useMemo(() => {
+        if (!cases?.items) return [];
+
+        return cases.items.filter((item) => {
+            const matchesSearch = item.title.toLowerCase().includes(search.toLowerCase()) ||
+                (item.summary ?? '').toLowerCase().includes(search.toLowerCase());
+            const matchesDifficulty = selectedDifficulty === 'all' || item.difficulty === selectedDifficulty;
+            const matchesStatus = selectedStatus === 'all' || item.status === selectedStatus;
+            const matchesSetting = selectedSetting === 'all' || item.clinical_setting === selectedSetting;
+
+            return matchesSearch && matchesDifficulty && matchesStatus && matchesSetting;
+        });
+    }, [cases?.items, search, selectedDifficulty, selectedStatus, selectedSetting]);
+
+    const overviewActions = [
         {
-            title: 'Start an OSCE Session',
-            description: 'Launch an interactive simulation tailored to your level.',
-            href: route('osce'),
+            label: 'Launch new case',
+            description: 'Jump straight into a simulation that matches your goal.',
             intent: 'primary',
-            icon: '🚀'
+            onClick: () => router.visit(route('osce')),
         },
         {
-            title: 'Review Past Sessions',
-            description: 'Reflection timeline coming soon with personalized insights.',
-            href: null,
-            intent: 'secondary',
-            icon: '🗂️',
-            disabled: true
+            label: 'Browse case library',
+            description: 'Filter by specialty, difficulty, and urgency to plan practice time.',
+            onClick: () => handleTabChange('cases'),
         },
         {
-            title: 'Explore Case Library',
-            description: 'Plan practice time with specialty-aligned scenarios.',
-            href: route('osce'),
-            intent: 'secondary',
-            icon: '📚'
+            label: 'Review growth report',
+            description: 'Open longitudinal analytics to reflect on your last sessions.',
+            onClick: () => router.visit(route('growth.dashboard')),
+        },
+    ];
+
+    const renderOverview = () => (
+        <div className="space-y-6">
+            <div className="clean-card p-6 lg:p-8 space-y-6">
+                <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">{welcome?.message}</p>
+                    <h1 className="text-2xl font-semibold text-foreground">{welcome?.title ?? 'Welcome back 👋'}</h1>
+                </div>
+                <div className="grid gap-4 md:grid-cols-3">
+                    {overviewActions.map((action) => (
+                        <button
+                            key={action.label}
+                            className={`clean-button ${action.intent === 'primary' ? 'primary' : ''} text-left px-4 py-4 transition-all duration-200`}
+                            onClick={action.onClick}
+                        >
+                            <div className="flex flex-col gap-1">
+                                <span className="text-sm font-medium text-foreground">{action.label}</span>
+                                <span className="text-xs text-muted-foreground">{action.description}</span>
+                            </div>
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            <QuickStats stats={overview?.quick_stats} />
+
+            <FlowIndicator flow={overview?.flow} />
+
+            <div className="grid gap-6 xl:grid-cols-[1fr_0.6fr]">
+                <RecentActivity sessions={overview?.recent_activity} />
+                <SystemStatus items={overview?.system_status} />
+            </div>
+        </div>
+    );
+
+    const renderCases = () => (
+        <div className="space-y-6">
+            <div className="clean-card p-6 space-y-4">
+                <div className="card-header card-header-primary">
+                    <div>
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Case library</p>
+                        <h3 className="text-lg font-medium text-foreground">Plan your next scenario</h3>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{filteredCases.length} cases</span>
+                </div>
+                <div className="grid gap-4 md:grid-cols-4">
+                    <input
+                        value={search}
+                        onChange={(event) => setSearch(event.target.value)}
+                        placeholder="Search cases"
+                        className="clean-card px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    />
+                    <select
+                        value={selectedDifficulty}
+                        onChange={(event) => setSelectedDifficulty(event.target.value)}
+                        className="clean-card px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    >
+                        <option value="all">All difficulties</option>
+                        {cases?.filters?.difficulties?.map((difficulty) => (
+                            <option key={difficulty} value={difficulty}>
+                                {difficulty}
+                            </option>
+                        ))}
+                    </select>
+                    <select
+                        value={selectedStatus}
+                        onChange={(event) => setSelectedStatus(event.target.value)}
+                        className="clean-card px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    >
+                        <option value="all">All statuses</option>
+                        {cases?.filters?.statuses?.map((status) => (
+                            <option key={status} value={status}>
+                                {formatStatusLabel(status)}
+                            </option>
+                        ))}
+                    </select>
+                    <select
+                        value={selectedSetting}
+                        onChange={(event) => setSelectedSetting(event.target.value)}
+                        className="clean-card px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    >
+                        <option value="all">All settings</option>
+                        {cases?.filters?.settings?.map((setting) => (
+                            <option key={setting} value={setting}>
+                                {setting}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+
+            <div className="grid gap-4 xl:grid-cols-3 lg:grid-cols-2">
+                {filteredCases.map((caseItem) => (
+                    <div key={caseItem.id} className="clean-card p-6 space-y-4 transition-all duration-200">
+                        <div className="card-header card-header-secondary">
+                            <div>
+                                <p className="text-xs uppercase tracking-wide text-muted-foreground">Case #{caseItem.id}</p>
+                                <h3 className="text-lg font-medium text-foreground">{caseItem.title}</h3>
+                            </div>
+                            <div className="flex flex-col items-end gap-2">
+                                <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${statusStyles[caseItem.status] ?? 'bg-border/60 text-muted-foreground'}`}>
+                                    {formatStatusLabel(caseItem.status)}
+                                </span>
+                                {caseItem.difficulty && (
+                                    <span className={`inline-flex items-center rounded-full px-2 py-1 text-[11px] font-medium ${
+                                        difficultyStyles[caseItem.difficulty] ?? 'bg-primary/10 text-primary'
+                                    }`}>
+                                        {caseItem.difficulty}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{caseItem.summary || 'This case will describe the scenario when you launch it.'}</p>
+                        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                            <span>{formatDuration(caseItem.duration_minutes)}</span>
+                            {caseItem.clinical_setting && <span>• {caseItem.clinical_setting}</span>}
+                            {caseItem.urgency_level && <span>• Urgency {caseItem.urgency_level}</span>}
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>{caseItem.completed_attempts} completed / {caseItem.attempts} attempts</span>
+                            <button
+                                className={`clean-button ${caseItem.is_active ? 'primary' : ''} px-3 py-2 text-xs`}
+                                disabled={!caseItem.is_active}
+                                onClick={() => router.visit(route('osce', { case: caseItem.id }))}
+                            >
+                                {caseItem.is_active ? 'Start case' : 'Locked'}
+                            </button>
+                        </div>
+                    </div>
+                ))}
+                {filteredCases.length === 0 && (
+                    <div className="clean-card p-8 text-center space-y-3">
+                        <p className="text-lg font-medium text-foreground">No cases match your filters</p>
+                        <p className="text-sm text-muted-foreground">Adjust filters to explore more of the library.</p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+
+    const renderProgress = () => (
+        <div className="space-y-6">
+            <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+                <div className="clean-card p-6 space-y-6">
+                    <div className="card-header card-header-primary">
+                        <div>
+                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Performance trend</p>
+                            <h3 className="text-lg font-medium text-foreground">Assessment momentum</h3>
+                        </div>
+                        {progress?.best_score !== null && progress?.best_score !== undefined && (
+                            <span className="text-xs text-muted-foreground">Best score {progress.best_score}</span>
+                        )}
+                    </div>
+                    <TrendChart dataset={progress?.score_trend} />
+                </div>
+
+                <div className="clean-card p-6 space-y-6">
+                    <div className="card-header card-header-accent">
+                        <div>
+                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Streak & readiness</p>
+                            <h3 className="text-lg font-medium text-foreground">Daily consistency</h3>
+                        </div>
+                        <span className="text-xs text-muted-foreground">{progress?.streak ?? 0} day streak</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                        Keep the streak alive by running a case today. Consistency unlocks richer analytics and advanced primers.
+                    </p>
+                    <div className="flex flex-col gap-3">
+                        {progress?.skill_breakdown?.map((item) => (
+                            <ProgressBar key={item.label} value={item.value} label={item.label} />
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            <div className="clean-card p-6 space-y-6">
+                <div className="card-header card-header-secondary">
+                    <div>
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Milestones</p>
+                        <h3 className="text-lg font-medium text-foreground">Next achievements in sight</h3>
+                    </div>
+                </div>
+                <div className="grid gap-4 md:grid-cols-3">
+                    {progress?.milestones?.map((milestone) => {
+                        const percent = Math.min(100, Math.round(((milestone.current ?? 0) / (milestone.target || 1)) * 100));
+                        return (
+                            <div key={milestone.title} className="clean-card p-4 space-y-3">
+                                <div>
+                                    <p className="text-sm font-medium text-foreground">{milestone.title}</p>
+                                    <p className="text-xs text-muted-foreground">Target {milestone.target}</p>
+                                </div>
+                                <div className="h-2 w-full rounded-full bg-border overflow-hidden">
+                                    <div className="h-full bg-primary/80 transition-all" style={{ width: `${percent}%` }} />
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    {milestone.current ?? 0} / {milestone.target}
+                                </p>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        </div>
+    );
+
+    const renderHistory = () => (
+        <div className="space-y-6">
+            <div className="clean-card p-6">
+                <div className="card-header card-header-primary">
+                    <div>
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Session history</p>
+                        <h3 className="text-lg font-medium text-foreground">Detailed timeline</h3>
+                    </div>
+                    <button
+                        className="clean-button px-4 py-2 text-xs"
+                        onClick={() => {
+                            if (typeof window !== 'undefined') {
+                                window.print();
+                            }
+                        }}
+                    >
+                        Export summary
+                    </button>
+                </div>
+                <div className="mt-6 overflow-x-auto">
+                    <table className="min-w-full text-left text-sm">
+                        <thead>
+                            <tr className="text-xs uppercase tracking-wide text-muted-foreground">
+                                <th className="pb-3 pr-6 font-medium">Case</th>
+                                <th className="pb-3 pr-6 font-medium">Status</th>
+                                <th className="pb-3 pr-6 font-medium">Score</th>
+                                <th className="pb-3 pr-6 font-medium">Duration</th>
+                                <th className="pb-3 pr-6 font-medium">Started</th>
+                                <th className="pb-3 pr-6 font-medium">Completed</th>
+                                <th className="pb-3 font-medium text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border/60">
+                            {history?.sessions?.map((session) => (
+                                <tr key={session.id} className="text-sm text-muted-foreground">
+                                    <td className="py-3 pr-6 text-foreground font-medium">{session.case_title}</td>
+                                    <td className="py-3 pr-6">
+                                        <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
+                                            statusStyles[session.status] ?? 'bg-border/60 text-muted-foreground'
+                                        }`}>
+                                            {formatStatusLabel(session.status)}
+                                        </span>
+                                    </td>
+                                    <td className="py-3 pr-6 text-foreground">
+                                        {session.score !== null && session.score !== undefined
+                                            ? `${session.score}${session.max_score ? `/${session.max_score}` : ''}`
+                                            : '—'}
+                                    </td>
+                                    <td className="py-3 pr-6">{formatDuration(session.duration_minutes)}</td>
+                                    <td className="py-3 pr-6">{formatDate(session.started_at)}</td>
+                                    <td className="py-3 pr-6">{formatDate(session.completed_at)}</td>
+                                    <td className="py-3 text-right">
+                                        <div className="flex justify-end">
+                                            {session.result_url ? (
+                                                <button
+                                                    className="clean-button primary px-3 py-2 text-xs"
+                                                    onClick={() => router.visit(session.result_url)}
+                                                >
+                                                    View results
+                                                </button>
+                                            ) : (
+                                                <span className="text-xs text-muted-foreground">Pending</span>
+                                            )}
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                            {history?.sessions?.length === 0 && (
+                                <tr>
+                                    <td colSpan={7} className="py-6 text-center text-sm text-muted-foreground">
+                                        Session results will appear once you run your first case.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    );
+
+    const renderActiveTab = () => {
+        switch (activeTab) {
+            case 'cases':
+                return renderCases();
+            case 'progress':
+                return renderProgress();
+            case 'history':
+                return renderHistory();
+            case 'overview':
+            default:
+                return renderOverview();
         }
-    ];
-
-    const engagementHighlights = [
-        {
-            title: 'Confidence Trend',
-            caption: 'You logged consistent improvements this week.',
-            metric: '+12%',
-            chart: [52, 60, 64, 58, 66, 70],
-            accent: 'emerald'
-        },
-        {
-            title: 'Case Variety',
-            caption: 'Balanced exposure across cardiology, endocrine, and trauma.',
-            metric: '6 specialties',
-            chart: [30, 48, 42, 56, 40, 62],
-            accent: 'blue'
-        }
-    ];
-
-    const systemStatus = [
-        { label: 'API', value: 'Operational', tone: 'text-emerald-600 dark:text-emerald-400' },
-        { label: 'Latency', value: '< 50ms', tone: 'text-emerald-600 dark:text-emerald-400' },
-        { label: 'Uptime', value: '99.9%', tone: 'text-emerald-600 dark:text-emerald-400' }
-    ];
-
-    const goTo = (href) => {
-        if (!href) return;
-        router.visit(href);
     };
 
     return (
         <>
-            <Head title="dashboard" />
+            <Head title="Dashboard" />
 
             <AppLayout breadcrumbs={breadcrumbs}>
-                <div className="flex h-full flex-1 flex-col gap-6 sm:gap-8">
-                    {/* Welcome Section - Mobile optimized */}
-                    <section className="clean-card bg-card/95 p-4 sm:p-6 lg:p-8 transition-all duration-300">
-                        <div className="flex flex-col space-y-6 lg:grid lg:gap-8 lg:grid-cols-[1.2fr_1fr] lg:items-center lg:space-y-0">
-                            <div className="space-y-4">
-                                <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 dark:bg-emerald-950/30 px-3 py-1 text-sm font-medium text-emerald-600 dark:text-emerald-400">
-                                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                                    <span>Training Mode Active</span>
-                                </div>
-                                <div className="space-y-2 sm:space-y-3">
-                                    <h1 className="text-xl sm:text-2xl font-semibold text-foreground">
-                                        {welcome?.title || 'Welcome back'}
-                                    </h1>
-                                    <p className="text-muted-foreground text-base sm:text-lg">
-                                        {welcome?.message || 'Practice clinical skills and track your OSCE progress.'}
-                                    </p>
-                                </div>
-                                <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
-                                    <button
-                                        className="clean-button primary px-4 sm:px-5 py-2.5 text-sm sm:text-base text-center"
-                                        onClick={() => goTo(route('osce'))}
-                                    >
-                                        Start new simulation
-                                    </button>
-                                    <button
-                                        className="clean-button px-4 sm:px-5 py-2.5 text-sm sm:text-base text-center"
-                                        onClick={() => goTo(route('osce.results.index'))}
-                                    >
-                                        View performance history
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Stats Section - Mobile optimized */}
-                            <div className="clean-card bg-background/95 p-4 sm:p-6 transition-all duration-300">
-                                <div className="space-y-4 sm:space-y-5">
-                                    {primaryStats.map((item) => (
-                                        <div key={item.label} className="flex items-start justify-between gap-3 sm:gap-4">
-                                            <div className="space-y-1 min-w-0 flex-1">
-                                                <p className={`text-xs sm:text-sm font-medium ${item.accent}`}>{item.badge}</p>
-                                                <p className="text-base sm:text-lg font-medium text-foreground">{item.label}</p>
-                                                <p className="text-xs sm:text-sm text-muted-foreground">{item.description}</p>
-                                            </div>
-                                            <span className="text-2xl sm:text-3xl font-semibold text-foreground flex-shrink-0">{item.value.toLocaleString()}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
+                <div className="flex flex-1 flex-col gap-6">
+                    <div className="clean-card p-6 space-y-3">
+                        <div className="flex flex-col gap-2">
+                            <h1 className="text-2xl font-semibold text-foreground">OSCE mission control</h1>
+                            <p className="text-sm text-muted-foreground">
+                                Switch between overview, case planning, analytics, and detailed history without losing context.
+                            </p>
                         </div>
-                    </section>
-
-                    {/* Main Content - Mobile first, then larger screens */}
-                    <section className="space-y-6 lg:grid lg:gap-6 lg:grid-cols-[1fr_0.65fr] xl:grid-cols-[1.1fr_0.6fr] lg:space-y-0">
-                        <div className="space-y-6">
-                            {/* Focus Tracks - Mobile optimized */}
-                            <div className="clean-card bg-card/95 p-4 sm:p-6 transition-all duration-300">
-                                <div className="border-b border-border pb-3 sm:pb-4 mb-4 sm:mb-6">
-                                    <h2 className="text-base sm:text-lg font-medium text-foreground">Today's Focus Tracks</h2>
-                                    <p className="text-xs sm:text-sm text-muted-foreground">Stay aligned with your learning plan and pick up where you left off.</p>
-                                </div>
-                                <div className="space-y-4 sm:space-y-5">
-                                    {focusTracks.map((track) => (
-                                        <div key={track.title} className="clean-card bg-background/85 p-3 sm:p-4 transition-all duration-300">
-                                            <div className="flex flex-col space-y-3 sm:flex-row sm:items-start sm:justify-between sm:gap-3 sm:space-y-0">
-                                                <div className="flex items-start gap-3 min-w-0 flex-1">
-                                                    <span className="text-xl sm:text-2xl flex-shrink-0" aria-hidden>{track.icon}</span>
-                                                    <div className="min-w-0 flex-1">
-                                                        <p className="text-sm sm:text-base font-medium text-foreground">{track.title}</p>
-                                                        <p className="text-xs sm:text-sm text-muted-foreground">{track.description}</p>
-                                                    </div>
-                                                </div>
-                                                <span className="inline-flex items-center gap-1 rounded-full border border-border/50 bg-card/75 px-2 sm:px-3 py-1 text-xs font-medium text-muted-foreground flex-shrink-0">
-                                                    {track.status}
-                                                </span>
-                                            </div>
-                                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-3">
-                                                <button
-                                                    className={`clean-button ${track.action ? 'primary' : ''} px-3 sm:px-4 py-2 text-xs sm:text-sm`}
-                                                    disabled={!track.action}
-                                                    onClick={() => track.action?.()}
-                                                >
-                                                    {track.cta}
-                                                </button>
-                                                {!track.action && (
-                                                    <span className="text-xs text-muted-foreground">We'll notify you when it unlocks.</span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Highlights Section - Mobile optimized */}
-                            <div className="clean-card bg-card/95 p-4 sm:p-6 transition-all duration-300">
-                                <div className="border-b border-border pb-3 sm:pb-4 mb-4 sm:mb-6">
-                                    <h2 className="text-base sm:text-lg font-medium text-foreground">Highlights & Momentum</h2>
-                                    <p className="text-xs sm:text-sm text-muted-foreground">Track your progression at a glance and celebrate recent wins.</p>
-                                </div>
-                                <div className="grid gap-4 sm:grid-cols-2">
-                                    {engagementHighlights.map((highlight) => (
-                                        <div key={highlight.title} className="clean-card bg-background/85 p-4 sm:p-5">
-                                            <div className="flex items-center justify-between">
-                                                <p className="text-xs sm:text-sm font-medium text-foreground">{highlight.title}</p>
-                                                <span className={`text-sm sm:text-base font-semibold ${highlight.accent === 'emerald' ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-600 dark:text-blue-400'}`}>
-                                                    {highlight.metric}
-                                                </span>
-                                            </div>
-                                            <p className="mt-1 text-xs sm:text-sm text-muted-foreground">{highlight.caption}</p>
-                                            <div className="mt-3 sm:mt-4 flex h-12 sm:h-16 items-end gap-1">
-                                                {highlight.chart.map((value, idx) => (
-                                                    <span
-                                                        key={`${highlight.title}-${idx}`}
-                                                        className={`flex-1 rounded-t-sm ${highlight.accent === 'emerald' ? 'bg-emerald-500/70 dark:bg-emerald-500/40' : 'bg-blue-500/70 dark:bg-blue-500/40'} transition-opacity duration-200 hover:opacity-90`}
-                                                        style={{ height: `${Math.max(30, value)}%` }}
-                                                    />
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
+                        <div className="flex flex-wrap items-center gap-4 border-b border-border pb-2">
+                            {tabs.map((tab) => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => handleTabChange(tab.id)}
+                                    className={`pb-2 text-sm font-medium transition-colors border-b-2 ${
+                                        activeTab === tab.id
+                                            ? 'border-primary text-primary'
+                                            : 'border-transparent text-muted-foreground hover:text-foreground'
+                                    }`}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
                         </div>
+                        <p className="text-xs text-muted-foreground">
+                            {tabs.find((tab) => tab.id === activeTab)?.description}
+                        </p>
+                    </div>
 
-                        {/* Sidebar Content - Mobile optimized */}
-                        <div className="space-y-6">
-                            {/* Jump Back In - Mobile optimized */}
-                            <div className="clean-card bg-card/95 p-4 sm:p-6 transition-all duration-300">
-                                <div className="border-b border-border pb-3 sm:pb-4 mb-4 sm:mb-6">
-                                    <h2 className="text-base sm:text-lg font-medium text-foreground">Jump Back In</h2>
-                                    <p className="text-xs sm:text-sm text-muted-foreground">Browse the areas that keep momentum strong.</p>
-                                </div>
-                                <div className="space-y-3 sm:space-y-4">
-                                    {navigationShortcuts.map((shortcut) => (
-                                        <button
-                                            key={shortcut.title}
-                                            className={`clean-button ${shortcut.intent === 'primary' ? 'primary' : ''} w-full px-3 sm:px-4 py-3 text-left ${shortcut.disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
-                                            disabled={shortcut.disabled}
-                                            onClick={() => !shortcut.disabled && goTo(shortcut.href)}
-                                        >
-                                            <div className="flex items-center gap-2 sm:gap-3">
-                                                <span className="text-lg sm:text-xl flex-shrink-0" aria-hidden>{shortcut.icon}</span>
-                                                <div className="flex flex-col min-w-0 flex-1">
-                                                    <span className="text-sm sm:text-base font-medium text-foreground">{shortcut.title}</span>
-                                                    <span className="text-xs sm:text-sm text-muted-foreground">{shortcut.description}</span>
-                                                </div>
-                                            </div>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Platform Health - Mobile optimized */}
-                            <div className="clean-card bg-card/95 p-4 sm:p-6 transition-all duration-300">
-                                <div className="border-b border-border pb-3 sm:pb-4 mb-4 sm:mb-6">
-                                    <h2 className="text-base sm:text-lg font-medium text-foreground">Platform Health</h2>
-                                    <p className="text-xs sm:text-sm text-muted-foreground">Everything you need for a smooth training session.</p>
-                                </div>
-                                <div className="space-y-3 sm:space-y-4 text-xs sm:text-sm text-muted-foreground">
-                                    {systemStatus.map((item) => (
-                                        <div key={item.label} className="clean-card bg-background/85 px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between">
-                                            <span className="text-muted-foreground">{item.label}</span>
-                                            <span className={`font-medium ${item.tone}`}>{item.value}</span>
-                                        </div>
-                                    ))}
-                                    <div className="clean-card bg-background/85 px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-2">
-                                        <div className="h-2 w-2 rounded-full bg-emerald-500 flex-shrink-0" />
-                                        <span className="text-xs sm:text-sm text-muted-foreground">System Operational — enjoy uninterrupted sessions.</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
+                    {renderActiveTab()}
                 </div>
             </AppLayout>
         </>

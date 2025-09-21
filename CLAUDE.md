@@ -50,15 +50,6 @@ When working on ANY frontend component or page, you MUST follow the established 
 - `card-header-accent` → soft purple highlight (chart-4 palette)
 
 Headers inherit card typography rules; keep body copy in a separate padded container.
-
-#### 2. **Minimal Color Palette**
-```jsx
-// Use theme-aware colors only
-className="bg-background text-foreground"
-className="bg-card text-card-foreground"
-className="text-muted-foreground" // for secondary text
-```
-
 #### 3. **Typography Hierarchy**
 - **Page titles**: `text-2xl font-semibold text-foreground`
 - **Section headers**: `text-lg font-medium text-foreground`
@@ -100,13 +91,13 @@ className="transition-all duration-200"
 ```
 
 ### ❌ FORBIDDEN Styles:
-- Bright neon colors or gaming aesthetics
+
 - Complex gradients or visual effects
-- Unnecessary animations or transitions
+
 - Overly decorative elements
 - Hard-coded colors (always use CSS variables)
 - Clipped borders or angled corners
-- Glowing or pulsing effects
+
 
 ### 🎯 Quality Checklist:
 Before submitting any UI work, verify:
