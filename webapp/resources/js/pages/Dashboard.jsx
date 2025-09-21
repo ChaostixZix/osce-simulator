@@ -436,11 +436,12 @@ export default function Dashboard({ overview, cases, progress, history, meta, we
                                 <button
                                     className={`clean-button ${caseItem.is_active ? 'primary' : ''} px-4 py-2 text-xs font-medium`}
                                     disabled={!caseItem.is_active}
-                                    onClick={() => router.visit(route('osce', { case: caseItem.id }))}
+                                    onClick={() => router.visit(route('onboarding.show', caseItem.id))}
                                 >
                                     {caseItem.is_active ? 'Start case' : 'Locked'}
                                 </button>
                             </div>
+                        </div>
                         </div>
                     </div>
                 ))}
