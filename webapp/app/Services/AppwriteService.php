@@ -136,15 +136,22 @@ class AppwriteService
     }
 
     /**
-     * Lightweight connectivity probe to validate credentials.
-     *
-     * @return array<string, mixed>
+     * Validate configuration without making network calls.
      */
+    public function validateConfig(): bool
+    {
+        $this->guardConfigured();
+        
+        // Validate permissions by trying to create them
+        $this->collectionPermissions();
+        
+        return true;
+    }
     public function testConnectivity(): array
     {
         $this->ensureClient();
 
-        $databases = $this->databases->list();
+        $databases = $this->retryOperation(fn() => $this->databases->list());
 
         $this->ensureBaseline();
         $ran = $this->listRanMigrations();
@@ -335,10 +342,35 @@ class AppwriteService
             throw new RuntimeException('Appwrite integration is disabled. Set APPWRITE_ENABLED=true to use TablesDB.');
         }
 
-        foreach (['endpoint', 'project_id', 'api_key', 'database_id', 'migrations_collection_id'] as $key) {
+        $requiredKeys = ['endpoint', 'project_id', 'api_key', 'database_id', 'migrations_collection_id'];
+        $missingKeys = [];
+
+        foreach ($requiredKeys as $key) {
             if (empty($this->config[$key])) {
-                throw new RuntimeException("Appwrite configuration [{$key}] is missing.");
+                $missingKeys[] = $key;
             }
+        }
+
+        if (!empty($missingKeys)) {
+            throw new RuntimeException('Appwrite configuration is incomplete. Missing keys: [' . implode(', ', $missingKeys) . '].');
+        }
+
+        // Validate endpoint format
+        $endpoint = $this->config['endpoint'];
+        if (!filter_var($endpoint, FILTER_VALIDATE_URL)) {
+            throw new RuntimeException("Invalid Appwrite endpoint URL: [{$endpoint}].");
+        }
+
+        // Validate project ID format (should be alphanumeric with limited special chars)
+        $projectId = $this->config['project_id'];
+        if (!preg_match('/^[a-zA-Z0-9_-]{3,36}$/', $projectId)) {
+            throw new RuntimeException("Invalid Appwrite project ID format: [{$projectId}]. Should be 3-36 characters long and contain only alphanumeric characters, hyphens, and underscores.");
+        }
+
+        // Basic API key validation (should not be a placeholder)
+        $apiKey = $this->config['api_key'];
+        if (in_array(strtolower($apiKey), ['your_appwrite_api_key', 'changeme', 'placeholder', ''])) {
+            throw new RuntimeException('Appwrite API key appears to be a placeholder. Please set a valid API key.');
         }
     }
 
@@ -347,22 +379,54 @@ class AppwriteService
         $permissions = [];
 
         foreach ($this->config['permissions']['read'] ?? [] as $role) {
+            $this->validateRole($role);
             $permissions[] = Permission::read($role);
         }
 
         foreach ($this->config['permissions']['create'] ?? [] as $role) {
+            $this->validateRole($role);
             $permissions[] = Permission::create($role);
         }
 
         foreach ($this->config['permissions']['update'] ?? [] as $role) {
+            $this->validateRole($role);
             $permissions[] = Permission::update($role);
         }
 
         foreach ($this->config['permissions']['delete'] ?? [] as $role) {
+            $this->validateRole($role);
             $permissions[] = Permission::delete($role);
         }
 
         return array_values(array_unique(array_filter($permissions)));
+    }
+
+    private function validateRole(string $role): void
+    {
+        if (empty($role)) {
+            throw new RuntimeException('Permission role cannot be empty.');
+        }
+
+        // Check for valid role formats (role:all, role:member, users, user:ID, team:ID, etc.)
+        $validPatterns = [
+            '/^role:(all|member|guest)$/',
+            '/^users?$/',
+            '/^user:[a-zA-Z0-9_-]+$/',
+            '/^team:[a-zA-Z0-9_-]+$/',
+            '/^label:[a-zA-Z0-9_-]+$/',
+        ];
+
+        $isValid = false;
+        foreach ($validPatterns as $pattern) {
+            if (preg_match($pattern, $role)) {
+                $isValid = true;
+                break;
+            }
+        }
+
+        if (!$isValid) {
+            throw new RuntimeException("Invalid permission role format: [{$role}]. Expected formats: role:all, role:member, users, user:ID, team:ID, or label:ID.");
+        }
     }
 
     private function isNotFound(AppwriteException $exception): bool
@@ -373,5 +437,38 @@ class AppwriteService
     private function wrapException(string $message, AppwriteException $exception): RuntimeException
     {
         return new RuntimeException("{$message}: {$exception->getMessage()}", $exception->getCode(), $exception);
+    }
+
+    /**
+     * Retry an operation with exponential backoff for transient failures.
+     */
+    private function retryOperation(callable $operation, int $maxRetries = 3): mixed
+    {
+        $lastException = null;
+        
+        for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+            try {
+                return $operation();
+            } catch (AppwriteException $exception) {
+                $lastException = $exception;
+                
+                // Don't retry for client errors (4xx)
+                $statusCode = (int) $exception->getCode();
+                if ($statusCode >= 400 && $statusCode < 500) {
+                    throw $exception;
+                }
+                
+                // Don't retry on the last attempt
+                if ($attempt === $maxRetries) {
+                    break;
+                }
+                
+                // Exponential backoff: 1s, 2s, 4s
+                $delay = pow(2, $attempt - 1);
+                sleep($delay);
+            }
+        }
+        
+        throw $lastException;
     }
 }
