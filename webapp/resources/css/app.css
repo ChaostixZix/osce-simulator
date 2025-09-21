@@ -186,16 +186,17 @@
 
 /* Clean UI Components */
 
-
+@layer components {
 .clean-card {
     position: relative;
     border: 1px solid hsl(var(--border));
     border-radius: calc(var(--radius) + 4px);
-    background: hsl(var(--card) / 0.96);
+    background: hsl(var(--card) / 0.98);
     transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease, background-color 0.25s ease;
     box-shadow:
-        0 1px 3px 0 hsl(var(--foreground) / 0.08),
-        0 1px 2px -1px hsl(var(--foreground) / 0.08);
+        0 2px 8px 0 hsl(var(--foreground) / 0.12),
+        0 1px 3px -1px hsl(var(--foreground) / 0.1),
+        0 0 0 1px hsl(var(--border) / 0.05);
     backdrop-filter: blur(16px) saturate(140%);
     -webkit-backdrop-filter: blur(16px) saturate(140%);
     overflow: hidden;
@@ -222,11 +223,12 @@
 }
 
 .clean-card:hover {
-    transform: translateY(-3px);
+    transform: translateY(-2px);
     border-color: hsl(var(--border) / 0.65);
     box-shadow:
-        0 4px 6px -1px hsl(var(--foreground) / 0.16),
-        0 2px 4px -1px hsl(var(--foreground) / 0.12);
+        0 8px 25px 0 hsl(var(--foreground) / 0.15),
+        0 4px 12px -2px hsl(var(--foreground) / 0.12),
+        0 0 0 1px hsl(var(--border) / 0.1);
 }
 
 .clean-card:hover::before {
@@ -433,4 +435,5 @@
 .cyber-button.primary:hover {
     background: hsl(var(--primary) / 0.9);
     border-color: hsl(var(--primary) / 0.9);
+}
 }

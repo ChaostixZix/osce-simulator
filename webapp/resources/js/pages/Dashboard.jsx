@@ -335,28 +335,7 @@ export default function Dashboard({ overview, cases, progress, history, meta, we
     ];
 
     const renderOverview = () => (
-        <div className="space-y-6">
-            <div className="clean-card p-6 lg:p-8 space-y-6">
-                <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">{welcome?.message}</p>
-                    <h1 className="text-2xl font-semibold text-foreground">{welcome?.title ?? 'Welcome back 👋'}</h1>
-                </div>
-                <div className="grid gap-4 md:grid-cols-3">
-                    {overviewActions.map((action) => (
-                        <button
-                            key={action.label}
-                            className={`clean-button ${action.intent === 'primary' ? 'primary' : ''} text-left px-4 py-4 transition-all duration-200`}
-                            onClick={action.onClick}
-                        >
-                            <div className="flex flex-col gap-1">
-                                <span className="text-sm font-medium text-foreground">{action.label}</span>
-                                <span className="text-xs text-muted-foreground">{action.description}</span>
-                            </div>
-                        </button>
-                    ))}
-                </div>
-            </div>
-
+        <div className="space-y-8">
             <QuickStats stats={overview?.quick_stats} />
 
             <FlowIndicator flow={overview?.flow} />
@@ -369,7 +348,7 @@ export default function Dashboard({ overview, cases, progress, history, meta, we
     );
 
     const renderCases = () => (
-        <div className="space-y-6">
+        <div className="space-y-8">
             <div className="clean-card p-6 space-y-4">
                 <div className="card-header card-header-primary">
                     <div>
@@ -424,9 +403,9 @@ export default function Dashboard({ overview, cases, progress, history, meta, we
                 </div>
             </div>
 
-            <div className="grid gap-4 xl:grid-cols-3 lg:grid-cols-2">
+            <div className="grid gap-6 xl:grid-cols-3 lg:grid-cols-2">
                 {filteredCases.map((caseItem) => (
-                    <div key={caseItem.id} className="clean-card p-6 space-y-4 transition-all duration-200">
+                    <div key={caseItem.id} className="clean-card overflow-hidden transition-all duration-200 hover:scale-[1.02]">
                         <div className="card-header card-header-secondary">
                             <div>
                                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Case #{caseItem.id}</p>
@@ -445,21 +424,23 @@ export default function Dashboard({ overview, cases, progress, history, meta, we
                                 )}
                             </div>
                         </div>
-                        <p className="text-sm text-muted-foreground">{caseItem.summary || 'This case will describe the scenario when you launch it.'}</p>
-                        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                            <span>{formatDuration(caseItem.duration_minutes)}</span>
-                            {caseItem.clinical_setting && <span>• {caseItem.clinical_setting}</span>}
-                            {caseItem.urgency_level && <span>• Urgency {caseItem.urgency_level}</span>}
-                        </div>
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                            <span>{caseItem.completed_attempts} completed / {caseItem.attempts} attempts</span>
-                            <button
-                                className={`clean-button ${caseItem.is_active ? 'primary' : ''} px-3 py-2 text-xs`}
-                                disabled={!caseItem.is_active}
-                                onClick={() => router.visit(route('osce', { case: caseItem.id }))}
-                            >
-                                {caseItem.is_active ? 'Start case' : 'Locked'}
-                            </button>
+                        <div className="p-6 space-y-4">
+                            <p className="text-sm text-muted-foreground leading-relaxed">{caseItem.summary || 'This case will describe the scenario when you launch it.'}</p>
+                            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                                <span className="font-medium">{formatDuration(caseItem.duration_minutes)}</span>
+                                {caseItem.clinical_setting && <span>• {caseItem.clinical_setting}</span>}
+                                {caseItem.urgency_level && <span>• Urgency {caseItem.urgency_level}</span>}
+                            </div>
+                            <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                                <span className="text-xs text-muted-foreground">{caseItem.completed_attempts} completed / {caseItem.attempts} attempts</span>
+                                <button
+                                    className={`clean-button ${caseItem.is_active ? 'primary' : ''} px-4 py-2 text-xs font-medium`}
+                                    disabled={!caseItem.is_active}
+                                    onClick={() => router.visit(route('osce', { case: caseItem.id }))}
+                                >
+                                    {caseItem.is_active ? 'Start case' : 'Locked'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 ))}
@@ -474,7 +455,7 @@ export default function Dashboard({ overview, cases, progress, history, meta, we
     );
 
     const renderProgress = () => (
-        <div className="space-y-6">
+        <div className="space-y-8">
             <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
                 <div className="clean-card p-6 space-y-6">
                     <div className="card-header card-header-primary">
@@ -539,7 +520,7 @@ export default function Dashboard({ overview, cases, progress, history, meta, we
     );
 
     const renderHistory = () => (
-        <div className="space-y-6">
+        <div className="space-y-8">
             <div className="clean-card p-6">
                 <div className="card-header card-header-primary">
                     <div>
@@ -638,32 +619,96 @@ export default function Dashboard({ overview, cases, progress, history, meta, we
             <Head title="Dashboard" />
 
             <AppLayout breadcrumbs={breadcrumbs}>
-                <div className="flex flex-1 flex-col gap-6">
-                    <div className="clean-card p-6 space-y-3">
-                        <div className="flex flex-col gap-2">
-                            <h1 className="text-2xl font-semibold text-foreground">OSCE mission control</h1>
-                            <p className="text-sm text-muted-foreground">
-                                Switch between overview, case planning, analytics, and detailed history without losing context.
+                <div className="flex flex-1 flex-col gap-8">
+                    {/* SaaS-style Hero Section with Animation - Always visible */}
+                    <div className="clean-card p-8 lg:p-12 space-y-8 bg-gradient-to-br from-primary/5 via-background to-primary/5 relative overflow-hidden">
+                        {/* Animated background elements */}
+                        <div className="absolute inset-0 opacity-20">
+                            <div className="absolute top-10 left-10 w-32 h-32 bg-primary/10 rounded-full blur-xl animate-pulse"></div>
+                            <div className="absolute bottom-10 right-10 w-24 h-24 bg-accent/10 rounded-full blur-lg animate-pulse delay-300"></div>
+                            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-primary/5 rounded-full blur-2xl animate-pulse delay-700"></div>
+                        </div>
+                        
+                        <div className="relative z-10 space-y-6">
+                            {/* Welcome Message */}
+                            <div className="text-center space-y-4">
+                                <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full text-primary text-sm font-medium">
+                                    <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                                    {welcome?.message || "System Ready"}
+                                </div>
+                                <h1 className="text-3xl lg:text-4xl font-bold text-foreground bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                                    {welcome?.title ?? 'Welcome back 👋'}
+                                </h1>
+                                <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                                    Your comprehensive OSCE simulation platform is ready. Start a new case, review your progress, or explore the case library.
+                                </p>
+                            </div>
+
+                            {/* Action Cards with Hover Animations */}
+                            <div className="grid gap-6 md:grid-cols-3 mt-8">
+                                {overviewActions.map((action, index) => (
+                                    <button
+                                        key={action.label}
+                                        className={`clean-card p-6 text-left transition-all duration-300 hover:scale-105 hover:shadow-lg group ${
+                                            action.intent === 'primary' 
+                                                ? 'bg-gradient-to-br from-primary/20 to-primary/10 border-primary/30' 
+                                                : 'hover:bg-card/80'
+                                        }`}
+                                        onClick={action.onClick}
+                                        style={{ animationDelay: `${index * 100}ms` }}
+                                    >
+                                        <div className="space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                                                    action.intent === 'primary' ? 'bg-primary/20' : 'bg-primary/10'
+                                                } group-hover:scale-110 transition-transform duration-300`}>
+                                                    <span className="text-primary text-xl">
+                                                        {index === 0 ? '🚀' : index === 1 ? '📚' : '📊'}
+                                                    </span>
+                                                </div>
+                                                <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                                                    <span className="text-primary text-sm">→</span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <h3 className="text-lg font-semibold text-foreground mb-2">{action.label}</h3>
+                                                <p className="text-sm text-muted-foreground leading-relaxed">{action.description}</p>
+                                            </div>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Tab Navigation */}
+                    <div className="clean-card p-6 lg:p-8 space-y-6">
+                        <div className="flex flex-col gap-3">
+                            <h2 className="text-2xl lg:text-3xl font-bold text-foreground">OSCE Mission Control</h2>
+                            <p className="text-muted-foreground max-w-3xl">
+                                Navigate seamlessly between overview, case planning, progress analytics, and detailed session history.
                             </p>
                         </div>
-                        <div className="flex flex-wrap items-center gap-4 border-b border-border pb-2">
+                        <div className="flex flex-wrap items-center gap-8 border-b border-border pb-4">
                             {tabs.map((tab) => (
                                 <button
                                     key={tab.id}
                                     onClick={() => handleTabChange(tab.id)}
-                                    className={`pb-2 text-sm font-medium transition-colors border-b-2 ${
+                                    className={`pb-3 px-2 text-base font-medium transition-all duration-200 border-b-2 hover:scale-105 ${
                                         activeTab === tab.id
                                             ? 'border-primary text-primary'
-                                            : 'border-transparent text-muted-foreground hover:text-foreground'
+                                            : 'border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30'
                                     }`}
                                 >
                                     {tab.label}
                                 </button>
                             ))}
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                            {tabs.find((tab) => tab.id === activeTab)?.description}
-                        </p>
+                        <div className="bg-primary/5 rounded-lg p-4 border border-primary/20">
+                            <p className="text-sm text-foreground font-medium">
+                                {tabs.find((tab) => tab.id === activeTab)?.description}
+                            </p>
+                        </div>
                     </div>
 
                     {renderActiveTab()}
