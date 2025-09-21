@@ -11,6 +11,7 @@
   "require": {
     "php": "^8.2",
     "ext-pdo_pgsql": "*",
+    "appwrite/appwrite": "15.0.0",
     "doctrine/dbal": "^4.3",
     "inertiajs/inertia-laravel": "^2.0",
     "laravel/framework": "^12.0",
