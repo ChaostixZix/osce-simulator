@@ -87,6 +87,15 @@ class AppwriteMigrateCommand extends Command
             }
 
             $this->components->task("Running {$name}", function () use ($path, $name, $batch): void {
+                // Check again if migration was already run (prevents race conditions)
+                $currentRan = $this->appwrite->listRanMigrations();
+                $currentRanNames = array_map(static fn (array $record): string => $record['name'], $currentRan);
+                
+                if (in_array($name, $currentRanNames, true)) {
+                    $this->warn("Migration {$name} was already run by another process, skipping.");
+                    return;
+                }
+                
                 $migration = $this->resolveMigration($path, $name);
                 $migration->up($this->appwrite);
                 $this->appwrite->markMigrationRan($name, $batch);

@@ -20,10 +20,10 @@ return [
     'migrations_collection_name' => env('APPWRITE_MIGRATIONS_COLLECTION_NAME', 'Appwrite Migrations'),
 
     'permissions' => [
-        'read' => array_values(array_filter(array_map('trim', explode(',', env('APPWRITE_COLLECTION_READ_ROLES', 'users'))))),
-        'create' => array_values(array_filter(array_map('trim', explode(',', env('APPWRITE_COLLECTION_CREATE_ROLES', 'users'))))),
-        'update' => array_values(array_filter(array_map('trim', explode(',', env('APPWRITE_COLLECTION_UPDATE_ROLES', 'users'))))),
-        'delete' => array_values(array_filter(array_map('trim', explode(',', env('APPWRITE_COLLECTION_DELETE_ROLES', 'users'))))),
+        'read' => array_values(array_filter(array_map('trim', explode(',', env('APPWRITE_COLLECTION_READ_ROLES', 'role:all'))))),
+        'create' => array_values(array_filter(array_map('trim', explode(',', env('APPWRITE_COLLECTION_CREATE_ROLES', 'role:all'))))),
+        'update' => array_values(array_filter(array_map('trim', explode(',', env('APPWRITE_COLLECTION_UPDATE_ROLES', 'role:all'))))),
+        'delete' => array_values(array_filter(array_map('trim', explode(',', env('APPWRITE_COLLECTION_DELETE_ROLES', 'role:all'))))),
     ],
 
     'migrations' => [
