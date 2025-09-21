@@ -240,7 +240,7 @@ class AppwriteService
             $key,
             $size,
             $required,
-            $default,
+            $required ? null : $default,
             $isArray ? true : null,
             $encrypt
         );
@@ -265,7 +265,7 @@ class AppwriteService
             $required,
             $min,
             $max,
-            $default,
+            $required ? null : $default,
             $isArray ? true : null
         );
     }
@@ -287,7 +287,7 @@ class AppwriteService
             $collectionId,
             $key,
             $required,
-            $default,
+            $required ? null : $default,
             $isArray ? true : null
         );
     }

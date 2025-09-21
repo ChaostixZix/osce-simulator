@@ -8,11 +8,6 @@ Panduan ini menjelaskan langkah yang perlu kamu lakukan untuk menyalakan integra
   - Endpoint: `https://syd.cloud.appwrite.io/v1`
   - Project ID: `project-syd-68bdb4430034982b7654`
   - API Key: kunci API standar dengan scope database (`standard_3956…`).
-- Siapkan ID database dan koleksi yang ingin kamu gunakan. Secara default konfigurasi aplikasi mengandaikan:
-  - Database ID: `vibe-primary`
-  - Database Name: `Vibe Kanban Tables`
-  - Koleksi migrasi: `appwrite_migrations`
-
 > Kamu bisa mengganti nilai default di `.env` jika ingin memakai ID lain, asalkan konsisten antara environment dan Appwrite Console.
 
 ## 2. Konfigurasi Environment
@@ -21,10 +16,10 @@ Tambahkan/ubah variabel berikut di `.env` (nilai contoh gunakan kredensial milik
 ```dotenv
 APPWRITE_ENABLED=true
 APPWRITE_ENDPOINT=https://syd.cloud.appwrite.io/v1
-APPWRITE_PROJECT_ID=project-syd-68bdb4430034982b7654
+APPWRITE_PROJECT_ID=68bdb4430034982b7654
 APPWRITE_API_KEY=standard_39563704fd49885fb39759e2c23b4792b7c55b35c52903d6529cf3ba7b81ecf08e8b6a62d90537824485529369fa1a131571fadfded7358599f685462a1002d6bc78fd5d9673f8cce83fd4940f01b1496933d1376b4b549cef3d5b1403f34aadf33e13346a81aab297b66e9bc2d24aabffd83f67834086c2cec62f3c6fcf2519
-APPWRITE_DATABASE_ID=vibe-primary
-APPWRITE_DATABASE_NAME="Vibe Kanban Tables"
+APPWRITE_DATABASE_ID=68bdb4ba003c2edf4879
+APPWRITE_DATABASE_NAME="osce.simulator"
 APPWRITE_MIGRATIONS_COLLECTION_ID=appwrite_migrations
 APPWRITE_MIGRATIONS_COLLECTION_NAME="Appwrite Migrations"
 APPWRITE_COLLECTION_READ_ROLES=role:all
