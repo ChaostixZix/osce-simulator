@@ -104,47 +104,50 @@ export default function Dashboard({ stats, welcome }) {
             <Head title="dashboard" />
 
             <AppLayout breadcrumbs={breadcrumbs}>
-                <div className="flex h-full flex-1 flex-col gap-10">
-                    <section className="clean-card bg-card/95 p-8 transition-all duration-300">
-                        <div className="grid gap-8 lg:grid-cols-[1.2fr_1fr] items-center">
+                <div className="flex h-full flex-1 flex-col gap-6 sm:gap-8">
+                    {/* Welcome Section - Mobile optimized */}
+                    <section className="clean-card bg-card/95 p-4 sm:p-6 lg:p-8 transition-all duration-300">
+                        <div className="flex flex-col space-y-6 lg:grid lg:gap-8 lg:grid-cols-[1.2fr_1fr] lg:items-center lg:space-y-0">
                             <div className="space-y-4">
                                 <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 dark:bg-emerald-950/30 px-3 py-1 text-sm font-medium text-emerald-600 dark:text-emerald-400">
                                     <span className="w-2 h-2 rounded-full bg-emerald-500" />
                                     <span>Training Mode Active</span>
                                 </div>
-                                <div className="space-y-3">
-                                    <h1 className="text-2xl font-semibold text-foreground">
+                                <div className="space-y-2 sm:space-y-3">
+                                    <h1 className="text-xl sm:text-2xl font-semibold text-foreground">
                                         {welcome?.title || 'Welcome back'}
                                     </h1>
-                                    <p className="text-muted-foreground text-lg">
+                                    <p className="text-muted-foreground text-base sm:text-lg">
                                         {welcome?.message || 'Practice clinical skills and track your OSCE progress.'}
                                     </p>
                                 </div>
-                                <div className="flex flex-wrap items-center gap-3">
+                                <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
                                     <button
-                                        className="clean-button primary px-5 py-2.5 text-base"
+                                        className="clean-button primary px-4 sm:px-5 py-2.5 text-sm sm:text-base text-center"
                                         onClick={() => goTo(route('osce'))}
                                     >
                                         Start new simulation
                                     </button>
                                     <button
-                                        className="clean-button px-5 py-2.5 text-base"
+                                        className="clean-button px-4 sm:px-5 py-2.5 text-sm sm:text-base text-center"
                                         onClick={() => goTo(route('osce.results.index'))}
                                     >
                                         View performance history
                                     </button>
                                 </div>
                             </div>
-                            <div className="clean-card bg-background/95 p-6 transition-all duration-300">
-                                <div className="space-y-5">
+
+                            {/* Stats Section - Mobile optimized */}
+                            <div className="clean-card bg-background/95 p-4 sm:p-6 transition-all duration-300">
+                                <div className="space-y-4 sm:space-y-5">
                                     {primaryStats.map((item) => (
-                                        <div key={item.label} className="flex items-start justify-between gap-4">
-                                            <div className="space-y-1">
-                                                <p className={`text-sm font-medium ${item.accent}`}>{item.badge}</p>
-                                                <p className="text-lg font-medium text-foreground">{item.label}</p>
-                                                <p className="text-sm text-muted-foreground">{item.description}</p>
+                                        <div key={item.label} className="flex items-start justify-between gap-3 sm:gap-4">
+                                            <div className="space-y-1 min-w-0 flex-1">
+                                                <p className={`text-xs sm:text-sm font-medium ${item.accent}`}>{item.badge}</p>
+                                                <p className="text-base sm:text-lg font-medium text-foreground">{item.label}</p>
+                                                <p className="text-xs sm:text-sm text-muted-foreground">{item.description}</p>
                                             </div>
-                                            <span className="text-3xl font-semibold text-foreground">{item.value.toLocaleString()}</span>
+                                            <span className="text-2xl sm:text-3xl font-semibold text-foreground flex-shrink-0">{item.value.toLocaleString()}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -152,38 +155,40 @@ export default function Dashboard({ stats, welcome }) {
                         </div>
                     </section>
 
-                    <section className="grid gap-6 lg:grid-cols-[1fr_0.65fr] xl:grid-cols-[1.1fr_0.6fr]">
+                    {/* Main Content - Mobile first, then larger screens */}
+                    <section className="space-y-6 lg:grid lg:gap-6 lg:grid-cols-[1fr_0.65fr] xl:grid-cols-[1.1fr_0.6fr] lg:space-y-0">
                         <div className="space-y-6">
-                            <div className="clean-card bg-card/95 p-6 transition-all duration-300">
-                                <div className="border-b border-border pb-4 mb-4">
-                                    <h2 className="text-lg font-medium text-foreground">Today&apos;s Focus Tracks</h2>
-                                    <p className="text-sm text-muted-foreground">Stay aligned with your learning plan and pick up where you left off.</p>
+                            {/* Focus Tracks - Mobile optimized */}
+                            <div className="clean-card bg-card/95 p-4 sm:p-6 transition-all duration-300">
+                                <div className="border-b border-border pb-3 sm:pb-4 mb-4 sm:mb-6">
+                                    <h2 className="text-base sm:text-lg font-medium text-foreground">Today's Focus Tracks</h2>
+                                    <p className="text-xs sm:text-sm text-muted-foreground">Stay aligned with your learning plan and pick up where you left off.</p>
                                 </div>
-                                <div className="space-y-5">
+                                <div className="space-y-4 sm:space-y-5">
                                     {focusTracks.map((track) => (
-                                        <div key={track.title} className="clean-card bg-background/85 p-4 transition-all duration-300">
-                                            <div className="flex items-start justify-between gap-3">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-2xl" aria-hidden>{track.icon}</span>
-                                                    <div>
-                                                        <p className="text-base font-medium text-foreground">{track.title}</p>
-                                                        <p className="text-sm text-muted-foreground">{track.description}</p>
+                                        <div key={track.title} className="clean-card bg-background/85 p-3 sm:p-4 transition-all duration-300">
+                                            <div className="flex flex-col space-y-3 sm:flex-row sm:items-start sm:justify-between sm:gap-3 sm:space-y-0">
+                                                <div className="flex items-start gap-3 min-w-0 flex-1">
+                                                    <span className="text-xl sm:text-2xl flex-shrink-0" aria-hidden>{track.icon}</span>
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="text-sm sm:text-base font-medium text-foreground">{track.title}</p>
+                                                        <p className="text-xs sm:text-sm text-muted-foreground">{track.description}</p>
                                                     </div>
                                                 </div>
-                                                <span className="inline-flex items-center gap-1 rounded-full border border-border/50 bg-card/75 px-3 py-1 text-xs font-medium text-muted-foreground">
+                                                <span className="inline-flex items-center gap-1 rounded-full border border-border/50 bg-card/75 px-2 sm:px-3 py-1 text-xs font-medium text-muted-foreground flex-shrink-0">
                                                     {track.status}
                                                 </span>
                                             </div>
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-3">
                                                 <button
-                                                    className={`clean-button ${track.action ? 'primary' : ''} px-4 py-2 text-sm`}
+                                                    className={`clean-button ${track.action ? 'primary' : ''} px-3 sm:px-4 py-2 text-xs sm:text-sm`}
                                                     disabled={!track.action}
                                                     onClick={() => track.action?.()}
                                                 >
                                                     {track.cta}
                                                 </button>
                                                 {!track.action && (
-                                                    <span className="text-xs text-muted-foreground">We&apos;ll notify you when it unlocks.</span>
+                                                    <span className="text-xs text-muted-foreground">We'll notify you when it unlocks.</span>
                                                 )}
                                             </div>
                                         </div>
@@ -191,25 +196,25 @@ export default function Dashboard({ stats, welcome }) {
                                 </div>
                             </div>
 
-                            <div className="clean-card bg-card/95 p-6 transition-all duration-300">
-                                <div className="border-b border-border pb-4 mb-4">
-                                    <h2 className="text-lg font-medium text-foreground">Highlights & Momentum</h2>
-                                    <p className="text-sm text-muted-foreground">Track your progression at a glance and celebrate recent wins.</p>
+                            {/* Highlights Section - Mobile optimized */}
+                            <div className="clean-card bg-card/95 p-4 sm:p-6 transition-all duration-300">
+                                <div className="border-b border-border pb-3 sm:pb-4 mb-4 sm:mb-6">
+                                    <h2 className="text-base sm:text-lg font-medium text-foreground">Highlights & Momentum</h2>
+                                    <p className="text-xs sm:text-sm text-muted-foreground">Track your progression at a glance and celebrate recent wins.</p>
                                 </div>
-                                <div className="grid gap-4 md:grid-cols-2">
+                                <div className="grid gap-4 sm:grid-cols-2">
                                     {engagementHighlights.map((highlight) => (
-                                        <div key={highlight.title} className="clean-card bg-background/85 p-5">
+                                        <div key={highlight.title} className="clean-card bg-background/85 p-4 sm:p-5">
                                             <div className="flex items-center justify-between">
-                                                <p className="text-sm font-medium text-foreground">{highlight.title}</p>
-                                                <span className={`text-base font-semibold ${highlight.accent === 'emerald' ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                                                <p className="text-xs sm:text-sm font-medium text-foreground">{highlight.title}</p>
+                                                <span className={`text-sm sm:text-base font-semibold ${highlight.accent === 'emerald' ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-600 dark:text-blue-400'}`}>
                                                     {highlight.metric}
                                                 </span>
                                             </div>
-                                            <p className="mt-1 text-sm text-muted-foreground">{highlight.caption}</p>
-                                            <div className="mt-4 flex h-16 items-end gap-1">
+                                            <p className="mt-1 text-xs sm:text-sm text-muted-foreground">{highlight.caption}</p>
+                                            <div className="mt-3 sm:mt-4 flex h-12 sm:h-16 items-end gap-1">
                                                 {highlight.chart.map((value, idx) => (
                                                     <span
-                                                        // Approximate spark bars based on relative value
                                                         key={`${highlight.title}-${idx}`}
                                                         className={`flex-1 rounded-t-sm ${highlight.accent === 'emerald' ? 'bg-emerald-500/70 dark:bg-emerald-500/40' : 'bg-blue-500/70 dark:bg-blue-500/40'} transition-opacity duration-200 hover:opacity-90`}
                                                         style={{ height: `${Math.max(30, value)}%` }}
@@ -222,25 +227,27 @@ export default function Dashboard({ stats, welcome }) {
                             </div>
                         </div>
 
+                        {/* Sidebar Content - Mobile optimized */}
                         <div className="space-y-6">
-                            <div className="clean-card bg-card/95 p-6 transition-all duration-300">
-                                <div className="border-b border-border pb-4 mb-4">
-                                    <h2 className="text-lg font-medium text-foreground">Jump Back In</h2>
-                                    <p className="text-sm text-muted-foreground">Browse the areas that keep momentum strong.</p>
+                            {/* Jump Back In - Mobile optimized */}
+                            <div className="clean-card bg-card/95 p-4 sm:p-6 transition-all duration-300">
+                                <div className="border-b border-border pb-3 sm:pb-4 mb-4 sm:mb-6">
+                                    <h2 className="text-base sm:text-lg font-medium text-foreground">Jump Back In</h2>
+                                    <p className="text-xs sm:text-sm text-muted-foreground">Browse the areas that keep momentum strong.</p>
                                 </div>
-                                <div className="space-y-4">
+                                <div className="space-y-3 sm:space-y-4">
                                     {navigationShortcuts.map((shortcut) => (
                                         <button
                                             key={shortcut.title}
-                                            className={`clean-button ${shortcut.intent === 'primary' ? 'primary' : ''} w-full px-4 py-3 text-left ${shortcut.disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                            className={`clean-button ${shortcut.intent === 'primary' ? 'primary' : ''} w-full px-3 sm:px-4 py-3 text-left ${shortcut.disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
                                             disabled={shortcut.disabled}
                                             onClick={() => !shortcut.disabled && goTo(shortcut.href)}
                                         >
-                                            <div className="flex items-center gap-3">
-                                                <span className="text-xl" aria-hidden>{shortcut.icon}</span>
-                                                <div className="flex flex-col">
-                                                    <span className="text-base font-medium text-foreground">{shortcut.title}</span>
-                                                    <span className="text-sm text-muted-foreground">{shortcut.description}</span>
+                                            <div className="flex items-center gap-2 sm:gap-3">
+                                                <span className="text-lg sm:text-xl flex-shrink-0" aria-hidden>{shortcut.icon}</span>
+                                                <div className="flex flex-col min-w-0 flex-1">
+                                                    <span className="text-sm sm:text-base font-medium text-foreground">{shortcut.title}</span>
+                                                    <span className="text-xs sm:text-sm text-muted-foreground">{shortcut.description}</span>
                                                 </div>
                                             </div>
                                         </button>
@@ -248,21 +255,22 @@ export default function Dashboard({ stats, welcome }) {
                                 </div>
                             </div>
 
-                            <div className="clean-card bg-card/95 p-6 transition-all duration-300">
-                                <div className="border-b border-border pb-4 mb-4">
-                                    <h2 className="text-lg font-medium text-foreground">Platform Health</h2>
-                                    <p className="text-sm text-muted-foreground">Everything you need for a smooth training session.</p>
+                            {/* Platform Health - Mobile optimized */}
+                            <div className="clean-card bg-card/95 p-4 sm:p-6 transition-all duration-300">
+                                <div className="border-b border-border pb-3 sm:pb-4 mb-4 sm:mb-6">
+                                    <h2 className="text-base sm:text-lg font-medium text-foreground">Platform Health</h2>
+                                    <p className="text-xs sm:text-sm text-muted-foreground">Everything you need for a smooth training session.</p>
                                 </div>
-                                <div className="space-y-4 text-sm text-muted-foreground">
+                                <div className="space-y-3 sm:space-y-4 text-xs sm:text-sm text-muted-foreground">
                                     {systemStatus.map((item) => (
-                                        <div key={item.label} className="clean-card bg-background/85 px-4 py-3 flex items-center justify-between">
+                                        <div key={item.label} className="clean-card bg-background/85 px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between">
                                             <span className="text-muted-foreground">{item.label}</span>
                                             <span className={`font-medium ${item.tone}`}>{item.value}</span>
                                         </div>
                                     ))}
-                                    <div className="clean-card bg-background/85 px-4 py-3 flex items-center gap-2">
-                                        <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                                        <span className="text-sm text-muted-foreground">System Operational — enjoy uninterrupted sessions.</span>
+                                    <div className="clean-card bg-background/85 px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-2">
+                                        <div className="h-2 w-2 rounded-full bg-emerald-500 flex-shrink-0" />
+                                        <span className="text-xs sm:text-sm text-muted-foreground">System Operational — enjoy uninterrupted sessions.</span>
                                     </div>
                                 </div>
                             </div>
