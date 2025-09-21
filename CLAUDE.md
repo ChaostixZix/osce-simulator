@@ -50,15 +50,6 @@ When working on ANY frontend component or page, you MUST follow the established 
 - `card-header-accent` → soft purple highlight (chart-4 palette)
 
 Headers inherit card typography rules; keep body copy in a separate padded container.
-
-#### 2. **Minimal Color Palette**
-```jsx
-// Use theme-aware colors only
-className="bg-background text-foreground"
-className="bg-card text-card-foreground"
-className="text-muted-foreground" // for secondary text
-```
-
 #### 3. **Typography Hierarchy**
 - **Page titles**: `text-2xl font-semibold text-foreground`
 - **Section headers**: `text-lg font-medium text-foreground`
@@ -100,13 +91,13 @@ className="transition-all duration-200"
 ```
 
 ### ❌ FORBIDDEN Styles:
-- Bright neon colors or gaming aesthetics
+
 - Complex gradients or visual effects
-- Unnecessary animations or transitions
+
 - Overly decorative elements
 - Hard-coded colors (always use CSS variables)
 - Clipped borders or angled corners
-- Glowing or pulsing effects
+
 
 ### 🎯 Quality Checklist:
 Before submitting any UI work, verify:
@@ -262,6 +253,59 @@ Route files are located in `webapp/routes`.
   - Keep code examples concise - show structure, not full implementations
   - Explain the educational/technical problem being solved
   - Ensure next AI understands the reasoning behind architectural decisions
+
+## **Gemini CLI for Large Codebase Analysis**
+
+- **Always use codebase analysis before implementing tasks**
+- **Check if @documentation.md exists and is up-to-date** - if it exists, refer to it instead of reindexing the codebase
+- **If documentation is outdated, use Gemini CLI first** to understand the codebase, then update documentation.md
+- **When adding new knowledge, tell Gemini CLI to update documentation.md** with context to avoid full reindexing
+- **If Gemini CLI fails, retry up to 3 times before falling back to other methods**
+
+### **When to Use Gemini CLI**
+ALWAYS use `gemini -p` as the first approach for:
+- ANY codebase analysis or understanding task
+- Analyzing entire codebases or large directories
+- Comparing multiple large files
+- Understanding project-wide patterns or architecture
+- Working with files totaling more than 100KB
+- Verifying if specific features, patterns, or security measures are implemented
+- Checking for the presence of certain coding patterns across the entire codebase
+- Creating comprehensive documentation
+- Understanding project structure and dependencies
+
+### **File Inclusion Syntax**
+Use `@` syntax to include files/directories in Gemini prompts:
+```bash
+# Single file analysis
+gemini -p "@src/main.py Explain this file's purpose and structure"
+
+# Multiple files
+gemini -p "@package.json @src/index.js Analyze the dependencies used in the code"
+
+# Entire directory
+gemini -p "@src/ Summarize the architecture of this codebase"
+
+# Current directory and subdirectories
+gemini -p "@./ Give me an overview of this entire project"
+
+# Or use -a flag
+gemini -a -p "Analyze the project structure and dependencies"
+```
+
+### **Mandatory Retry Protocol**
+For ANY failed Gemini command, you MUST:
+1. **Attempt 1**: Execute the original gemini command
+2. **Attempt 2**: If failed, retry the exact same command (may be temporary network/API issue)
+3. **Attempt 3**: If failed again, try with a simpler or more focused prompt
+4. **Attempt 4**: Only after 3 failures, fall back to manual file reading
+
+### **Important Notes**
+- Paths in @ syntax are relative to your current working directory when invoking gemini
+- The CLI will include file contents directly in the context
+- No need for --yolo flag for read-only analysis
+- Gemini's context window can handle entire codebases that would overflow Claude's context
+- When checking implementations, be specific about what you're looking for to get accurate results
 
 ## Vibe Kanban Guidelines (Concise)
 
