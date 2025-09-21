@@ -14,9 +14,13 @@ Notes during React migration
 - **OSCE Case Library** - Clinical cases with structured objectives and difficulty levels
 - **Session Tracking** - Progress monitoring and performance analytics
 
-## 📸 Screenshot
+## 📸 Screenshots
 
-![Application Screenshot](./application-screenshot.png)
+### Landing Page
+![Landing Page Screenshot](./application-screenshot.png)
+
+### Dashboard Interface
+![Dashboard Screenshot](https://github.com/user-attachments/assets/2138b82f-40ed-48cc-82d1-7f0b0bec5de0)
 
 ## 🛠 Technology Stack
 
