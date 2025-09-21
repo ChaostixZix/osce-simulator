@@ -131,43 +131,45 @@
             </div>
           </div>
 
-          <!-- Diagnosis & Plan Section -->
-          <div class="space-y-6">
-            <h2 class="text-2xl font-bold text-gray-900">
-              2. Diagnosis & Care Plan
-            </h2>
-            
-            <DiagnosisModal 
-              :rationalization="rationalization"
-              @submitted="handleDiagnosesSubmitted"
-            />
-            
-            <CarePlanEditor
-              :rationalization="rationalization" 
-              @submitted="handleCarePlanSubmitted"
-            />
-          </div>
+          <template v-if="showPostSessionForms">
+            <!-- Diagnosis & Plan Section -->
+            <div class="space-y-6">
+              <h2 class="text-2xl font-bold text-gray-900">
+                2. Diagnosis & Care Plan
+              </h2>
+              
+              <DiagnosisModal 
+                :rationalization="rationalization"
+                @submitted="handleDiagnosesSubmitted"
+              />
+              
+              <CarePlanEditor
+                :rationalization="rationalization" 
+                @submitted="handleCarePlanSubmitted"
+              />
+            </div>
 
-          <!-- Complete Button -->
-          <div class="pt-8">
-            <button
-              @click="completeRationalization"
-              :disabled="!canComplete || processing"
-              class="w-full py-4 px-6 text-white font-semibold rounded-lg transition-colors duration-200"
-              :class="canComplete && !processing
-                ? 'bg-green-600 hover:bg-green-700' 
-                : 'bg-gray-400 cursor-not-allowed'
-              "
-            >
-              <div v-if="processing" class="flex items-center justify-center space-x-2">
-                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                <span>Processing...</span>
-              </div>
-              <span v-else>
-                {{ canComplete ? 'Complete Rationalization & View Results' : 'Complete All Sections Above' }}
-              </span>
-            </button>
-          </div>
+            <!-- Complete Button -->
+            <div class="pt-8">
+              <button
+                @click="completeRationalization"
+                :disabled="!canComplete || processing"
+                class="w-full py-4 px-6 text-white font-semibold rounded-lg transition-colors duration-200"
+                :class="canComplete && !processing
+                  ? 'bg-green-600 hover:bg-green-700' 
+                  : 'bg-gray-400 cursor-not-allowed'
+                "
+              >
+                <div v-if="processing" class="flex items-center justify-center space-x-2">
+                  <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  <span>Processing...</span>
+                </div>
+                <span v-else>
+                  {{ canComplete ? 'Complete Rationalization & View Results' : 'Complete All Sections Above' }}
+                </span>
+              </button>
+            </div>
+          </template>
         </div>
 
         <!-- Sidebar -->
@@ -286,6 +288,17 @@ export default {
     const processing = ref(false)
     const localProgress = ref(props.progress)
 
+    const showPostSessionForms = computed(() => {
+      const status = props.session?.status ?? ''
+      const endedStatuses = ['completed', 'finalized', 'ended']
+
+      if (!endedStatuses.includes(status)) {
+        return false
+      }
+
+      return !props.session?.is_rationalization_complete
+    })
+
     const askedQuestionCards = computed(() => {
       return props.rationalization.cards?.filter(card => card.card_type === 'asked_question') || []
     })
@@ -371,6 +384,7 @@ export default {
     return {
       processing,
       localProgress,
+      showPostSessionForms,
       askedQuestionCards,
       negativeAnamnesisCards,
       investigationCards,
