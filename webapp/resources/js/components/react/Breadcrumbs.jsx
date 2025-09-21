@@ -21,11 +21,11 @@ export default function Breadcrumbs({ items = [] }) {
               {index > 0 && <li className="px-1 text-muted-foreground/70">/</li>}
               <li>
                 {isLast || !item.href ? (
-                  <span aria-current={isLast ? 'page' : undefined} className={isLast ? 'font-medium text-neutral-100' : ''}>
+                  <span aria-current={isLast ? 'page' : undefined} className={isLast ? 'font-medium text-foreground' : ''}>
                     {item.title}
                   </span>
                 ) : (
-                  <Link href={item.href} className="hover:text-neutral-100 underline-offset-4 hover:underline">
+                  <Link href={item.href} className="hover:text-foreground underline-offset-4 hover:underline">
                     {item.title}
                   </Link>
                 )}
