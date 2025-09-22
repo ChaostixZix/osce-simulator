@@ -442,7 +442,6 @@ export default function Dashboard({ overview, cases, progress, history, meta, we
                                 </button>
                             </div>
                         </div>
-                        </div>
                     </div>
                 ))}
                 {filteredCases.length === 0 && (

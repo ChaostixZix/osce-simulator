@@ -146,7 +146,7 @@ The application follows a standard Laravel structure with Inertia for the fronte
 
 ### Models
 
-Located in `webapp/app/Models`, these Eloquent models interact with the database.
+Located in `app/Models`, these Eloquent models interact with the database.
 
 - `User`: Manages user data and authentication.
 - `OsceCase`: Represents an OSCE case scenario.
@@ -162,7 +162,7 @@ Located in `webapp/app/Models`, these Eloquent models interact with the database
 
 ### Controllers
 
-Located in `webapp/app/Http/Controllers`, these handle the application's business logic.
+Located in `app/Http/Controllers`, these handle the application's business logic.
 
 - `LandingController`: Manages the home page.
 - `OsceController`: Handles core OSCE functionality, including starting sessions, ordering tests, and managing timers.
@@ -175,7 +175,7 @@ Located in `webapp/app/Http/Controllers`, these handle the application's busines
 
 ### Routing
 
-Route files are located in `webapp/routes`.
+Route files are located in `routes`.
 
 - `web.php`: Defines the main application routes, including the dashboard, OSCE, and forum. Most routes are protected by `auth` middleware.
 - `auth.php`: Handles user authentication (login, logout) via WorkOS.

@@ -11,10 +11,10 @@
         "laravel-boost": {
             "command": "php",
             "args": [
-                "./webapp/artisan",
+                "./artisan",
                 "boost:mcp"
             ],
-            "cwd": "/home/bintangputra/osce.simulator/webapp"
+            "cwd": "/home/bintangputra/osce.simulator"
         }
     }
 }
