@@ -1,10 +1,10 @@
 {
   "version": 2,
-  "buildCommand": "cd webapp && npm ci && npm run build",
-  "outputDirectory": "webapp/public",
+  "buildCommand": "npm ci && npm run build",
+  "outputDirectory": "public",
   "builds": [
     {
-      "src": "webapp/public/**",
+      "src": "public/**",
       "use": "@vercel/static"
     },
     {
@@ -15,11 +15,11 @@
   "routes": [
     {
       "src": "/build/(.*)",
-      "dest": "/webapp/public/build/$1"
+      "dest": "/public/build/$1"
     },
     {
       "src": "/(.*\\.(css|js|ico|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot))",
-      "dest": "/webapp/public/$1"
+      "dest": "/public/$1"
     },
     {
       "src": "/(.*)",
