@@ -193,6 +193,7 @@ class PatientVisualizerService
                 'image_path' => $savedImage['path'],
                 'prompt' => $prompt,
                 'enhanced_prompt' => $enhancedPrompt,
+                'demographics' => $options['demographics'] ?? null,
                 'mime_type' => $mimeType,
                 'generated_at' => now(),
                 'type' => 'gemini_ai_generated',
@@ -218,19 +219,52 @@ class PatientVisualizerService
      */
     private function enhancePromptForMedicalTraining(string $userPrompt, array $options = []): string
     {
+        // Extract demographics from options if available
+        $demographics = $options['demographics'] ?? [];
+        $age = $demographics['age'] ?? 'middle-aged';
+        $gender = $demographics['gender'] ?? 'patient';
+        $ethnicity = $demographics['ethnicity'] ?? 'Southeast Asian';
+        
+        // Determine clinical setting based on prompt or options
+        $isEmergency = stripos($userPrompt, 'emergency') !== false || 
+                      stripos($userPrompt, 'acute') !== false ||
+                      stripos($userPrompt, 'ugd') !== false ||
+                      stripos($userPrompt, 'chest pain') !== false ||
+                      stripos($userPrompt, 'dyspnea') !== false;
+        
+        $settingDescription = $isEmergency ? 
+            "Busy emergency department (UGD) setting with medical equipment in background, IV poles, monitoring screens, medical staff partially visible, typical hospital emergency atmosphere" :
+            "Clean clinical examination room with proper medical lighting, examination table, medical equipment neatly arranged";
+        
         $enhancedPrompt = sprintf(
-            "Create a professional medical illustration showing: %s. " .
-            "Style: Clean, medical training material appropriate for healthcare education. " .
-            "Requirements: " .
-            "- Professional medical photography style " .
-            "- Appropriate for educational use " .
-            "- Non-graphic and suitable for medical students " .
-            "- Clear, well-lit clinical setting " .
-            "- Patient appears comfortable and dignified " .
-            "- Include subtle medical context elements " .
-            "- High quality, realistic representation " .
-            "- Safe for work and educational purposes",
-            $userPrompt
+            "Create an animated hyperrealistic medical visualization showing: %s\n\n" .
+            "PATIENT DETAILS:\n" .
+            "- Age: %s years old\n" .
+            "- Gender: %s\n" .
+            "- Ethnicity: %s\n" .
+            "- Expression: Show appropriate medical condition expression (pain, discomfort, concern, or distress based on condition)\n" .
+            "- Position: Natural clinical positioning based on condition\n\n" .
+            "CLINICAL SETTING:\n" .
+            "- Location: %s\n" .
+            "- Lighting: Clinical hospital lighting mix (overhead lights + natural light from windows)\n" .
+            "- Atmosphere: Authentic hospital environment with subtle motion blur effects\n\n" .
+            "VISUAL STYLE REQUIREMENTS:\n" .
+            "- Animated hyperrealistic style with cinematic quality\n" .
+            "- 8K resolution, photorealistic detail\n" .
+            "- Natural skin texture with realistic pores and fine details\n" .
+            "- Subtle animations: breathing movements, blinking, slight micro-expressions\n" .
+            "- Depth of field with medical equipment in soft focus\n" .
+            "- Color grading: Natural hospital colors with slight cinematic teal-orange contrast\n" .
+            "- Medical accuracy: Proper positioning, equipment, and clinical protocols\n" .
+            "- Educational value: Clear visualization of medical condition while maintaining patient dignity\n\n" .
+            "TECHNICAL SPECIFICATIONS:\n" .
+            "- Photorealistic rendering with subsurface scattering\n" .
+            "Safe for medical education, non-graphic but clinically accurate",
+            $userPrompt,
+            $age,
+            $gender,
+            $ethnicity,
+            $settingDescription
         );
 
         return $enhancedPrompt;
@@ -327,6 +361,7 @@ class PatientVisualizerService
                 'image_path' => $cachedVisualization->image_path,
                 'prompt' => $prompt,
                 'generated_at' => $cachedVisualization->generated_at,
+                'demographics' => $options['demographics'] ?? null,
                 'cached' => true,
                 'type' => 'cached'
             ];
@@ -343,34 +378,40 @@ class PatientVisualizerService
     {
         return [
             'chest-pain' => [
-                'prompt' => 'Adult male patient experiencing acute chest pain, sitting upright, hand on chest, in emergency department',
-                'description' => 'Acute Chest Pain Patient',
-                'category' => 'cardiology'
+                'prompt' => '45-year-old male patient experiencing acute substernal chest pain, radiating to left arm and jaw, diaphoretic, sitting upright on emergency department bed with IV line, cardiac monitor visible, showing expression of severe discomfort and anxiety',
+                'description' => 'Acute Coronary Syndrome - Emergency Department',
+                'category' => 'cardiology',
+                'demographics' => ['age' => 45, 'gender' => 'male', 'ethnicity' => 'Southeast Asian']
             ],
             'dyspnea' => [
-                'prompt' => 'Adult female patient with difficulty breathing, using accessory muscles, seated position in clinical setting',
-                'description' => 'Dyspnea Patient',
-                'category' => 'pulmonology'
+                'prompt' => '62-year-old female patient with acute respiratory distress, tripod position, using accessory muscles, nasal flaring, oxygen mask in place, emergency department setting with respiratory therapist attending',
+                'description' => 'Acute Respiratory Failure - Emergency',
+                'category' => 'pulmonology',
+                'demographics' => ['age' => 62, 'gender' => 'female', 'ethnicity' => 'Southeast Asian']
             ],
             'abdominal-pain' => [
-                'prompt' => 'Adult patient with severe abdominal pain, lying on examination table, guarding posture',
-                'description' => 'Abdominal Pain Patient',
-                'category' => 'gastroenterology'
+                'prompt' => '38-year-old patient with severe acute abdominal pain, lying in fetal position on emergency stretcher, guarding abdomen, facial expression of acute distress, emergency department with surgical team preparing',
+                'description' => 'Acute Abdomen - Surgical Emergency',
+                'category' => 'gastroenterology',
+                'demographics' => ['age' => 38, 'gender' => 'patient', 'ethnicity' => 'Southeast Asian']
             ],
             'headache' => [
-                'prompt' => 'Adult patient with severe headache, holding head, photophobic, in consultation room',
-                'description' => 'Headache Patient',
-                'category' => 'neurology'
+                'prompt' => '35-year-old patient with severe headache and photophobia, darkened examination room, patient lying supine with eyes closed, hand on forehead, neurological examination in progress',
+                'description' => 'Acute Severe Headache - Neurological Assessment',
+                'category' => 'neurology',
+                'demographics' => ['age' => 35, 'gender' => 'patient', 'ethnicity' => 'Southeast Asian']
             ],
             'elderly-frail' => [
-                'prompt' => 'Elderly patient in hospital bed, with medical monitoring equipment, family member present',
-                'description' => 'Elderly Hospitalized Patient',
-                'category' => 'geriatrics'
+                'prompt' => '78-year-old frail elderly patient in ICU setting, multiple monitoring devices, IV lines, oxygen cannula, family member holding hand, showing signs of complex medical condition',
+                'description' => 'Complex Geriatric Patient - Critical Care',
+                'category' => 'geriatrics',
+                'demographics' => ['age' => 78, 'gender' => 'patient', 'ethnicity' => 'Southeast Asian']
             ],
             'pediatric' => [
-                'prompt' => 'Child patient with fever, sitting on examination table, parent nearby, comfortable clinical setting',
-                'description' => 'Pediatric Patient',
-                'category' => 'pediatrics'
+                'prompt' => '8-year-old child with high fever, sitting on pediatric examination table, parent comforting, pediatrician examining with otoscope, colorful pediatric emergency room setting',
+                'description' => 'Pediatric Fever Assessment - Emergency',
+                'category' => 'pediatrics',
+                'demographics' => ['age' => 8, 'gender' => 'patient', 'ethnicity' => 'Southeast Asian']
             ]
         ];
     }

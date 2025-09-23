@@ -45,6 +45,25 @@ class PatientVisualizerController extends Controller
             'prompt_type' => $request->get('prompt_type', 'case_specific'),
         ];
 
+        // Extract demographics from OSCE case if available
+        if ($request->get('case_id')) {
+            $osceCase = OsceCase::find($request->get('case_id'));
+            if ($osceCase && $osceCase->ai_patient_profile) {
+                $profileData = json_decode($osceCase->ai_patient_profile, true);
+                $vitalsData = json_decode($osceCase->ai_patient_vitals, true);
+                
+                $demographics = [
+                    'age' => $profileData['age'] ?? ($vitalsData['age'] ?? 'middle-aged'),
+                    'gender' => $profileData['gender'] ?? ($vitalsData['gender'] ?? 'patient'),
+                    'ethnicity' => $profileData['ethnicity'] ?? 'Southeast Asian',
+                    'condition' => $osceCase->title,
+                    'setting' => $osceCase->clinical_setting ?? 'emergency',
+                ];
+                
+                $options['demographics'] = $demographics;
+            }
+        }
+
         $result = $this->visualizerService->getCachedOrGenerate($prompt, $options);
 
         if (!$result['success']) {
@@ -92,6 +111,7 @@ class PatientVisualizerController extends Controller
         $options = [
             'style' => $request->get('style', 'medical-illustration'),
             'setting' => $request->get('setting', 'clinical'),
+            'demographics' => $promptData['demographics'] ?? null,
         ];
 
         $result = $this->visualizerService->getCachedOrGenerate($promptData['prompt'], $options);
