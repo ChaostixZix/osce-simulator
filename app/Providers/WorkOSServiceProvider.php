@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Laravel\WorkOS\Http\Requests\AuthKitAuthenticationRequest;
 use App\Models\User;
+use WorkOS\WorkOS as WorkOSSDK;
 
 class WorkOSServiceProvider extends ServiceProvider
 {
@@ -13,6 +14,9 @@ class WorkOSServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Configure WorkOS SDK with API key
+        $this->configureWorkOS();
+
         // Extend the AuthKitAuthenticationRequest with an email-safe flow
         AuthKitAuthenticationRequest::macro('authenticateWithFallback', function () {
             return $this->authenticate(
@@ -43,5 +47,23 @@ class WorkOSServiceProvider extends ServiceProvider
                 }
             );
         });
+    }
+
+    /**
+     * Configure WorkOS SDK with proper API key
+     */
+    protected function configureWorkOS(): void
+    {
+        $apiKey = config('services.workos.secret') ?: env('WORKOS_API_KEY');
+        
+        if ($apiKey) {
+            WorkOSSDK::setApiKey($apiKey);
+            
+            // Also set client ID if available
+            $clientId = config('services.workos.client_id');
+            if ($clientId) {
+                WorkOSSDK::setClientId($clientId);
+            }
+        }
     }
 }
