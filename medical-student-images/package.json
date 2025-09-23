@@ -1,0 +1,19 @@
+{
+  "name": "medical-student-image-generator",
+  "version": "1.0.0",
+  "description": "Generate animated images of medical students studying for landing page",
+  "main": "src/generateImages.js",
+  "type": "module",
+  "scripts": {
+    "generate": "node src/generateImages.js",
+    "dev": "node src/generateImages.js"
+  },
+  "dependencies": {
+    "@google/genai": "^0.3.0",
+    "mime": "^4.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.0",
+    "dotenv": "^16.4.5"
+  }
+}

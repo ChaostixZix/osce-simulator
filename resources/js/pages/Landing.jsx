@@ -665,6 +665,103 @@ function Landing({ auth }) {
                     </div>
                 </motion.section>
 
+                {/* Medical Student Gallery Section */}
+                <motion.section
+                    className="py-16 relative"
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, margin: "-50px" }}
+                >
+                    <div className="max-w-7xl mx-auto px-4">
+                        <motion.div className="text-center mb-12" variants={staggerVariants}>
+                            <motion.h2
+                                className="text-3xl md:text-4xl font-bold mb-4 glow-text"
+                                variants={heroVariants}
+                            >
+                                Experience Medical Education
+                            </motion.h2>
+                            <motion.p
+                                className="text-lg text-muted-foreground max-w-2xl mx-auto"
+                                variants={itemVariants}
+                            >
+                                See how medical students learn and grow through our AI-powered platform
+                            </motion.p>
+                        </motion.div>
+
+                        <motion.div
+                            className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
+                            variants={staggerVariants}
+                        >
+                            {[
+                                {
+                                    src: "/images/medical-students/medical_student_studying_anatomy_0.png",
+                                    title: "Mastering Anatomy",
+                                    description: "Dive deep into human anatomy with interactive 3D models and comprehensive study materials"
+                                },
+                                {
+                                    src: "/images/medical-students/medical_student_group_discussion_0.png",
+                                    title: "Collaborative Learning",
+                                    description: "Engage in case studies with peers to develop clinical reasoning skills"
+                                },
+                                {
+                                    src: "/images/medical-students/medical_student_clinical_simulation_0.png",
+                                    title: "Hands-On Practice",
+                                    description: "Gain practical experience through realistic clinical simulations"
+                                },
+                                {
+                                    src: "/images/medical-students/medical_student_late_night_study_0.png",
+                                    title: "Dedicated Study",
+                                    description: "Access learning resources anytime, anywhere to fit your schedule"
+                                },
+                                {
+                                    src: "/images/medical-students/medical_student_virtual_learning_0.png",
+                                    title: "Immersive Technology",
+                                    description: "Experience cutting-edge AR/VR medical training scenarios"
+                                },
+                                {
+                                    src: "/images/medical-students/medical_student_lab_research_0.png",
+                                    title: "Research Skills",
+                                    description: "Develop laboratory and research capabilities for modern medicine"
+                                }
+                            ].map((item, idx) => (
+                                <motion.div
+                                    key={idx}
+                                    className="group relative overflow-hidden rounded-xl"
+                                    variants={cardVariants}
+                                    whileHover="hover"
+                                >
+                                    <motion.div
+                                        className="relative h-64 md:h-80 overflow-hidden"
+                                        whileHover={{ scale: 1.02 }}
+                                        transition={{ duration: 0.4 }}
+                                    >
+                                        <img
+                                            src={item.src}
+                                            alt={item.title}
+                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                                        <div className="absolute bottom-0 left-0 right-0 p-6">
+                                            <motion.h3
+                                                className="text-xl font-semibold text-white mb-2"
+                                                variants={itemVariants}
+                                            >
+                                                {item.title}
+                                            </motion.h3>
+                                            <motion.p
+                                                className="text-white/90 text-sm"
+                                                variants={itemVariants}
+                                            >
+                                                {item.description}
+                                            </motion.p>
+                                        </div>
+                                    </motion.div>
+                                </motion.div>
+                            ))}
+                        </motion.div>
+                    </div>
+                </motion.section>
+
                 {/* Testimonials Section - Compact */}
                 <motion.section
                     className="py-16 relative"
