@@ -57,14 +57,14 @@ class PatientVisualizerController extends Controller
 
         // Associate with user and case if provided
         if (!($result['cached'] ?? false)) {
-            $visualization = \App\Models\PatientVisualization::where('prompt_hash', md5($request->prompt))
+            $visualization = \App\Models\PatientVisualization::where('prompt_hash', md5($prompt))
                 ->latest()
                 ->first();
 
             if ($visualization) {
                 $visualization->update([
                     'user_id' => Auth::id(),
-                    'osce_case_id' => $request->get('osce_case_id'),
+                    'osce_case_id' => $request->get('case_id'),
                 ]);
             }
         }

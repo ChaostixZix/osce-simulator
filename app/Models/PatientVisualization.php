@@ -43,9 +43,23 @@ class PatientVisualization extends Model
      */
     public function getImageUrlAttribute($value)
     {
-        if ($value && Storage::exists($this->image_path)) {
-            return Storage::url($this->image_path);
+        // If we have a URL value in database, try to use it
+        if ($value) {
+            return $value;
         }
+        
+        // If file exists but no URL in database, generate the URL
+        if ($this->image_path) {
+            // Check if file exists in public disk
+            if (Storage::disk('public')->exists($this->image_path)) {
+                return Storage::disk('public')->url($this->image_path);
+            }
+            // Try default disk
+            if (Storage::exists($this->image_path)) {
+                return Storage::url($this->image_path);
+            }
+        }
+        
         return null;
     }
 
@@ -54,7 +68,12 @@ class PatientVisualization extends Model
      */
     public function imageExists(): bool
     {
-        return $this->image_path && Storage::exists($this->image_path);
+        if (!$this->image_path) {
+            return false;
+        }
+        
+        // Check public disk first (where patient visualizations are stored)
+        return Storage::disk('public')->exists($this->image_path) || Storage::exists($this->image_path);
     }
 
     /**
