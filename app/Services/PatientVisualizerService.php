@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Models\PatientVisualization;
 
 /**
  * Service for generating patient visualizations using Google Gemini 2.5 Flash Image Preview.
@@ -21,6 +22,12 @@ class PatientVisualizerService
     public function __construct()
     {
         $this->apiKey = config('services.gemini.api_key');
+
+        Log::info('PatientVisualizerService initialized', [
+            'api_key_set' => !empty($this->apiKey),
+            'api_key_length' => $this->apiKey ? strlen($this->apiKey) : 0,
+            'model' => $this->model
+        ]);
 
         if (empty($this->apiKey)) {
             throw new \Exception('Gemini API key not configured. Please set GEMINI_API_KEY in your .env file.');
@@ -172,7 +179,7 @@ class PatientVisualizerService
             }
 
             // Save the generated image
-            $savedImage = $this->saveImage($imageData, $mimeType, $prompt);
+            $savedImage = $this->saveImage($imageData, $mimeType, $prompt, $enhancedPrompt, $options);
 
             Log::info('Successfully generated and saved patient visualization', [
                 'image_url' => $savedImage['url'],
@@ -232,7 +239,7 @@ class PatientVisualizerService
     /**
      * Save generated image to storage
      */
-    private function saveImage(string $base64Data, string $mimeType, string $originalPrompt): array
+    private function saveImage(string $base64Data, string $mimeType, string $originalPrompt, string $enhancedPrompt = null, array $options = []): array
     {
         $extension = match($mimeType) {
             'image/jpeg' => 'jpg',
@@ -270,6 +277,24 @@ class PatientVisualizerService
             'extension' => $extension
         ]);
 
+        // Create database record
+        $visualization = PatientVisualization::create([
+            'original_prompt' => $originalPrompt,
+            'enhanced_prompt' => $enhancedPrompt ?? $originalPrompt,
+            'prompt_hash' => md5($originalPrompt),
+            'image_path' => $filename,
+            'image_url' => $disk->url($filename),
+            'mime_type' => $mimeType,
+            'generation_options' => $options,
+            'generated_at' => now(),
+        ]);
+
+        Log::info('Database record created', [
+            'visualization_id' => $visualization->id,
+            'image_path' => $filename,
+            'image_url' => $visualization->image_url
+        ]);
+
         return [
             'path' => $filename,
             'url' => $disk->url($filename)
@@ -281,7 +306,33 @@ class PatientVisualizerService
      */
     public function getCachedOrGenerate(string $prompt, array $options = []): array
     {
-        // Always generate new for now (can add caching later if needed)
+        $promptHash = md5($prompt);
+        
+        // Check if we have a recent cached visualization (within 24 hours)
+        $cachedVisualization = PatientVisualization::where('prompt_hash', $promptHash)
+            ->where('generated_at', '>', now()->subHours(24))
+            ->whereNotNull('image_path')
+            ->first();
+            
+        if ($cachedVisualization && $cachedVisualization->imageExists()) {
+            Log::info('Using cached visualization', [
+                'visualization_id' => $cachedVisualization->id,
+                'prompt_hash' => $promptHash,
+                'generated_at' => $cachedVisualization->generated_at
+            ]);
+            
+            return [
+                'success' => true,
+                'image_url' => $cachedVisualization->image_url,
+                'image_path' => $cachedVisualization->image_path,
+                'prompt' => $prompt,
+                'generated_at' => $cachedVisualization->generated_at,
+                'cached' => true,
+                'type' => 'cached'
+            ];
+        }
+        
+        // Generate new visualization
         return $this->generateVisualization($prompt, $options);
     }
 
