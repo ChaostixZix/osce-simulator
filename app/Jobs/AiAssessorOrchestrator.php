@@ -72,9 +72,20 @@ class AiAssessorOrchestrator implements ShouldQueue
             ]);
             // Fan-out: dispatch one job per clinical area so failures are isolated
             $areas = array_keys(AiAssessmentAreaResult::CLINICAL_AREAS);
+            $useMultiPrompt = config('multi_prompt_assessment.use_multi_prompt', true);
+            
             foreach ($areas as $area) {
-                AssessAreaJob::dispatch($this->sessionId, $assessmentRun->id, $area)
-                    ->onQueue('assessments');
+                $areaResult = AiAssessmentAreaResult::where('ai_assessment_run_id', $assessmentRun->id)
+                    ->where('clinical_area', $area)
+                    ->first();
+                
+                if ($useMultiPrompt) {
+                    MultiPromptAssessAreaJob::dispatch($this->sessionId, $area, $areaResult->id, true)
+                        ->onQueue('assessments');
+                } else {
+                    AssessAreaJob::dispatch($this->sessionId, $assessmentRun->id, $area)
+                        ->onQueue('assessments');
+                }
             }
 
             // Schedule finalize job to aggregate when all areas finish

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AiAssessmentAspectResult;
 use App\Models\AiAssessmentRun;
 use App\Models\AiAssessmentAreaResult;
 use Illuminate\Support\Facades\Log;
@@ -54,6 +55,38 @@ class ResultReducer
                 // Ignore parse errors silently; outline/citations remain empty
             }
 
+            // Enhanced data with aspect breakdown for multi-prompt assessments
+            $aspectBreakdown = null;
+            $performanceLevel = null;
+            $detailedFeedback = null;
+            
+            if ($result->aspect_breakdown && is_array($result->aspect_breakdown)) {
+                $aspectBreakdown = $result->aspect_breakdown;
+                $performanceLevel = $result->overall_performance_level;
+                $detailedFeedback = $result->detailed_feedback;
+                
+                // Load aspect results if available
+                $aspectResults = AiAssessmentAspectResult::where('ai_assessment_area_result_id', $result->id)
+                    ->get()
+                    ->map(function ($aspect) {
+                        return [
+                            'aspect' => $aspect->aspect,
+                            'score' => $aspect->score,
+                            'max_score' => $aspect->max_score,
+                            'percentage' => $aspect->percentage,
+                            'performance_level' => $aspect->performance_level,
+                            'feedback' => $aspect->feedback,
+                            'citations' => json_decode($aspect->citations, true) ?? [],
+                            'badge_color' => $aspect->performance_badge_color,
+                            'badge_text' => $aspect->performance_badge_text,
+                        ];
+                    })
+                    ->toArray();
+            } else {
+                // Fallback to parsing from justification or raw response
+                $aspectResults = $this->extractAspectDataFromLegacy($result);
+            }
+            
             $clinicalAreas[] = [
                 'area' => $result->area_display_name,
                 'key' => $result->clinical_area,
@@ -68,6 +101,11 @@ class ResultReducer
                 'was_repaired' => $result->was_repaired,
                 'attempts' => $result->attempts,
                 'method' => $this->getAssessmentMethod($result),
+                'aspect_breakdown' => $aspectBreakdown,
+                'performance_level' => $performanceLevel,
+                'detailed_feedback' => $detailedFeedback,
+                'aspect_results' => $aspectResults ?? [],
+                'is_multi_prompt' => !empty($aspectBreakdown),
             ];
         }
 
@@ -389,5 +427,91 @@ class ResultReducer
         }
 
         return $normalized;
+    }
+    
+    /**
+     * Extract aspect data from legacy assessment results
+     * This helps maintain compatibility when detailed breakdown isn't available
+     */
+    private function extractAspectDataFromLegacy(AiAssessmentAreaResult $result): array
+    {
+        // Default aspect structure based on clinical area
+        $defaultAspects = [
+            'history' => [
+                ['aspect' => 'systematic_approach', 'max_score' => 7],
+                ['aspect' => 'question_quality', 'max_score' => 6],
+                ['aspect' => 'thoroughness', 'max_score' => 7],
+            ],
+            'exam' => [
+                ['aspect' => 'technique', 'max_score' => 5],
+                ['aspect' => 'systematic_approach', 'max_score' => 5],
+                ['aspect' => 'critical_exams', 'max_score' => 5],
+            ],
+            'investigations' => [
+                ['aspect' => 'appropriateness', 'max_score' => 7],
+                ['aspect' => 'cost_effectiveness', 'max_score' => 6],
+                ['aspect' => 'sequencing', 'max_score' => 7],
+            ],
+            'differential_diagnosis' => [
+                ['aspect' => 'breadth', 'max_score' => 5],
+                ['aspect' => 'reasoning', 'max_score' => 5],
+                ['aspect' => 'prioritization', 'max_score' => 5],
+            ],
+            'management' => [
+                ['aspect' => 'immediate_actions', 'max_score' => 5],
+                ['aspect' => 'treatment_plan', 'max_score' => 5],
+                ['aspect' => 'follow_up', 'max_score' => 5],
+            ],
+            'communication' => [
+                ['aspect' => 'clarity', 'max_score' => 3],
+                ['aspect' => 'empathy', 'max_score' => 4],
+                ['aspect' => 'professionalism', 'max_score' => 3],
+            ],
+            'safety' => [
+                ['aspect' => 'error_prevention', 'max_score' => 4],
+                ['aspect' => 'time_management', 'max_score' => 3],
+                ['aspect' => 'documentation', 'max_score' => 3],
+            ],
+        ];
+        
+        $aspects = $defaultAspects[$result->clinical_area] ?? [];
+        $totalScore = $result->score ?? 0;
+        $totalMaxScore = $result->max_score ?? 1;
+        
+        // Distribute score proportionally across aspects
+        $aspectResults = [];
+        foreach ($aspects as $aspect) {
+            $proportionalScore = round(($aspect['max_score'] / $totalMaxScore) * $totalScore);
+            $percentage = $aspect['max_score'] > 0 ? ($proportionalScore / $aspect['max_score']) * 100 : 0;
+            
+            $performanceLevel = 'needs_improvement';
+            if ($percentage >= 80) {
+                $performanceLevel = 'good';
+            } elseif ($percentage >= 60) {
+                $performanceLevel = 'acceptable';
+            }
+            
+            $aspectResults[] = [
+                'aspect' => $aspect['aspect'],
+                'score' => $proportionalScore,
+                'max_score' => $aspect['max_score'],
+                'percentage' => $percentage,
+                'performance_level' => $performanceLevel,
+                'feedback' => 'Derived from overall score',
+                'citations' => [],
+                'badge_color' => match ($performanceLevel) {
+                    'good' => 'green',
+                    'acceptable' => 'yellow',
+                    default => 'red'
+                },
+                'badge_text' => match ($performanceLevel) {
+                    'good' => 'Good',
+                    'acceptable' => 'Acceptable',
+                    default => 'Needs Improvement'
+                },
+            ];
+        }
+        
+        return $aspectResults;
     }
 }

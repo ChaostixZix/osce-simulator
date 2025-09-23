@@ -32,11 +32,13 @@ class AiAssessmentAreaResult extends Model
     ];
 
     public const CLINICAL_AREAS = [
-        'history' => ['name' => 'History-Taking', 'max_score' => 20],
-        'exam' => ['name' => 'Physical Examination', 'max_score' => 15],
-        'investigations' => ['name' => 'Investigations', 'max_score' => 20],
-        'differential_diagnosis' => ['name' => 'Differential Diagnosis', 'max_score' => 15],
-        'management' => ['name' => 'Management', 'max_score' => 15],
+        'history' => ['name' => 'History-Taking', 'max_score' => 20, 'aspects' => ['systematic_approach', 'question_quality', 'thoroughness']],
+        'exam' => ['name' => 'Physical Examination', 'max_score' => 15, 'aspects' => ['technique', 'systematic_approach', 'critical_exams']],
+        'investigations' => ['name' => 'Investigations', 'max_score' => 20, 'aspects' => ['appropriateness', 'cost_effectiveness', 'sequencing']],
+        'differential_diagnosis' => ['name' => 'Differential Diagnosis', 'max_score' => 15, 'aspects' => ['breadth', 'reasoning', 'prioritization']],
+        'management' => ['name' => 'Management', 'max_score' => 15, 'aspects' => ['immediate_actions', 'treatment_plan', 'follow_up']],
+        'communication' => ['name' => 'Communication Skills', 'max_score' => 10, 'aspects' => ['clarity', 'empathy', 'professionalism']],
+        'safety' => ['name' => 'Safety & Professionalism', 'max_score' => 10, 'aspects' => ['error_prevention', 'time_management', 'documentation']],
     ];
 
     public function assessmentRun(): BelongsTo
