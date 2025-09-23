@@ -1,10 +1,19 @@
 #!/bin/bash
 
-echo "Installing Node.js dependencies..."
-npm ci
+set -e
 
-echo "Building frontend assets..."
-npm run build
+echo "Installing Node.js dependencies..."
+
+# Check if bun is available, otherwise use npm
+if command -v bun &> /dev/null; then
+    echo "Using bun for package management..."
+    bun install
+    bun run build
+else
+    echo "Using npm for package management..."
+    npm ci
+    npm run build
+fi
 
 echo "Optimizing Laravel..."
 php artisan config:cache
