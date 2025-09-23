@@ -326,36 +326,25 @@ class OsceAssessmentController extends Controller
 
         // Prepare assessment data for frontend
         if ($assessmentRun) {
-            // Use new assessment run data
-            $areaResults = $assessmentRun->areaResults->map(function ($result) {
-                return [
-                    'area' => $result->area_display_name,
-                    'key' => $result->clinical_area,
-                    'status' => $result->status,
-                    'badge_color' => $result->badge_color,
-                    'badge_text' => $result->badge_text,
-                    'score' => $result->score,
-                    'max_score' => $result->max_score,
-                    'justification' => $result->justification,
-                    'was_repaired' => $result->was_repaired,
-                    'attempts' => $result->attempts,
-                ];
-            });
-
+            // Use ResultReducer to get enhanced assessment data with aspect breakdown
+            $resultReducer = app(ResultReducer::class);
+            $enhancedResults = $resultReducer->aggregateResults($assessmentRun);
+            
             $assessmentData = [
                 'run_id' => $assessmentRun->id,
-                'score' => $assessmentRun->total_score,
-                'max_score' => $assessmentRun->max_possible_score,
-                'percentage' => $assessmentRun->max_possible_score > 0 ? 
-                    round(($assessmentRun->total_score / $assessmentRun->max_possible_score) * 100, 1) : 0,
+                'score' => $enhancedResults['total_score'],
+                'max_score' => $enhancedResults['max_possible_score'],
+                'percentage' => $enhancedResults['max_possible_score'] > 0 ? 
+                    round(($enhancedResults['total_score'] / $enhancedResults['max_possible_score']) * 100, 1) : 0,
                 'assessed_at' => $assessmentRun->completed_at->toISOString(),
                 'assessor_model' => config('services.gemini.model', 'gemini-1.5-flash'),
                 'assessment_type' => 'detailed_clinical_areas_assessment',
-                'output' => $assessmentRun->final_result,
+                'output' => $enhancedResults,
                 'has_fallbacks' => $assessmentRun->has_fallbacks,
-                'area_results' => $areaResults,
+                'area_results' => $enhancedResults['clinical_areas'],
                 'telemetry' => $assessmentRun->telemetry,
                 'processing_time' => $assessmentRun->completed_at->diffInSeconds($assessmentRun->started_at),
+                'is_multi_prompt' => config('multi_prompt_assessment.use_multi_prompt', true),
             ];
         } else {
             // Use legacy assessment data
