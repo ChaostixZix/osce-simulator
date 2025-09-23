@@ -49,8 +49,8 @@ class PatientVisualizerController extends Controller
         if ($request->get('case_id')) {
             $osceCase = OsceCase::find($request->get('case_id'));
             if ($osceCase && $osceCase->ai_patient_profile) {
-                $profileData = json_decode($osceCase->ai_patient_profile, true);
-                $vitalsData = json_decode($osceCase->ai_patient_vitals, true);
+                $profileData = is_string($osceCase->ai_patient_profile) ? json_decode($osceCase->ai_patient_profile, true) : $osceCase->ai_patient_profile;
+                $vitalsData = is_array($osceCase->ai_patient_vitals) ? $osceCase->ai_patient_vitals : json_decode($osceCase->ai_patient_vitals, true);
                 
                 $demographics = [
                     'age' => $profileData['age'] ?? ($vitalsData['age'] ?? 'middle-aged'),
