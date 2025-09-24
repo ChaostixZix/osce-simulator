@@ -20,7 +20,8 @@
     "openai-php/laravel": "^0.16.0",
     "predis/predis": "^2.2",
     "smalot/pdfparser": "^2.12",
-    "tightenco/ziggy": "^2.4"
+    "tightenco/ziggy": "^2.4",
+    "ext-redis": "*"
   },
   "require-dev": {
     "fakerphp/faker": "^1.23",
