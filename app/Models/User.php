@@ -20,8 +20,12 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
-        'workos_id',
+        'supabase_id',
+        'provider',
+        'provider_id',
         'avatar',
+        'last_login_at',
+        'is_migrated',
     ];
 
     /**
@@ -30,7 +34,8 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $hidden = [
-        'workos_id',
+        'supabase_id',
+        'provider_id',
         'remember_token',
     ];
 
@@ -46,6 +51,8 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_admin' => 'boolean',
             'is_banned' => 'boolean',
+            'is_migrated' => 'boolean',
+            'last_login_at' => 'datetime',
         ];
     }
 
@@ -57,6 +64,21 @@ class User extends Authenticatable
     public function isBanned(): bool
     {
         return (bool) ($this->is_banned ?? false);
+    }
+
+    public function isMigrated(): bool
+    {
+        return (bool) ($this->is_migrated ?? false);
+    }
+
+    public function getAuthProvider(): ?string
+    {
+        return $this->provider;
+    }
+
+    public function getLastLoginAt(): ?\Illuminate\Support\Carbon
+    {
+        return $this->last_login_at;
     }
 
     // Removed forum-related relationships (posts, comments)

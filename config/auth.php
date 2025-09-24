@@ -112,4 +112,18 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Supabase Authentication Configuration
+    |--------------------------------------------------------------------------
+    |
+    | These settings control Supabase authentication.
+    | 
+    */
+
+    'use_supabase' => env('USE_SUPABASE_AUTH', true),
+    'supabase_dual_mode' => env('SUPABASE_DUAL_MODE', false),
+    'supabase_auto_migrate' => env('SUPABASE_AUTO_MIGRATE', false),
+    'supabase_force_migration' => env('SUPABASE_FORCE_MIGRATION', false),
+
 ];

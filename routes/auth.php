@@ -1,28 +1,43 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Laravel\WorkOS\Http\Requests\AuthKitAuthenticationRequest;
-use Laravel\WorkOS\Http\Requests\AuthKitLoginRequest;
-use Laravel\WorkOS\Http\Requests\AuthKitLogoutRequest;
+use App\Http\Controllers\Auth\SupabaseAuthController;
+use Inertia\Inertia;
 
-Route::get('login', function (AuthKitLoginRequest $request) {
-    return $request->redirect();
-})->middleware(['guest'])->name('login');
+// Main authentication routes
+Route::get('login', function () {
+    $providers = config('supabase.providers', []);
+    return Inertia::render('auth/Login', [
+        'providers' => $providers
+    ]);
+})->name('login');
 
-// Primary WorkOS callback endpoint
-Route::get('authenticate', function (AuthKitAuthenticationRequest $request) {
-    return tap(to_route('dashboard'), fn () => $request->authenticateWithFallback());
-})->middleware(['guest']);
+Route::get('register', function () {
+    return Inertia::render('auth/Register');
+})->name('register');
 
-// Aliases for providers/environments that redirect to conventional callback paths
-Route::get('auth/callback', function (AuthKitAuthenticationRequest $request) {
-    return tap(to_route('dashboard'), fn () => $request->authenticateWithFallback());
-})->middleware(['guest']);
+Route::get('forgot-password', function () {
+    return Inertia::render('auth/ForgotPassword');
+})->name('forgot-password');
 
-Route::get('auth/authenticate', function (AuthKitAuthenticationRequest $request) {
-    return tap(to_route('dashboard'), fn () => $request->authenticateWithFallback());
-})->middleware(['guest']);
-
-Route::post('logout', function (AuthKitLogoutRequest $request) {
-    return $request->logout();
-})->middleware(['auth'])->name('logout');
+// Supabase Authentication Routes
+Route::prefix('auth/supabase')->group(function () {
+    Route::get('login', [SupabaseAuthController::class, 'showLoginForm'])->name('supabase.login');
+    Route::post('login', [SupabaseAuthController::class, 'login'])->name('supabase.login.submit');
+    Route::get('register', [SupabaseAuthController::class, 'showRegistrationForm'])->name('supabase.register');
+    Route::post('register', [SupabaseAuthController::class, 'register'])->name('supabase.register.submit');
+    Route::get('oauth/{provider}', [SupabaseAuthController::class, 'redirectToProvider'])->name('supabase.oauth');
+    Route::get('callback', [SupabaseAuthController::class, 'handleCallback'])->name('supabase.callback');
+    Route::post('logout', [SupabaseAuthController::class, 'logout'])->name('supabase.logout');
+    Route::get('forgot-password', [SupabaseAuthController::class, 'showForgotPasswordForm'])->name('supabase.forgot-password');
+    Route::post('forgot-password', [SupabaseAuthController::class, 'forgotPassword'])->name('supabase.forgot-password.submit');
+    Route::get('reset-password', [SupabaseAuthController::class, 'showResetPasswordForm'])->name('supabase.reset-password');
+    Route::post('reset-password', [SupabaseAuthController::class, 'resetPassword'])->name('supabase.reset-password.submit');
+    Route::post('magic-link', [SupabaseAuthController::class, 'magicLinkLogin'])->name('supabase.magic-link');
+    
+    // API routes for migration
+    Route::middleware(['auth'])->group(function () {
+        Route::get('migration-status', [SupabaseAuthController::class, 'checkMigrationStatus'])->name('supabase.migration-status');
+        Route::post('migrate', [SupabaseAuthController::class, 'migrateToSupabase'])->name('supabase.migrate');
+    });
+})->middleware(['web']);

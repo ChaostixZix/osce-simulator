@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Config;
+use Inertia\Inertia;
 
 class SupabaseAuthController extends Controller
 {
@@ -26,7 +28,7 @@ class SupabaseAuthController extends Controller
     {
         $providers = config('supabase.providers', []);
         
-        return view('auth.login-supabase', compact('providers'));
+        return Inertia::render('auth/Login', compact('providers'));
     }
 
     /**
@@ -45,6 +47,14 @@ class SupabaseAuthController extends Controller
             
             if (isset($response['error'])) {
                 Log::error('Supabase login error: ' . json_encode($response['error']));
+                
+                // Return JSON response for Inertia
+                if ($request->wantsJson()) {
+                    return response()->json([
+                        'errors' => ['email' => 'Invalid credentials or user not found.']
+                    ], 422);
+                }
+                
                 return back()->withErrors([
                     'email' => 'Invalid credentials or user not found.'
                 ]);
@@ -59,16 +69,28 @@ class SupabaseAuthController extends Controller
             
             if (!$user) {
                 $user = User::create([
+                    'name' => $userData['user_metadata']['full_name'] ?? $userData['email'],
                     'email' => $userData['email'],
                     'supabase_id' => $userData['id'],
+                    'provider' => 'email',
                     'avatar' => $userData['user_metadata']['avatar_url'] ?? null,
+                    'is_migrated' => true,
                 ]);
             } else {
-                // Update existing user
-                $user->update([
+                // Update existing user - mark as migrated if using Supabase
+                $updateData = [
                     'supabase_id' => $userData['id'],
+                    'provider' => 'email',
                     'last_login_at' => now(),
-                ]);
+                    'is_migrated' => true,
+                ];
+                
+                // Update name if available
+                if (isset($userData['user_metadata']['full_name']) && (!$user->name || $user->name === $userData['email'])) {
+                    $updateData['name'] = $userData['user_metadata']['full_name'];
+                }
+                
+                $user->update($updateData);
             }
 
             // Login user
@@ -78,10 +100,25 @@ class SupabaseAuthController extends Controller
             $request->session()->put('supabase_access_token', $session['access_token']);
             $request->session()->put('supabase_refresh_token', $session['refresh_token']);
             
+            // Return redirect response for Inertia
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'redirect' => $request->session()->pull('url.intended', '/dashboard')
+                ]);
+            }
+            
             return redirect()->intended('/dashboard');
             
         } catch (\Exception $e) {
             Log::error('Login error: ' . $e->getMessage());
+            
+            // Return JSON response for Inertia
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'errors' => ['email' => 'An error occurred during login. Please try again.']
+                ], 422);
+            }
+            
             return back()->withErrors([
                 'email' => 'An error occurred during login. Please try again.'
             ]);
@@ -133,23 +170,34 @@ class SupabaseAuthController extends Controller
 
                 // Find or create user
                 $user = User::where('email', $userData['email'])->first();
+                $provider = $userData['app_metadata']['provider'] ?? null;
                 
                 if (!$user) {
                     $user = User::create([
+                        'name' => $userData['user_metadata']['full_name'] ?? $userData['email'],
                         'email' => $userData['email'],
                         'supabase_id' => $userData['id'],
-                        'provider' => $userData['app_metadata']['provider'] ?? null,
+                        'provider' => $provider,
                         'provider_id' => $userData['identities'][0]['id'] ?? null,
                         'avatar' => $userData['user_metadata']['avatar_url'] ?? null,
+                        'is_migrated' => true,
                     ]);
                 } else {
-                    // Update existing user
-                    $user->update([
+                    // Update existing user - mark as migrated if using Supabase
+                    $updateData = [
                         'supabase_id' => $userData['id'],
-                        'provider' => $userData['app_metadata']['provider'] ?? null,
+                        'provider' => $provider,
                         'provider_id' => $userData['identities'][0]['id'] ?? null,
                         'last_login_at' => now(),
-                    ]);
+                        'is_migrated' => true,
+                    ];
+                    
+                    // Update name if available
+                    if (isset($userData['user_metadata']['full_name']) && (!$user->name || $user->name === $userData['email'])) {
+                        $updateData['name'] = $userData['user_metadata']['full_name'];
+                    }
+                    
+                    $user->update($updateData);
                 }
                 
                 // Login user
@@ -179,7 +227,7 @@ class SupabaseAuthController extends Controller
      */
     public function showRegistrationForm()
     {
-        return view('auth.register-supabase');
+        return Inertia::render('auth/Register');
     }
 
     /**
@@ -204,6 +252,14 @@ class SupabaseAuthController extends Controller
 
             if (isset($response['error'])) {
                 Log::error('Registration error: ' . json_encode($response['error']));
+                
+                // Return JSON response for Inertia
+                if ($request->wantsJson()) {
+                    return response()->json([
+                        'errors' => ['email' => $response['error']['message'] ?? 'Registration failed.']
+                    ], 422);
+                }
+                
                 return back()->withErrors([
                     'email' => $response['error']['message'] ?? 'Registration failed.'
                 ]);
@@ -214,13 +270,31 @@ class SupabaseAuthController extends Controller
                 'name' => $validated['name'],
                 'email' => $validated['email'],
                 'supabase_id' => $response['user']['id'],
+                'provider' => 'email',
                 'password' => bcrypt($validated['password']), // Keep for compatibility
+                'is_migrated' => true,
             ]);
+
+            // Return JSON response for Inertia
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'redirect' => '/login',
+                    'success' => 'Registration successful! Please check your email to verify your account.'
+                ]);
+            }
 
             return redirect('/login')->with('success', 'Registration successful! Please check your email to verify your account.');
             
         } catch (\Exception $e) {
             Log::error('Registration error: ' . $e->getMessage());
+            
+            // Return JSON response for Inertia
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'errors' => ['email' => 'Registration failed. Please try again.']
+                ], 422);
+            }
+            
             return back()->withErrors([
                 'email' => 'Registration failed. Please try again.'
             ]);
@@ -247,6 +321,13 @@ class SupabaseAuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
+        // Return JSON response for Inertia
+        if ($request->wantsJson()) {
+            return response()->json([
+                'redirect' => '/login'
+            ]);
+        }
+
         return redirect('/login');
     }
 
@@ -255,7 +336,7 @@ class SupabaseAuthController extends Controller
      */
     public function showForgotPasswordForm()
     {
-        return view('auth.forgot-password-supabase');
+        return Inertia::render('auth/ForgotPassword');
     }
 
     /**
@@ -272,8 +353,23 @@ class SupabaseAuthController extends Controller
             
             if (isset($response['error'])) {
                 Log::error('Password reset error: ' . json_encode($response['error']));
+                
+                // Return JSON response for Inertia
+                if ($request->wantsJson()) {
+                    return response()->json([
+                        'errors' => ['email' => 'Failed to send password reset email.']
+                    ], 422);
+                }
+                
                 return back()->withErrors([
                     'email' => 'Failed to send password reset email.'
+                ]);
+            }
+
+            // Return JSON response for Inertia
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => 'Password reset link has been sent to your email.'
                 ]);
             }
 
@@ -281,8 +377,183 @@ class SupabaseAuthController extends Controller
             
         } catch (\Exception $e) {
             Log::error('Password reset error: ' . $e->getMessage());
+            
+            // Return JSON response for Inertia
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'errors' => ['email' => 'Failed to send password reset email.']
+                ], 422);
+            }
+            
             return back()->withErrors([
                 'email' => 'Failed to send password reset email.'
+            ]);
+        }
+    }
+
+    /**
+     * Show reset password form
+     */
+    public function showResetPasswordForm()
+    {
+        return Inertia::render('auth/ResetPassword');
+    }
+
+    /**
+     * Handle reset password request
+     */
+    public function resetPassword(Request $request)
+    {
+        $validated = $request->validate([
+            'email' => 'required|email|exists:users,email',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        try {
+            $response = $this->supabase->updateUserPassword($validated['email'], $validated['password']);
+            
+            if (isset($response['error'])) {
+                Log::error('Password update error: ' . json_encode($response['error']));
+                
+                // Return JSON response for Inertia
+                if ($request->wantsJson()) {
+                    return response()->json([
+                        'errors' => ['email' => 'Failed to reset password.']
+                    ], 422);
+                }
+                
+                return back()->withErrors([
+                    'email' => 'Failed to reset password.'
+                ]);
+            }
+
+            // Update local user password
+            $user = User::where('email', $validated['email'])->first();
+            if ($user) {
+                $user->update([
+                    'password' => bcrypt($validated['password']),
+                    'is_migrated' => true,
+                ]);
+            }
+
+            // Return JSON response for Inertia
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => 'Password has been reset successfully.'
+                ]);
+            }
+
+            return redirect('/login')->with('success', 'Password has been reset successfully.');
+            
+        } catch (\Exception $e) {
+            Log::error('Password reset error: ' . $e->getMessage());
+            
+            // Return JSON response for Inertia
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'errors' => ['email' => 'Failed to reset password.']
+                ], 422);
+            }
+            
+            return back()->withErrors([
+                'email' => 'Failed to reset password.'
+            ]);
+        }
+    }
+
+    /**
+     * Check migration status
+     */
+    public function checkMigrationStatus(Request $request)
+    {
+        $user = Auth::user();
+        
+        if (!$user) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+        
+        return response()->json([
+            'is_migrated' => $user->isMigrated(),
+            'provider' => $user->getAuthProvider(),
+            'supabase_id' => $user->supabase_id ? true : false,
+        ]);
+    }
+
+    /**
+     * Trigger user migration to Supabase
+     */
+    public function migrateToSupabase(Request $request)
+    {
+        $user = Auth::user();
+        
+        if (!$user) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+        
+        if ($user->isMigrated()) {
+            return response()->json(['message' => 'User already migrated'], 200);
+        }
+        
+        try {
+            // Create user in Supabase
+            $password = Str::random(16); // Generate random password
+            
+            $response = $this->supabase->createUser([
+                'email' => $user->email,
+                'password' => $password,
+                'email_confirm' => true,
+                'user_metadata' => [
+                    'full_name' => $user->name,
+                ]
+            ]);
+            
+            if (isset($response['error'])) {
+                Log::error('User migration error: ' . json_encode($response['error']));
+                return response()->json(['error' => 'Migration failed'], 500);
+            }
+            
+            // Update local user
+            $user->update([
+                'supabase_id' => $response['id'],
+                'is_migrated' => true,
+            ]);
+            
+            return response()->json([
+                'message' => 'Migration successful',
+                'password' => $password, // Show this once for the user to note down
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Migration error: ' . $e->getMessage());
+            return response()->json(['error' => 'Migration failed'], 500);
+        }
+    }
+
+    /**
+     * Handle magic link login
+     */
+    public function magicLinkLogin(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|exists:users,email',
+        ]);
+
+        try {
+            $response = $this->supabase->generateMagicLink($request->email);
+            
+            if (isset($response['error'])) {
+                Log::error('Magic link error: ' . json_encode($response['error']));
+                return back()->withErrors([
+                    'email' => 'Failed to send magic link.'
+                ]);
+            }
+
+            return back()->with('success', 'Magic link has been sent to your email.');
+            
+        } catch (\Exception $e) {
+            Log::error('Magic link error: ' . $e->getMessage());
+            return back()->withErrors([
+                'email' => 'Failed to send magic link.'
             ]);
         }
     }

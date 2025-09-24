@@ -621,7 +621,7 @@ export default function Dashboard({ overview, cases, progress, history, meta, we
             <AppLayout breadcrumbs={breadcrumbs}>
                 <div className="flex flex-1 flex-col gap-8">
                     {/* SaaS-style Hero Section with Animation - Always visible */}
-                    <div className="clean-card p-8 lg:p-12 space-y-8 bg-gradient-to-br from-primary/5 via-background to-primary/5 relative overflow-hidden">
+                    <div className="clean-card p-8 lg:p-12 space-y-8 bg-gradient-to-br from-primary/5 via-background to-primary/5 relative">
                         {/* Animated background elements */}
                         <div className="absolute inset-0 opacity-20">
                             <div className="absolute top-10 left-10 w-32 h-32 bg-primary/10 rounded-full blur-xl animate-pulse"></div>

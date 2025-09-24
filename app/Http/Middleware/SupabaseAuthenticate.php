@@ -31,30 +31,52 @@ class SupabaseAuthenticate
             return redirect('/login');
         }
 
-        // Validate Supabase token if exists
+        // Get the authenticated user
+        $user = Auth::user();
+        
+        // Check if user is banned
+        if ($user->isBanned()) {
+            $this->logoutUser($request);
+            return redirect('/login')->with('error', 'Your account has been banned.');
+        }
+
+        // All users now use Supabase authentication
+        return $this->handleSupabaseAuth($request, $next);
+    }
+
+    /**
+     * Handle Supabase authentication
+     */
+    protected function handleSupabaseAuth(Request $request, Closure $next)
+    {
         $accessToken = $request->session()->get('supabase_access_token');
-        if ($accessToken) {
-            $user = $this->validateSupabaseToken($accessToken);
-            
-            if (!$user) {
-                // Try to refresh token
-                $refreshToken = $request->session()->get('supabase_refresh_token');
-                if ($refreshToken) {
-                    $newTokens = $this->refreshSupabaseToken($refreshToken);
-                    
-                    if ($newTokens) {
-                        $request->session()->put('supabase_access_token', $newTokens['access_token']);
-                        $request->session()->put('supabase_refresh_token', $newTokens['refresh_token']);
-                    } else {
-                        // Token refresh failed, logout user
-                        $this->logoutUser($request);
-                        return redirect('/login');
-                    }
+        
+        if (!$accessToken) {
+            // User should have Supabase token but doesn't
+            $this->logoutUser($request);
+            return redirect('/login')->with('error', 'Authentication session expired. Please login again.');
+        }
+
+        $user = $this->validateSupabaseToken($accessToken);
+        
+        if (!$user) {
+            // Try to refresh token
+            $refreshToken = $request->session()->get('supabase_refresh_token');
+            if ($refreshToken) {
+                $newTokens = $this->refreshSupabaseToken($refreshToken);
+                
+                if ($newTokens) {
+                    $request->session()->put('supabase_access_token', $newTokens['access_token']);
+                    $request->session()->put('supabase_refresh_token', $newTokens['refresh_token']);
                 } else {
-                    // No refresh token, logout user
+                    // Token refresh failed, logout user
                     $this->logoutUser($request);
-                    return redirect('/login');
+                    return redirect('/login')->with('error', 'Session expired. Please login again.');
                 }
+            } else {
+                // No refresh token, logout user
+                $this->logoutUser($request);
+                return redirect('/login')->with('error', 'Authentication failed. Please login again.');
             }
         }
 
@@ -68,16 +90,31 @@ class SupabaseAuthenticate
     {
         try {
             // Get user info from Supabase
-            $response = $this->supabase->getUser($accessToken);
+            $response = $this->supabase->verifyToken($accessToken);
             
-            if (isset($response['id'])) {
-                // Update user's last login time
+            if ($response && isset($response['id'])) {
+                // Update user's last login time and sync data
                 $user = Auth::user();
-                if ($user && $user->supabase_id !== $response['id']) {
-                    $user->update([
-                        'supabase_id' => $response['id'],
+                if ($user) {
+                    $updateData = [
                         'last_login_at' => now(),
-                    ]);
+                    ];
+                    
+                    // Update Supabase ID if different
+                    if ($user->supabase_id !== $response['id']) {
+                        $updateData['supabase_id'] = $response['id'];
+                    }
+                    
+                    // Update other info if available
+                    if (isset($response['email']) && $user->email !== $response['email']) {
+                        $updateData['email'] = $response['email'];
+                    }
+                    
+                    if (isset($response['user_metadata']['full_name']) && $user->name !== $response['user_metadata']['full_name']) {
+                        $updateData['name'] = $response['user_metadata']['full_name'];
+                    }
+                    
+                    $user->update($updateData);
                 }
                 
                 return $response;

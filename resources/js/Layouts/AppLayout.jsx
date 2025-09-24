@@ -1,11 +1,38 @@
-import React from 'react';
-import { Link, usePage } from '@inertiajs/react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Link, usePage, router } from '@inertiajs/react';
 import Breadcrumbs from '@/components/react/Breadcrumbs';
 import ThemeToggle from '@/components/react/ThemeToggle';
 
 export default function AppLayout({ children, breadcrumbs = [] }) {
     const { props } = usePage();
     const user = props?.auth?.user;
+    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+    const userMenuRef = useRef(null);
+
+    const handleLogout = () => {
+        router.post('/auth/supabase/logout', {}, {
+            onSuccess: (page) => {
+                // Handle redirect response
+                if (page.props.redirect) {
+                    window.location.href = page.props.redirect;
+                }
+            },
+        });
+    };
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+                setIsUserMenuOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
 
     return (
         <div className="relative min-h-screen bg-background text-foreground flex flex-col transition-colors duration-300 antialiased">
@@ -21,7 +48,7 @@ export default function AppLayout({ children, breadcrumbs = [] }) {
             />
 
             {/* Header - Mobile optimized */}
-            <header className="relative border-b border-border/60 bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/55 shadow-sm transition-colors duration-300">
+            <header className="relative isolate border-b border-border/60 bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/55 shadow-sm transition-colors duration-300 z-50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
                     <div className="flex items-center justify-between gap-3 sm:gap-6">
                         <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
@@ -63,6 +90,54 @@ export default function AppLayout({ children, breadcrumbs = [] }) {
 
                             {/* Theme toggle */}
                             <ThemeToggle />
+
+                            {/* User menu */}
+                            <div className="relative isolate" ref={userMenuRef}>
+                                <button
+                                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                                    className="flex items-center gap-2 clean-button px-3 py-1.5 text-sm"
+                                >
+                                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
+                                        {user?.name?.charAt(0).toUpperCase() || 'U'}
+                                    </div>
+                                    <span className="hidden sm:block text-sm">{user?.name || 'User'}</span>
+                                    <svg
+                                        className={`w-4 h-4 transition-transform duration-200 ${isUserMenuOpen ? 'rotate-180' : ''}`}
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M19 9l-7 7-7-7"
+                                        />
+                                    </svg>
+                                </button>
+
+                                {/* Dropdown menu */}
+                                {isUserMenuOpen && (
+                                    <div className="absolute right-0 mt-2 w-48 clean-card bg-card border border-border/60 shadow-lg z-[10000]">
+                                        <div className="py-1">
+                                            <div className="px-4 py-2 border-b border-border/60">
+                                                <p className="text-sm font-medium text-foreground truncate">
+                                                    {user?.name}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground truncate">
+                                                    {user?.email}
+                                                </p>
+                                            </div>
+                                            <button
+                                                onClick={handleLogout}
+                                                className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+                                            >
+                                                Sign out
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>

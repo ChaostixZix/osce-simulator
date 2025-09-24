@@ -18,7 +18,7 @@ class DatabaseSeeder extends Seeder
             ['email' => 'test@example.com'],
             [
                 'name' => 'Test User',
-                'workos_id' => 'seed-workos-id-0001',
+                'supabase_id' => 'seed-supabase-id-0001',
                 'avatar' => 'https://ui-avatars.com/api/?name=Test+User&background=0d1117&color=fff',
             ]
         );
@@ -28,7 +28,7 @@ class DatabaseSeeder extends Seeder
             ['email' => 'bintangputra5556@gmail.com'],
             [
                 'name' => 'Bintang Putra',
-                'workos_id' => 'seed-workos-id-0002',
+                'supabase_id' => 'seed-supabase-id-0002',
                 'avatar' => 'https://ui-avatars.com/api/?name=Bintang+Putra&background=0d1117&color=fff',
             ]
         );

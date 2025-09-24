@@ -4,6 +4,7 @@ namespace App\Services;
 
 use GuzzleHttp\Client;
 use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 use Illuminate\Support\Facades\Cache;
 
 class SupabaseService
@@ -159,31 +160,26 @@ class SupabaseService
     public function verifyToken($token)
     {
         try {
-            $decoded = JWT::decode($token, new Key($this->getJwtSecret(), 'HS256'));
+            // For Supabase tokens, we need to verify against the Supabase project
+            $response = $this->client->get('/auth/v1/user', [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $token,
+                ]
+            ]);
+
+            $user = json_decode($response->getBody(), true);
             
-            // Check if token is expired
-            if ($decoded->exp < time()) {
-                return false;
+            if (isset($user['id']) && $user['aud'] === 'authenticated') {
+                return $user;
             }
 
-            return $decoded;
+            return false;
         } catch (\Exception $e) {
             return false;
         }
     }
 
-    /**
-     * Get JWT secret from Supabase
-     */
-    protected function getJwtSecret()
-    {
-        return Cache::remember('supabase_jwt_secret', 3600, function () {
-            // For development, use a default secret
-            // In production, you should get this from Supabase
-            return config('services.supabase.jwt_secret', 'your-secret-key');
-        });
-    }
-
+    
     /**
      * Reset password for email
      */
@@ -208,6 +204,171 @@ class SupabaseService
                 'Authorization' => 'Bearer ' . $accessToken,
             ],
             'json' => $attributes
+        ]);
+
+        return json_decode($response->getBody(), true);
+    }
+
+    /**
+     * Update user password using service role key
+     */
+    public function updateUserPassword($email, $password)
+    {
+        $client = new Client([
+            'base_uri' => $this->url,
+            'headers' => [
+                'apikey' => $this->serviceRoleKey,
+                'Authorization' => 'Bearer ' . $this->serviceRoleKey,
+                'Content-Type' => 'application/json',
+            ],
+        ]);
+
+        // First get the user by email
+        $userResponse = $client->get('/auth/v1/admin/users', [
+            'query' => [
+                'email' => $email,
+            ]
+        ]);
+
+        $users = json_decode($userResponse->getBody(), true);
+        
+        if (empty($users['users'])) {
+            return ['error' => ['message' => 'User not found']];
+        }
+
+        $userId = $users['users'][0]['id'];
+
+        // Update user password
+        $response = $client->put('/auth/v1/admin/users/' . $userId, [
+            'json' => [
+                'password' => $password,
+            ]
+        ]);
+
+        return json_decode($response->getBody(), true);
+    }
+
+    /**
+     * Create user with service role key
+     */
+    public function createUser(array $userData)
+    {
+        $client = new Client([
+            'base_uri' => $this->url,
+            'headers' => [
+                'apikey' => $this->serviceRoleKey,
+                'Authorization' => 'Bearer ' . $this->serviceRoleKey,
+                'Content-Type' => 'application/json',
+            ],
+        ]);
+
+        $response = $client->post('/auth/v1/admin/users', [
+            'json' => array_merge([
+                'email_confirm' => true,
+            ], $userData)
+        ]);
+
+        return json_decode($response->getBody(), true);
+    }
+
+    /**
+     * Delete user
+     */
+    public function deleteUser($userId)
+    {
+        $client = new Client([
+            'base_uri' => $this->url,
+            'headers' => [
+                'apikey' => $this->serviceRoleKey,
+                'Authorization' => 'Bearer ' . $this->serviceRoleKey,
+                'Content-Type' => 'application/json',
+            ],
+        ]);
+
+        $response = $client->delete('/auth/v1/admin/users/' . $userId);
+        return json_decode($response->getBody(), true);
+    }
+
+    /**
+     * Invite user by email
+     */
+    public function inviteUserByEmail($email, $data = [])
+    {
+        $client = new Client([
+            'base_uri' => $this->url,
+            'headers' => [
+                'apikey' => $this->serviceRoleKey,
+                'Authorization' => 'Bearer ' . $this->serviceRoleKey,
+                'Content-Type' => 'application/json',
+            ],
+        ]);
+
+        $response = $client->post('/auth/v1/invite', [
+            'json' => array_merge([
+                'email' => $email,
+            ], $data)
+        ]);
+
+        return json_decode($response->getBody(), true);
+    }
+
+    /**
+     * Get user by ID
+     */
+    public function getUserById($userId)
+    {
+        $client = new Client([
+            'base_uri' => $this->url,
+            'headers' => [
+                'apikey' => $this->serviceRoleKey,
+                'Authorization' => 'Bearer ' . $this->serviceRoleKey,
+                'Content-Type' => 'application/json',
+            ],
+        ]);
+
+        $response = $client->get('/auth/v1/admin/users/' . $userId);
+        return json_decode($response->getBody(), true);
+    }
+
+    /**
+     * List users
+     */
+    public function listUsers($page = 1, $perPage = 50)
+    {
+        $client = new Client([
+            'base_uri' => $this->url,
+            'headers' => [
+                'apikey' => $this->serviceRoleKey,
+                'Authorization' => 'Bearer ' . $this->serviceRoleKey,
+                'Content-Type' => 'application/json',
+            ],
+        ]);
+
+        $response = $client->get('/auth/v1/admin/users', [
+            'query' => [
+                'page' => $page,
+                'per_page' => $perPage,
+            ]
+        ]);
+
+        return json_decode($response->getBody(), true);
+    }
+
+    /**
+     * Generate magic link
+     */
+    public function generateMagicLink($email, $redirectTo = null)
+    {
+        $data = [
+            'email' => $email,
+        ];
+
+        if ($redirectTo) {
+            $data['data'] = ['redirect_to' => $redirectTo];
+        }
+
+        $response = $this->client->post('/auth/v1/magiclink', [
+            'json' => $data
         ]);
 
         return json_decode($response->getBody(), true);

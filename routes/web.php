@@ -1,15 +1,15 @@
 <?php
 
-use Laravel\WorkOS\Http\Middleware\ValidateSessionWithWorkOS;
-use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\HealthCheckController;
 use App\Http\Controllers\LandingController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OsceAssessmentController;
-use App\Http\Controllers\Admin\AdminOsceCaseController;
-use App\Http\Controllers\Admin\AdminUserController;
 
 // use App\Http\Controllers\PatientController;
 // use App\Http\Controllers\OsceAssessmentController;
 use App\Http\Controllers\OsceRationalizationController;
+use App\Http\Controllers\AdminOsceCaseController;
+use App\Http\Controllers\AdminUserController;
 
 
 Route::get('/', [LandingController::class, 'index'])->name('home');
@@ -21,7 +21,6 @@ Route::get('/made-by', [LandingController::class, 'madeBy'])->name('made-by');
 Route::middleware([
     'auth',
     'not-banned',
-    ValidateSessionWithWorkOS::class,
 ])->group(function () {
 
 	Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -142,6 +141,19 @@ Route::middleware([
     // Removed MCQ, Forum, and SOAP routes
 
 });
+
+// Health check endpoints (internal use)
+Route::prefix('health')->group(function () {
+    Route::get('basic', [HealthCheckController::class, 'basic']);
+    Route::get('detailed', [HealthCheckController::class, 'detailed']);
+    Route::get('authentication', [HealthCheckController::class, 'authentication']);
+    Route::get('migration', [HealthCheckController::class, 'migration']);
+})->middleware('web');
+
+// Migration dashboard route (admin only)
+Route::get('migration-dashboard', function () {
+    return view('migration-dashboard');
+})->middleware(['auth', 'admin']);
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

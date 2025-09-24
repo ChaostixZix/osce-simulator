@@ -35,12 +35,6 @@ return [
         ],
     ],
 
-    'workos' => [
-        'client_id' => env('WORKOS_CLIENT_ID'),
-        'secret' => env('WORKOS_API_KEY'),
-        'redirect_url' => env('WORKOS_REDIRECT_URL'),
-    ],
-
     'gemini' => [
         'api_key' => env('GEMINI_API_KEY'),
         // Default to a widely available public model unless overridden
@@ -56,6 +50,19 @@ return [
         'endpoint' => env('OPENAI_AZURE_ENDPOINT'),
         'deployment' => env('OPENAI_AZURE_DEPLOYMENT', 'gpt-4.1-nano'),
         'timeout' => env('OPENAI_AZURE_TIMEOUT', 30),
+    ],
+
+    'supabase' => [
+        'url' => env('SUPABASE_URL'),
+        'key' => env('SUPABASE_ANON_KEY'),
+        'service_role_key' => env('SUPABASE_SERVICE_ROLE_KEY'),
+        'redirect_url' => env('SUPABASE_REDIRECT_URL', env('APP_URL') . '/auth/supabase/callback'),
+        'providers' => [
+            'google' => env('SUPABASE_GOOGLE_ENABLED', false),
+            'github' => env('SUPABASE_GITHUB_ENABLED', false),
+            'facebook' => env('SUPABASE_FACEBOOK_ENABLED', false),
+            'twitter' => env('SUPABASE_TWITTER_ENABLED', false),
+        ],
     ],
 
 ];
