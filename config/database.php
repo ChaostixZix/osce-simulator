@@ -150,6 +150,15 @@ return [
             'cluster' => env('REDIS_CLUSTER', 'redis'),
             'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_').'_database_'),
             'persistent' => env('REDIS_PERSISTENT', false),
+            // Enable TLS context options for Redis when using TLS (rediss://)
+            // Works with phpredis via PhpRedisConnector by passing stream context
+            // and with Predis via URL parameters.
+            'context' => [
+                'ssl' => [
+                    'verify_peer' => env('REDIS_VERIFY_PEER', false),
+                    'verify_peer_name' => env('REDIS_VERIFY_PEER_NAME', false),
+                ],
+            ],
         ],
 
         'default' => [
