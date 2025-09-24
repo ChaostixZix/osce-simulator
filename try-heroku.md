@@ -147,3 +147,36 @@ Set variabel berikut di Heroku (Dashboard → Settings → Config Vars). Pakai n
 - Semua secrets harus diset sebagai Heroku Config Vars.
 - Bila menyalin perintah yang memakai secrets, gunakan placeholder seperti `{{DATABASE_URL}}`, `{{REDIS_URL}}`, `{{HEROKU_API_KEY}}` dan set nilainya via CLI/Dasbor Heroku.
 
+
+---
+
+## Update: Mixed Content di Custom Domain (HTTPS) – FIXED
+- Gejala: Halaman dimuat via HTTPS, tetapi asset (CSS/JS) direquest via http:// sehingga diblokir (Mixed Content).
+- Penyebab umum:
+  - APP_URL/ASSET_URL tidak menggunakan skema https.
+  - Laravel tidak mendeteksi HTTPS di balik proxy (Heroku), sehingga generate URL http.
+  - Template menggunakan absolute http:// alih-alih helper/relative.
+- Solusi yang diterapkan:
+  1) Set Config Vars agar https:
+     - `APP_URL=https://osce.bintangputra.my.id`
+     - `ASSET_URL=https://osce.bintangputra.my.id`
+  2) Paksa skema HTTPS saat production (Heroku):
+     - Di `app/Providers/AppServiceProvider.php` (method `boot`):
+       ```php
+       use Illuminate\Support\Facades\URL;
+       
+       if (app()->environment('production')) {
+           URL::forceScheme('https');
+       }
+       ```
+  3) Pastikan tidak ada link http hardcoded di Blade; gunakan `@vite` atau `asset()` tanpa skema.
+  4) Clear cache (sudah otomatis via Procfile pada dyno start) lalu restart: `heroku restart`.
+- Verifikasi: di DevTools Network atau header `Link:` pada response, asset `build/...` sekarang served via `https://`.
+
+Tambahan ke Checklist:
+- Set `APP_URL` dan `ASSET_URL` ke URL https custom domain Anda.
+- Pastikan `AppServiceProvider` memaksa HTTPS di production.
+
+Tambahan ke Perubahan di Repo:
+- `app/Providers/AppServiceProvider.php`: tambahkan `URL::forceScheme('https')` saat environment `production`.
+
