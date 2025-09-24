@@ -102,7 +102,7 @@ function PrivacyPolicy({ auth }) {
                             <div className="text-muted-foreground lowercase space-y-3 text-sm leading-relaxed">
                                 <p>we collect minimal data necessary for the osce simulator to function:</p>
                                 <ul className="list-disc list-inside space-y-1 ml-4">
-                                    <li>authentication data through WorkOS (email, name)</li>
+                                    <li>authentication data handled by Supabase (email, name)</li>
                                     <li>session data (osce case interactions, chat messages)</li>
                                     <li>performance metrics (assessment scores, completion times)</li>
                                     <li>contact form submissions (name, email, message)</li>

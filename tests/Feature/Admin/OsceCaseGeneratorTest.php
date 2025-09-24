@@ -2,11 +2,11 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Http\Middleware\SupabaseAuthenticate;
 use App\Models\User;
 use App\Services\UniversalAIService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Laravel\WorkOS\Http\Middleware\ValidateSessionWithWorkOS;
 use Mockery;
 use Tests\TestCase;
 
@@ -16,7 +16,7 @@ class OsceCaseGeneratorTest extends TestCase
 
     public function test_admin_can_generate_case_from_uploaded_files(): void
     {
-        $this->withoutMiddleware(ValidateSessionWithWorkOS::class);
+        $this->withoutMiddleware(SupabaseAuthenticate::class);
 
         $admin = User::factory()->create();
         $admin->forceFill(['is_admin' => true])->save();
@@ -127,7 +127,7 @@ class OsceCaseGeneratorTest extends TestCase
 
     public function test_non_admin_cannot_generate_cases(): void
     {
-        $this->withoutMiddleware(ValidateSessionWithWorkOS::class);
+        $this->withoutMiddleware(SupabaseAuthenticate::class);
 
         $user = User::factory()->create(['is_admin' => false]);
         $file = UploadedFile::fake()->createWithContent('notes.txt', 'Sample OSCE content.');
@@ -145,7 +145,7 @@ class OsceCaseGeneratorTest extends TestCase
 
     public function test_returns_validation_error_when_ai_returns_empty_payload(): void
     {
-        $this->withoutMiddleware(ValidateSessionWithWorkOS::class);
+        $this->withoutMiddleware(SupabaseAuthenticate::class);
 
         $admin = User::factory()->create();
         $admin->forceFill(['is_admin' => true])->save();

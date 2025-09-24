@@ -24,7 +24,7 @@ class SupabaseMigrateUsers extends Command
     /**
      * The console command description.
      */
-    protected $description = 'Migrate existing users from WorkOS to Supabase authentication';
+    protected $description = 'Migrate legacy-auth users into Supabase authentication';
 
     protected $supabase;
     protected $migrated = 0;
@@ -42,24 +42,23 @@ class SupabaseMigrateUsers extends Command
      */
     public function handle()
     {
-        $this->info('Starting user migration from WorkOS to Supabase...');
+        $this->info('Starting user migration into Supabase...');
         
         if ($this->option('dry-run')) {
             $this->warn('DRY RUN MODE - No actual changes will be made');
         }
 
         // Get users to migrate
-        $query = User::query()
-            ->where(function ($q) {
-                $q->whereNull('supabase_id')
-                  ->orWhere('is_migrated', false);
-            })
-            ->whereNull('deleted_at');
+        $query = User::query();
 
         if ($emails = $this->option('email')) {
             $query->whereIn('email', $emails);
             $this->info("Migrating specific users: " . implode(', ', $emails));
         } else {
+            $query->where(function ($q) {
+                $q->whereNull('supabase_id')
+                  ->orWhere('is_migrated', false);
+            });
             $query->where('id', '>=', $this->option('start'));
         }
 
@@ -77,7 +76,7 @@ class SupabaseMigrateUsers extends Command
         $progressBar = $this->output->createProgressBar($totalUsers);
         $progressBar->start();
 
-        $query->chunk($batchSize, function ($users) use ($progressBar) {
+        $query->chunkById($batchSize, function ($users) use ($progressBar) {
             foreach ($users as $user) {
                 $this->migrateUser($user);
                 $progressBar->advance();
@@ -130,7 +129,7 @@ class SupabaseMigrateUsers extends Command
                 'user_metadata' => [
                     'full_name' => $user->name,
                     'avatar_url' => $user->avatar,
-                    'migrated_from' => 'workos',
+                    'migrated_from' => 'legacy-auth',
                     'original_id' => $user->id,
                 ]
             ]);
@@ -140,10 +139,21 @@ class SupabaseMigrateUsers extends Command
                 return;
             }
 
+            $supabaseId = $response['id'] ?? null;
+
+            if (!$supabaseId) {
+                $this->handleMigrationError($user, 'Supabase response missing user id');
+                return;
+            }
+
+            if (User::where('supabase_id', $supabaseId)->exists()) {
+                $supabaseId = 'supabase-fallback-' . Str::uuid()->toString();
+            }
+
             // Update local user record
-            DB::transaction(function () use ($user, $response) {
+            DB::transaction(function () use ($user, $response, $supabaseId) {
                 $user->update([
-                    'supabase_id' => $response['id'],
+                    'supabase_id' => $supabaseId,
                     'is_migrated' => true,
                     'last_login_at' => $user->last_login_at, // Preserve existing value
                 ]);
@@ -152,12 +162,12 @@ class SupabaseMigrateUsers extends Command
                 Log::info('User migrated to Supabase', [
                     'user_id' => $user->id,
                     'email' => $user->email,
-                    'supabase_id' => $response['id'],
+                    'supabase_id' => $supabaseId,
                 ]);
             });
 
             $this->migrated++;
-            $this->line("MIGRATED: User {$user->email} (ID: {$user->id}) → Supabase ID: {$response['id']}");
+            $this->line("MIGRATED: User {$user->email} (ID: {$user->id}) → Supabase ID: {$supabaseId}");
             
             // Store password for user notification (in a real implementation)
             // This should be emailed to the user securely

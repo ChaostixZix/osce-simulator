@@ -10,7 +10,7 @@ Key capabilities include:
 - Guided OSCE case sessions with timers, chat, and ordered investigations.
 - AI-driven patient personas and assessment pipelines that score and summarize trainee performance.
 - Post-session rationalization workflows and result review pages.
-- WorkOS-based authentication and multi-tenant friendly session management.
+- Supabase-based authentication with session handling through Supabase JWTs.
 - **NEW:** Pre-session onboarding runway with interactive tutorials and practice sessions.
 - **NEW:** AI-powered patient visualizer using Gemini 2.5 Flash Image API for medical training imagery.
 - **NEW:** Adaptive case primers that generate tailored briefings and clinical reasoning guidance.
@@ -24,7 +24,7 @@ Key capabilities include:
 - **Framework:** Laravel 12 with Inertia.js adapter (`inertiajs/inertia-laravel`).
 - **Domain layer:** Service classes in `app/Services` orchestrate AI providers, assessment queues, and result reduction (e.g. `AiPatientService`, `AiAssessorService`, `AssessmentQueueService`).
 - **Controllers:** HTTP endpoints live in `app/Http/Controllers`, including `OsceController`, `OsceChatController`, `OsceAssessmentController`, `RationalizationController`, settings controllers, plus the admin namespace (`Admin\AdminOsceCaseController`, `Admin\AdminUserController`) for dashboard case/user management.
-- **Authentication:** WorkOS integration (`laravel/workos`) handles SSO/login flows.
+- **Authentication:** Supabase integration (`App\\Services\\SupabaseService`) manages sign-in, token refresh, and OAuth callbacks.
 - **Messaging:** Laravel Reverb provides WebSocket broadcasting for chat and presence; Redis backs queues, cache, and sessions (`QUEUE_CONNECTION=redis`).
 - **AI Providers:** Gemini (default) and Azure OpenAI are configured through `UniversalAIService` / `GeminiService` with provider selection via the `AI_PROVIDER` env variable.
 
@@ -53,7 +53,7 @@ Key capabilities include:
 *   **Styling:** Tailwind CSS
 *   **Database:** PostgreSQL (production), SQLite (development)
 *   **Real-time:** Laravel Reverb (WebSocket server)
-*   **Authentication:** WorkOS
+*   **Authentication:** Supabase
 
 ## Setup
 
@@ -63,7 +63,7 @@ Key capabilities include:
 - Bun 1.x (preferred for JS tooling) with Node.js 20 runtime
 - Redis 6+ (queues/cache/session)
 - PostgreSQL 14+ (or SQLite for local development)
-- WorkOS API credentials
+- Supabase API credentials
 - Gemini API key (and optional Azure OpenAI credentials)
 
 ### Installation Steps
@@ -84,7 +84,7 @@ Key capabilities include:
    ```bash
    cp .env.example .env
    ```
-   Update values for database, Redis, WorkOS, AI providers, and Reverb credentials:
+   Update values for database, Redis, Supabase, AI providers, and Reverb credentials:
    - `DB_CONNECTION`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`
    - `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`
    - `WORKOS_CLIENT_ID`, `WORKOS_API_KEY`, `WORKOS_REDIRECT_URL`
@@ -146,11 +146,11 @@ Key capabilities include:
   php artisan test
   ```
 - **JavaScript/TypeScript checks** – ESLint and Prettier via Bun (commands above).
-- **Manual QA** – Verify OSCE session lifecycle (start → chat → rationalization → results), WorkOS login, real-time chat presence, and AI assessment flows.
+- **Manual QA** – Verify OSCE session lifecycle (start → chat → rationalization → results), Supabase login, real-time chat presence, and AI assessment flows.
 - **Queues/Reverb** – Ensure Redis is running before queue or websocket tests.
 
 ## Troubleshooting
-- **WorkOS login loops** – confirm callback URL matches `WORKOS_REDIRECT_URL` and `APP_URL`.
+- **Supabase login loops** – confirm callback URL matches `SUPABASE_REDIRECT_URL` and `APP_URL`.
 - **Missing realtime updates** – check `php artisan reverb:start` output, confirm Reverb app credentials, and ensure `VITE_DEV_SERVER_URL` is set when accessing from non-localhost devices.
 - **Queue stalls** – verify Redis connectivity and that `queue:work` is running on the `assessments` queue; clear failed jobs with `php artisan queue:flush`.
 - **AI provider errors** – confirm `AI_PROVIDER` matches configured credentials; review `storage/logs/laravel.log` for provider-specific messages. The `UniversalAIService` now includes detailed logging for Gemini chat failures, including HTTP errors, raw provider bodies, and safety blocks. Check for "Gemini chat"/"OpenAI Azure" messages to diagnose patient chat issues. To mitigate Gemini `MAX_TOKENS` fallbacks, patient chat now uses `maxOutputTokens=1024`.
@@ -175,7 +175,7 @@ The landing page now includes an exhaustive explanation section that provides de
 
 *   **OSCE Methodology:** Complete explanation of Objective Structured Clinical Examination approach and benefits.
 *   **Key Features Deep Dive:** Detailed breakdown of Clinical Reasoning Engine, Interactive Patient Simulation, and Comprehensive Assessment capabilities.
-*   **Technology Stack:** Comprehensive overview of backend infrastructure (Laravel 12, PostgreSQL, Laravel Reverb, WorkOS) and frontend experience (React 19, Inertia.js, Framer Motion, Tailwind CSS).
+*   **Technology Stack:** Comprehensive overview of backend infrastructure (Laravel 12, PostgreSQL, Laravel Reverb, Supabase) and frontend experience (React 19, Inertia.js, Framer Motion, Tailwind CSS).
 *   **Getting Started Guide:** Step-by-step instructions for account creation, case selection, and training initiation.
 *   **Animated Cards:** Interactive sections with smooth animations that explain complex features in an engaging, accessible format.
 

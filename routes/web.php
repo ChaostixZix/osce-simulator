@@ -8,8 +8,8 @@ use App\Http\Controllers\OsceAssessmentController;
 // use App\Http\Controllers\PatientController;
 // use App\Http\Controllers\OsceAssessmentController;
 use App\Http\Controllers\OsceRationalizationController;
-use App\Http\Controllers\AdminOsceCaseController;
-use App\Http\Controllers\AdminUserController;
+use App\Http\Controllers\Admin\AdminOsceCaseController;
+use App\Http\Controllers\Admin\AdminUserController;
 
 
 Route::get('/', [LandingController::class, 'index'])->name('home');

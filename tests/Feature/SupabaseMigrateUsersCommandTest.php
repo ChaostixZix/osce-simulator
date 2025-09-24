@@ -38,7 +38,7 @@ test('command migrates users in batches', function () {
 
     // Run migration with batch size of 2
     $this->artisan('supabase:migrate-users --batch=2')
-        ->expectsOutput('Starting user migration from WorkOS to Supabase...')
+        ->expectsOutput('Starting user migration into Supabase...')
         ->expectsOutput('Found 3 users to migrate...')
         ->expectsOutput('Processing in batches of 2...')
         ->assertExitCode(0);
