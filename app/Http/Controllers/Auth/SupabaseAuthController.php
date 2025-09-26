@@ -57,11 +57,33 @@ class SupabaseAuthController extends Controller
         ]);
 
         try {
+            // Check if user exists locally first
+            $localUser = User::where('email', $credentials['email'])->first();
+            
+            if (!$localUser) {
+                Log::warning('⚠️ User not found in local database', [
+                    'request_id' => $requestId,
+                    'email' => $credentials['email'],
+                ]);
+                
+                $userMessage = 'No account found with this email address. Please check your email or register for a new account.';
+                
+                return $this->handleLoginError($request, $requestId, ['email' => $userMessage]);
+            }
+
             // Sign in with Supabase
             $response = $this->supabase->signInWithPassword($credentials);
             
+            // Debug: Log the response
+            Log::debug('🔍 Supabase response', [
+                'request_id' => $requestId,
+                'response_keys' => array_keys($response),
+                'has_error' => isset($response['error']),
+                'has_user' => isset($response['user']),
+                'has_session' => isset($response['session']),
+            ]);
+            
             // Check for Supabase API errors
-            // Supabase returns errors at root level: code, error_code, msg
             if (isset($response['error']) || isset($response['error_code'])) {
                 $errorData = [
                     'code' => $response['code'] ?? 400,
@@ -73,28 +95,17 @@ class SupabaseAuthController extends Controller
                     'request_id' => $requestId,
                     'error_code' => $errorData['error_code'],
                     'error_message' => $errorData['message'],
-                    'full_response' => $response,
                     'email_domain' => substr(strrchr($credentials['email'], "@"), 1),
                 ]);
                 
                 $userMessage = $this->mapSupabaseLoginErrorToUserMessage($errorData);
                 
-                // Return JSON response for Inertia
-                if ($request->wantsJson()) {
-                    return response()->json([
-                        'errors' => ['email' => $userMessage],
-                        'debug_id' => $requestId
-                    ], 422);
-                }
-                
-                return back()->withErrors([
-                    'email' => $userMessage
-                ])->withInput($request->except('password'));
+                return $this->handleLoginError($request, $requestId, ['email' => $userMessage]);
             }
 
             // Get user data and session
-            $userData = $response['user'];
-            $session = $response['session'] ?? $response; // Supabase returns session data at root level
+            $userData = $response['user'] ?? $response;
+            $session = $response['session'] ?? $response;
 
             // Verify we have the required data
             if (!isset($userData['id']) || !isset($session['access_token'])) {
@@ -115,58 +126,38 @@ class SupabaseAuthController extends Controller
                 'email_confirmed' => $userData['email_confirmed_at'] ?? false,
             ]);
 
-            // Find or create user
-            $user = User::where('email', $userData['email'])->first();
+            // Update existing user
+            $updateData = [
+                'supabase_id' => $userData['id'],
+                'provider' => 'email',
+                'last_login_at' => now(),
+                'is_migrated' => true,
+            ];
             
-            if (!$user) {
-                Log::info('👤 Creating new local user', [
-                    'request_id' => $requestId,
-                    'supabase_id' => $userData['id'],
-                    'email' => $userData['email'],
-                ]);
-                
-                $user = User::create([
-                    'name' => $userData['user_metadata']['full_name'] ?? $userData['email'],
-                    'email' => $userData['email'],
-                    'supabase_id' => $userData['id'],
-                    'provider' => 'email',
-                    'avatar' => $userData['user_metadata']['avatar_url'] ?? null,
-                    'is_migrated' => true,
-                ]);
-            } else {
-                // Update existing user - mark as migrated if using Supabase
-                $updateData = [
-                    'supabase_id' => $userData['id'],
-                    'provider' => 'email',
-                    'last_login_at' => now(),
-                    'is_migrated' => true,
-                ];
-                
-                // Update name if available
-                if (isset($userData['user_metadata']['full_name']) && (!$user->name || $user->name === $userData['email'])) {
-                    $updateData['name'] = $userData['user_metadata']['full_name'];
-                }
-                
-                Log::info('🔄 Updating existing user', [
-                    'request_id' => $requestId,
-                    'user_id' => $user->id,
-                    'supabase_id' => $userData['id'],
-                ]);
-                
-                $user->update($updateData);
+            // Update name if available
+            if (isset($userData['user_metadata']['full_name']) && (!$localUser->name || $localUser->name === $localUser->email)) {
+                $updateData['name'] = $userData['user_metadata']['full_name'];
             }
+            
+            Log::info('🔄 Updating existing user', [
+                'request_id' => $requestId,
+                'user_id' => $localUser->id,
+                'supabase_id' => $userData['id'],
+            ]);
+            
+            $localUser->update($updateData);
 
             // Login user
-            Auth::login($user);
+            Auth::login($localUser);
             
             // Store Supabase session
             $request->session()->put('supabase_access_token', $session['access_token']);
-            $request->session()->put('supabase_refresh_token', $session['refresh_token']);
+            $request->session()->put('supabase_refresh_token', $session['refresh_token'] ?? null);
             
             Log::info('🎉 Login completed successfully', [
                 'request_id' => $requestId,
-                'user_id' => $user->id,
-                'email' => $user->email,
+                'user_id' => $localUser->id,
+                'email' => $localUser->email,
             ]);
             
             // Return redirect response for Inertia
@@ -195,17 +186,7 @@ class SupabaseAuthController extends Controller
             
             $userMessage = $this->mapHttpErrorToUserMessage($statusCode, $decodedErrorBody);
             
-            // Return JSON response for Inertia
-            if ($request->wantsJson()) {
-                return response()->json([
-                    'errors' => ['email' => $userMessage],
-                    'debug_id' => $requestId
-                ], 422);
-            }
-            
-            return back()->withErrors([
-                'email' => $userMessage
-            ])->withInput($request->except('password'));
+            return $this->handleLoginError($request, $requestId, ['email' => $userMessage]);
             
         } catch (\Exception $e) {
             Log::error('❌ Unexpected login error', [
@@ -216,17 +197,125 @@ class SupabaseAuthController extends Controller
                 'email_domain' => substr(strrchr($credentials['email'], "@"), 1),
             ]);
             
-            // Return JSON response for Inertia
-            if ($request->wantsJson()) {
-                return response()->json([
-                    'errors' => ['email' => 'Login failed due to a server error. Please try again later.'],
-                    'debug_id' => $requestId
-                ], 422);
-            }
-            
-            return back()->withErrors([
-                'email' => 'Login failed due to a server error. Please try again later.'
-            ])->withInput($request->except('password'));
+            return $this->handleLoginError($request, $requestId, ['email' => 'Login failed due to a server error. Please try again later.']);
+        }
+    }
+
+    /**
+     * Handle login error response
+     */
+    private function handleLoginError(Request $request, string $requestId, array $errors)
+    {
+        if ($request->wantsJson()) {
+            return response()->json([
+                'errors' => $errors,
+                'debug_id' => $requestId
+            ], 422);
+        }
+        
+        return back()->withErrors($errors)->withInput($request->except('password'));
+    }
+
+    /**
+     * Map Supabase login error codes to user-friendly messages
+     */
+    private function mapSupabaseLoginErrorToUserMessage(array $error): string
+    {
+        $errorCode = $error['error_code'] ?? null;
+        $message = $error['message'] ?? 'Login failed.';
+        
+        // Handle case where message is an array
+        if (is_array($message)) {
+            $message = $message['message'] ?? json_encode($message);
+        }
+        
+        // Check specific error codes first
+        switch ($errorCode) {
+            case 'invalid_credentials':
+                return 'These credentials do not match our records. Please check your email and password.';
+                
+            case 'email_not_confirmed':
+                return 'Please verify your email address before logging in. Check your inbox for the verification link.';
+                
+            case 'user_not_found':
+                return 'No account found with this email address. Please check your email or register for a new account.';
+                
+            case 'rate_limit_exceeded':
+            case 'too_many_requests':
+                return 'Too many login attempts. Please wait a few minutes before trying again.';
+                
+            case 'user_disabled':
+            case 'user_banned':
+                return 'This account has been disabled. Please contact support for assistance.';
+                
+            default:
+                // Fall back to message parsing
+                if (str_contains($message, 'Invalid login credentials')) {
+                    return 'These credentials do not match our records. Please check your email and password.';
+                }
+                
+                if (str_contains($message, 'Email not confirmed')) {
+                    return 'Please verify your email address before logging in. Check your inbox for the verification link.';
+                }
+                
+                if (str_contains($message, 'password')) {
+                    return 'Invalid password. Please check your password and try again.';
+                }
+                
+                if (str_contains($message, 'rate limit') || str_contains($message, 'too many requests')) {
+                    return 'Too many login attempts. Please wait a few minutes before trying again.';
+                }
+                
+                if (str_contains($message, 'disabled') || str_contains($message, 'banned')) {
+                    return 'This account has been disabled. Please contact support for assistance.';
+                }
+                
+                if (str_contains($message, 'network') || str_contains($message, 'timeout')) {
+                    return 'Network error occurred. Please check your connection and try again.';
+                }
+                
+                if (str_contains($message, 'configuration') || str_contains($message, 'misconfigured')) {
+                    return 'Authentication service is temporarily unavailable. Please try again later.';
+                }
+                
+                return 'Login failed. Please check your credentials and try again.';
+        }
+    }
+
+    /**
+     * Map HTTP status codes to user-friendly messages
+     */
+    private function mapHttpErrorToUserMessage($statusCode, array $errorBody = []): string
+    {
+        switch ($statusCode) {
+            case 400:
+                return 'Invalid request data. Please check your information and try again.';
+            case 401:
+                return 'Authentication error. Please check your Supabase configuration.';
+            case 403:
+                return 'Access denied. Please contact support.';
+            case 404:
+                return 'Service not found. Please check your Supabase configuration.';
+            case 422:
+                return 'Invalid data provided. Please check your information.';
+            case 429:
+                if (isset($errorBody['msg'])) {
+                    if (str_contains($errorBody['msg'], 'seconds')) {
+                        if (preg_match('/(\d+)\s+seconds?/', $errorBody['msg'], $matches)) {
+                            $waitTime = $matches[1];
+                            return "Too many registration attempts. Please wait {$waitTime} seconds before trying again.";
+                        }
+                    }
+                    return 'Too many registration attempts. Please wait a few minutes before trying again.';
+                }
+                return 'Too many registration attempts. Please wait a minute before trying again.';
+            case 500:
+            case 502:
+            case 503:
+            case 504:
+                return 'Server error occurred. Please try again later.';
+            default:
+                return 'Network error occurred. Please check your connection and try again.';
         }
     }
 
@@ -632,111 +721,6 @@ class SupabaseAuthController extends Controller
         }
         
         return $message;
-    }
-
-    /**
-     * Map HTTP status codes to user-friendly messages
-     */
-    private function mapHttpErrorToUserMessage($statusCode, array $errorBody = []): string
-    {
-        switch ($statusCode) {
-            case 400:
-                return 'Invalid request data. Please check your information and try again.';
-            case 401:
-                return 'Authentication error. Please check your Supabase configuration.';
-            case 403:
-                return 'Access denied. Please contact support.';
-            case 404:
-                return 'Service not found. Please check your Supabase configuration.';
-            case 422:
-                return 'Invalid data provided. Please check your information.';
-            case 429:
-                // Extract specific rate limit message if available
-                if (isset($errorBody['msg'])) {
-                    if (str_contains($errorBody['msg'], 'seconds')) {
-                        // Extract the number of seconds from the message
-                        if (preg_match('/(\d+)\s+seconds?/', $errorBody['msg'], $matches)) {
-                            $waitTime = $matches[1];
-                            return "Too many registration attempts. Please wait {$waitTime} seconds before trying again.";
-                        }
-                    }
-                    return 'Too many registration attempts. Please wait a few minutes before trying again.';
-                }
-                return 'Too many registration attempts. Please wait a minute before trying again.';
-            case 500:
-            case 502:
-            case 503:
-            case 504:
-                return 'Server error occurred. Please try again later.';
-            default:
-                return 'Network error occurred. Please check your connection and try again.';
-        }
-    }
-
-    /**
-     * Map Supabase login error codes to user-friendly messages
-     */
-    private function mapSupabaseLoginErrorToUserMessage(array $error): string
-    {
-        $errorCode = $error['error_code'] ?? null;
-        $message = $error['message'] ?? 'Login failed.';
-        
-        // Handle case where message is an array
-        if (is_array($message)) {
-            $message = $message['message'] ?? json_encode($message);
-        }
-        
-        // Check specific error codes first
-        switch ($errorCode) {
-            case 'invalid_credentials':
-                return 'These credentials do not match our records. Please check your email and password.';
-                
-            case 'email_not_confirmed':
-                return 'Please verify your email address before logging in. Check your inbox for the verification link.';
-                
-            case 'user_not_found':
-                return 'No account found with this email address. Please check your email or register for a new account.';
-                
-            case 'rate_limit_exceeded':
-            case 'too_many_requests':
-                return 'Too many login attempts. Please wait a few minutes before trying again.';
-                
-            case 'user_disabled':
-            case 'user_banned':
-                return 'This account has been disabled. Please contact support for assistance.';
-                
-            default:
-                // Fall back to message parsing
-                if (str_contains($message, 'Invalid login credentials')) {
-                    return 'These credentials do not match our records. Please check your email and password.';
-                }
-                
-                if (str_contains($message, 'Email not confirmed')) {
-                    return 'Please verify your email address before logging in. Check your inbox for the verification link.';
-                }
-                
-                if (str_contains($message, 'password')) {
-                    return 'Invalid password. Please check your password and try again.';
-                }
-                
-                if (str_contains($message, 'rate limit') || str_contains($message, 'too many requests')) {
-                    return 'Too many login attempts. Please wait a few minutes before trying again.';
-                }
-                
-                if (str_contains($message, 'disabled') || str_contains($message, 'banned')) {
-                    return 'This account has been disabled. Please contact support for assistance.';
-                }
-                
-                if (str_contains($message, 'network') || str_contains($message, 'timeout')) {
-                    return 'Network error occurred. Please check your connection and try again.';
-                }
-                
-                if (str_contains($message, 'configuration') || str_contains($message, 'misconfigured')) {
-                    return 'Authentication service is temporarily unavailable. Please try again later.';
-                }
-                
-                return 'Login failed. Please check your credentials and try again.';
-        }
     }
 
     /**

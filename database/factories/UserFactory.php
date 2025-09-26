@@ -21,9 +21,15 @@ class UserFactory extends Factory
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
-            'supabase_id' => 'fake-'.Str::random(10),
+            'password' => bcrypt('password'),
+            'supabase_id' => 'sb-' . Str::random(10),
+            'provider' => 'email',
             'remember_token' => Str::random(10),
-            'avatar' => '',
+            'avatar' => null,
+            'is_admin' => false,
+            'is_banned' => false,
+            'is_migrated' => true,
+            'last_login_at' => now(),
         ];
     }
 
@@ -34,6 +40,36 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
+        ]);
+    }
+
+    /**
+     * Indicate that the user is an admin.
+     */
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_admin' => true,
+        ]);
+    }
+
+    /**
+     * Indicate that the user is banned.
+     */
+    public function banned(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_banned' => true,
+        ]);
+    }
+
+    /**
+     * Indicate that the user is not migrated.
+     */
+    public function notMigrated(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_migrated' => false,
         ]);
     }
 }
