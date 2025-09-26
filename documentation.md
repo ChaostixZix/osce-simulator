@@ -87,7 +87,7 @@ Key capabilities include:
    Update values for database, Redis, Supabase, AI providers, and Reverb credentials:
    - `DB_CONNECTION`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`
    - `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`
-   - `WORKOS_CLIENT_ID`, `WORKOS_API_KEY`, `WORKOS_REDIRECT_URL`
+   - `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_REDIRECT_URL`, `SUPABASE_JWT_SECRET`
    - `AI_PROVIDER`, `GEMINI_API_KEY`, `OPENAI_AZURE_*`
    - `REVERB_APP_KEY`, `REVERB_APP_SECRET`, `REVERB_HOST`, `REVERB_SERVER_PORT`
 5. **Generate application key & run migrations**

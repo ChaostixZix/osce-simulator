@@ -148,8 +148,8 @@ function MadeBy({ auth }) {
                                         { tech: 'react', color: 'text-blue-500' },
                                         { tech: 'inertia.js', color: 'text-purple-500' },
                                         { tech: 'tailwindcss', color: 'text-cyan-500' },
-                                        { tech: 'mysql', color: 'text-orange-500' },
-                                        { tech: 'workos', color: 'text-emerald-500' },
+                                        { tech: 'postgresql', color: 'text-orange-500' },
+                                        { tech: 'supabase', color: 'text-emerald-500' },
                                     ].map((item, idx) => (
                                         <div key={item.tech} className="flex items-center gap-2">
                                             <div className={`w-2 h-2 rounded-full animate-pulse ${item.color.replace('text-', 'bg-')}`}></div>
@@ -235,7 +235,7 @@ function MadeBy({ auth }) {
                                 </div>
                                 <div className="text-center">
                                     <div className="text-purple-500 font-mono text-lg">secure</div>
-                                    <div className="text-xs">workos auth</div>
+                                    <div className="text-xs">supabase auth</div>
                                 </div>
                             </div>
                         </div>

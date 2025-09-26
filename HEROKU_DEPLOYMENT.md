@@ -46,10 +46,12 @@ heroku config:set GEMINI_API_KEY=your_gemini_key_here
 heroku config:set GEMINI_MODEL=gemini-1.5-flash
 heroku config:set USE_MULTI_PROMPT_ASSESSMENT=true
 
-# WorkOS Auth
-heroku config:set WORKOS_CLIENT_ID=your_workos_id
-heroku config:set WORKOS_API_KEY=your_workos_key
-heroku config:set WORKOS_REDIRECT_URL=https://osce-simulator.herokuapp.com/authenticate
+# Supabase Auth
+heroku config:set SUPABASE_URL=https://your-project.supabase.co
+heroku config:set SUPABASE_ANON_KEY=your_supabase_anon_key
+heroku config:set SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+heroku config:set SUPABASE_REDIRECT_URL=https://osce-simulator.herokuapp.com/auth/supabase/callback
+heroku config:set SUPABASE_JWT_SECRET=your_supabase_jwt_secret
 
 # OpenAI Azure (optional)
 heroku config:set OPENAI_AZURE_API_KEY=
