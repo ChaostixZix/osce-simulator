@@ -35,15 +35,115 @@ class SupabaseService
      */
     public function signUp(array $credentials)
     {
-        $response = $this->client->post('/auth/v1/signup', [
-            'json' => [
-                'email' => $credentials['email'],
-                'password' => $credentials['password'],
-                'data' => $credentials['data'] ?? [],
-            ]
+        $requestId = uniqid('supabase_signup_', true);
+        
+        \Log::info('📡 SupabaseService: Starting signup request', [
+            'request_id' => $requestId,
+            'email_domain' => substr(strrchr($credentials['email'], "@"), 1),
+            'endpoint' => '/auth/v1/signup',
+            'timestamp' => now()->toISOString()
         ]);
 
-        return json_decode($response->getBody(), true);
+        try {
+            $response = $this->client->post('/auth/v1/signup', [
+                'json' => [
+                    'email' => $credentials['email'],
+                    'password' => $credentials['password'],
+                    'data' => $credentials['data'] ?? [],
+                ],
+                'timeout' => 30, // Add timeout
+            ]);
+
+            $statusCode = $response->getStatusCode();
+            $rawBody = (string) $response->getBody();
+            $responseBody = json_decode($rawBody, true);
+            
+            \Log::info('✅ SupabaseService: Signup request completed', [
+                'request_id' => $requestId,
+                'status_code' => $statusCode,
+                'has_user' => isset($responseBody['user']),
+                'has_error' => isset($responseBody['error']),
+                'response_keys' => array_keys($responseBody),
+                'email_confirmed' => $responseBody['user']['email_confirmed_at'] ?? false,
+                'user_id_present' => isset($responseBody['user']['id']),
+                'identities_present' => isset($responseBody['user']['identities']),
+                'timestamp' => now()->toISOString(),
+                'raw_response_size' => strlen($rawBody),
+            ]);
+
+            // Log the complete response structure for debugging (but mask sensitive data)
+            \Log::info('🔍 SupabaseService: Response structure debug', [
+                'request_id' => $requestId,
+                'response_structure' => $this->getResponseStructure($responseBody),
+            ]);
+
+            if (isset($responseBody['error'])) {
+                \Log::error('❌ SupabaseService: API returned error', [
+                    'request_id' => $requestId,
+                    'error' => $responseBody['error'],
+                    'status_code' => $statusCode,
+                    'email_domain' => substr(strrchr($credentials['email'], "@"), 1),
+                ]);
+            }
+
+            return $responseBody;
+
+        } catch (\GuzzleHttp\Exception\RequestException $e) {
+            $response = $e->getResponse();
+            $statusCode = $response ? $response->getStatusCode() : 'unknown';
+            $errorBody = $response ? (string) $response->getBody() : 'no response body';
+            
+            \Log::error('❌ SupabaseService: Guzzle exception during signup', [
+                'request_id' => $requestId,
+                'error_message' => $e->getMessage(),
+                'status_code' => $statusCode,
+                'error_body' => $errorBody,
+                'email_domain' => substr(strrchr($credentials['email'], "@"), 1),
+                'timestamp' => now()->toISOString()
+            ]);
+            
+            throw $e;
+
+        } catch (\Exception $e) {
+            \Log::error('❌ SupabaseService: Unexpected error during signup', [
+                'request_id' => $requestId,
+                'error_message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'email_domain' => substr(strrchr($credentials['email'], "@"), 1),
+                'timestamp' => now()->toISOString()
+            ]);
+            
+            throw $e;
+        }
+    }
+
+    /**
+     * Helper method to get response structure for logging (masks sensitive data)
+     */
+    private function getResponseStructure(array $data): array
+    {
+        $structure = [];
+        
+        foreach ($data as $key => $value) {
+            if (is_array($value)) {
+                if ($key === 'user') {
+                    // Mask user data but show structure
+                    $structure[$key] = [
+                        'id' => isset($value['id']) ? '[PRESENT]' : '[MISSING]',
+                        'email' => isset($value['email']) ? '[PRESENT]' : '[MISSING]',
+                        'email_confirmed_at' => isset($value['email_confirmed_at']) ? '[PRESENT]' : '[MISSING]',
+                        'keys' => array_keys($value),
+                    ];
+                } else {
+                    $structure[$key] = is_array($value) ? array_keys($value) : gettype($value);
+                }
+            } else {
+                $structure[$key] = gettype($value);
+            }
+        }
+        
+        return $structure;
     }
 
     /**

@@ -235,13 +235,52 @@ class SupabaseAuthController extends Controller
      */
     public function register(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users',
-            'password' => 'required|string|min:8|confirmed',
+        // Enhanced logging for debugging
+        $requestId = uniqid('reg_', true);
+        $clientIp = $request->ip();
+        
+        Log::info('🚀 Registration attempt started', [
+            'request_id' => $requestId,
+            'ip' => $clientIp,
+            'user_agent' => $request->userAgent(),
+            'timestamp' => now()->toISOString()
         ]);
 
         try {
+            // Validation step
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|email|unique:users',
+                'password' => 'required|string|min:8|confirmed',
+            ]);
+
+            Log::info('✅ Validation passed', [
+                'request_id' => $requestId,
+                'email_domain' => substr(strrchr($validated['email'], "@"), 1),
+                'name_length' => strlen($validated['name']),
+                'password_length' => strlen($validated['password']),
+            ]);
+
+            // Check Supabase configuration
+            $supabaseUrl = config('supabase.url');
+            $supabaseKey = config('supabase.key');
+            
+            if (!$supabaseUrl || !$supabaseKey) {
+                Log::error('❌ Supabase configuration missing', [
+                    'request_id' => $requestId,
+                    'has_url' => !empty($supabaseUrl),
+                    'has_key' => !empty($supabaseKey),
+                ]);
+                throw new \Exception('Supabase configuration is incomplete');
+            }
+
+            Log::info('📡 Calling Supabase API', [
+                'request_id' => $requestId,
+                'supabase_url' => $supabaseUrl,
+                'endpoint' => '/auth/v1/signup'
+            ]);
+
+            // Call Supabase signup
             $response = $this->supabase->signUp([
                 'email' => $validated['email'],
                 'password' => $validated['password'],
@@ -251,53 +290,282 @@ class SupabaseAuthController extends Controller
             ]);
 
             if (isset($response['error'])) {
-                Log::error('Registration error: ' . json_encode($response['error']));
+                $errorData = $response['error'];
+                Log::error('❌ Supabase API error', [
+                    'request_id' => $requestId,
+                    'error_code' => $errorData['code'] ?? 'unknown',
+                    'error_message' => $errorData['message'] ?? 'Unknown error',
+                    'full_error' => $errorData,
+                    'supabase_status' => $response['status'] ?? 'unknown',
+                    'email_domain' => substr(strrchr($validated['email'], "@"), 1),
+                ]);
+                
+                // Map specific Supabase errors to user-friendly messages
+                $userMessage = $this->mapSupabaseErrorToUserMessage($errorData);
                 
                 // Return JSON response for Inertia
                 if ($request->wantsJson()) {
                     return response()->json([
-                        'errors' => ['email' => $response['error']['message'] ?? 'Registration failed.']
+                        'errors' => ['email' => $userMessage],
+                        'debug_id' => $requestId // For debugging
                     ], 422);
                 }
                 
                 return back()->withErrors([
-                    'email' => $response['error']['message'] ?? 'Registration failed.'
-                ]);
+                    'email' => $userMessage
+                ])->withInput($request->except('password', 'password_confirmation'));
             }
 
+            // Check for rate limiting in the response (this happens at the HTTP level, not in the error object)
+            if (isset($response['code']) && $response['code'] === 429) {
+                Log::warning('⏰ Supabase rate limit hit', [
+                    'request_id' => $requestId,
+                    'error_code' => $response['code'] ?? 'unknown',
+                    'error_message' => $response['msg'] ?? 'Rate limit exceeded',
+                    'email_domain' => substr(strrchr($validated['email'], "@"), 1),
+                ]);
+                
+                $userMessage = $response['msg'] ?? 'Too many registration attempts. Please wait a minute before trying again.';
+                
+                // Return JSON response for Inertia
+                if ($request->wantsJson()) {
+                    return response()->json([
+                        'errors' => ['email' => $userMessage],
+                        'debug_id' => $requestId,
+                        'rate_limited' => true
+                    ], 429);
+                }
+                
+                return back()->withErrors([
+                    'email' => $userMessage
+                ])->withInput($request->except('password', 'password_confirmation'));
+            }
+
+            // Supabase returns user data at root level, not nested under 'user' key
+          // Check if we have a valid Supabase user response
+          if (!isset($response['id']) || empty($response['id'])) {
+                Log::error('❌ Invalid Supabase response - missing user ID', [
+                    'request_id' => $requestId,
+                    'response_structure' => array_keys($response),
+                    'has_id' => isset($response['id']),
+                    'has_email' => isset($response['email']),
+                ]);
+                
+                throw new \Exception('Invalid response from Supabase: user ID not found');
+            }
+
+            $supabaseUserId = $response['id'];
+            $userEmail = $response['email'] ?? null;
+            $userName = $response['user_metadata']['name'] ?? $validated['name'];
+
+            Log::info('✅ Supabase signup successful', [
+                'request_id' => $requestId,
+                'supabase_user_id' => $supabaseUserId,
+                'user_email' => $userEmail,
+                'email_confirmed' => $response['email_confirmed_at'] ?? false,
+                'response_keys' => array_keys($response),
+            ]);
+
             // Create local user
-            $user = User::create([
-                'name' => $validated['name'],
+            try {
+                $user = User::create([
+                    'name' => $userName,
+                    'email' => $validated['email'],
+                    'supabase_id' => $supabaseUserId,
+                    'provider' => 'email',
+                    'avatar' => null, // Explicitly set avatar to null since it's nullable now
+                    'password' => bcrypt($validated['password']), // Keep for compatibility
+                    'is_migrated' => true,
+                ]);
+
+                Log::info('✅ Local user created successfully', [
+                    'request_id' => $requestId,
+                    'local_user_id' => $user->id,
+                    'supabase_id' => $user->supabase_id,
+                ]);
+
+            } catch (\Exception $dbError) {
+                Log::error('❌ Failed to create local user', [
+                    'request_id' => $requestId,
+                    'error' => $dbError->getMessage(),
+                    'supabase_user_id' => $supabaseUserId,
+                ]);
+                
+                // Attempt to clean up Supabase user if local creation fails
+                try {
+                    // Note: This would require additional Supabase admin functionality
+                    Log::warning('⚠️  Local user creation failed - manual cleanup may be needed', [
+                        'request_id' => $requestId,
+                        'email' => $validated['email'],
+                    ]);
+                } catch (\Exception $cleanupError) {
+                    Log::error('❌ Cleanup failed', [
+                        'request_id' => $requestId,
+                        'cleanup_error' => $cleanupError->getMessage(),
+                    ]);
+                }
+                
+                throw new \Exception('Failed to create local user account');
+            }
+
+            Log::info('🎉 Registration completed successfully', [
+                'request_id' => $requestId,
+                'user_id' => $user->id,
                 'email' => $validated['email'],
-                'supabase_id' => $response['user']['id'],
-                'provider' => 'email',
-                'password' => bcrypt($validated['password']), // Keep for compatibility
-                'is_migrated' => true,
             ]);
 
             // Return JSON response for Inertia
             if ($request->wantsJson()) {
                 return response()->json([
                     'redirect' => '/login',
-                    'success' => 'Registration successful! Please check your email to verify your account.'
+                    'success' => 'Registration successful! Please check your email to verify your account.',
+                    'debug_id' => $requestId
                 ]);
             }
 
             return redirect('/login')->with('success', 'Registration successful! Please check your email to verify your account.');
             
-        } catch (\Exception $e) {
-            Log::error('Registration error: ' . $e->getMessage());
+        } catch (\Illuminate\Validation\ValidationException $ve) {
+            Log::warning('❌ Validation failed', [
+                'request_id' => $requestId,
+                'errors' => $ve->errors(),
+                'input' => [
+                    'name' => $request->input('name') ? 'present' : 'missing',
+                    'email' => $request->input('email') ? 'present' : 'missing',
+                    'password' => $request->input('password') ? 'present' : 'missing',
+                    'password_confirmation' => $request->input('password_confirmation') ? 'present' : 'missing',
+                ]
+            ]);
             
             // Return JSON response for Inertia
             if ($request->wantsJson()) {
                 return response()->json([
-                    'errors' => ['email' => 'Registration failed. Please try again.']
+                    'errors' => $ve->errors(),
+                    'debug_id' => $requestId
+                ], 422);
+            }
+            
+            return back()->withErrors($ve->errors())->withInput($request->except('password', 'password_confirmation'));
+            
+        } catch (\GuzzleHttp\Exception\RequestException $ge) {
+            $response = $ge->getResponse();
+            $errorBody = $response ? (string) $response->getBody() : null;
+            $statusCode = $response ? $response->getStatusCode() : 'unknown';
+            $decodedErrorBody = $errorBody ? json_decode($errorBody, true) : [];
+            
+            Log::error('❌ Guzzle/Network error', [
+                'request_id' => $requestId,
+                'error_message' => $ge->getMessage(),
+                'status_code' => $statusCode,
+                'response_body' => $errorBody,
+                'email_domain' => substr(strrchr($request->input('email'), "@"), 1),
+            ]);
+            
+            $userMessage = $this->mapHttpErrorToUserMessage($statusCode, $decodedErrorBody);
+            
+            // Return JSON response for Inertia
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'errors' => ['email' => $userMessage],
+                    'debug_id' => $requestId
                 ], 422);
             }
             
             return back()->withErrors([
-                'email' => 'Registration failed. Please try again.'
+                'email' => $userMessage
+            ])->withInput($request->except('password', 'password_confirmation'));
+            
+        } catch (\Exception $e) {
+            Log::error('❌ Unexpected registration error', [
+                'request_id' => $requestId,
+                'error_message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+                'email_domain' => substr(strrchr($request->input('email'), "@"), 1),
             ]);
+            
+            // Return JSON response for Inertia
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'errors' => ['email' => 'Registration failed due to a server error. Please try again later.'],
+                    'debug_id' => $requestId
+                ], 422);
+            }
+            
+            return back()->withErrors([
+                'email' => 'Registration failed due to a server error. Please try again later.'
+            ])->withInput($request->except('password', 'password_confirmation'));
+        }
+    }
+
+    /**
+     * Map Supabase error codes to user-friendly messages
+     */
+    private function mapSupabaseErrorToUserMessage(array $error): string
+    {
+        $message = $error['message'] ?? 'Registration failed.';
+        
+        // Common Supabase error patterns
+        if (str_contains($message, 'already registered')) {
+            return 'This email address is already registered. Please use a different email or try logging in.';
+        }
+        
+        if (str_contains($message, 'password') && str_contains($message, 'weak')) {
+            return 'Password is too weak. Please use a stronger password with at least 8 characters.';
+        }
+        
+        if (str_contains($message, 'invalid email')) {
+            return 'Please enter a valid email address.';
+        }
+        
+        if (str_contains($message, 'rate limit')) {
+            return 'Too many registration attempts. Please wait a few minutes before trying again.';
+        }
+        
+        if (str_contains($message, 'network') || str_contains($message, 'timeout')) {
+            return 'Network error occurred. Please check your connection and try again.';
+        }
+        
+        return $message;
+    }
+
+    /**
+     * Map HTTP status codes to user-friendly messages
+     */
+    private function mapHttpErrorToUserMessage($statusCode, array $errorBody = []): string
+    {
+        switch ($statusCode) {
+            case 400:
+                return 'Invalid request data. Please check your information and try again.';
+            case 401:
+                return 'Authentication error. Please check your Supabase configuration.';
+            case 403:
+                return 'Access denied. Please contact support.';
+            case 404:
+                return 'Service not found. Please check your Supabase configuration.';
+            case 422:
+                return 'Invalid data provided. Please check your information.';
+            case 429:
+                // Extract specific rate limit message if available
+                if (isset($errorBody['msg'])) {
+                    if (str_contains($errorBody['msg'], 'seconds')) {
+                        // Extract the number of seconds from the message
+                        if (preg_match('/(\d+)\s+seconds?/', $errorBody['msg'], $matches)) {
+                            $waitTime = $matches[1];
+                            return "Too many registration attempts. Please wait {$waitTime} seconds before trying again.";
+                        }
+                    }
+                    return 'Too many registration attempts. Please wait a few minutes before trying again.';
+                }
+                return 'Too many registration attempts. Please wait a minute before trying again.';
+            case 500:
+            case 502:
+            case 503:
+            case 504:
+                return 'Server error occurred. Please try again later.';
+            default:
+                return 'Network error occurred. Please check your connection and try again.';
         }
     }
 
