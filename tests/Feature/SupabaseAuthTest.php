@@ -8,7 +8,6 @@ test('user can login with email and password via Supabase', function () {
     // Create a test user
     $user = User::factory()->create([
         'email' => 'test@example.com',
-        'password' => bcrypt('password123'),
         'supabase_id' => 'test-supabase-id',
         'is_migrated' => true,
     ]);
@@ -44,11 +43,15 @@ test('user can login with email and password via Supabase', function () {
 });
 
 test('user cannot login with invalid credentials', function () {
-    // Mock SupabaseService to return error
+    // Mock SupabaseService to return error in Supabase's actual format
     $this->mock(SupabaseService::class, function ($mock) {
         $mock->shouldReceive('signInWithPassword')
             ->with(['email' => 'invalid@example.com', 'password' => 'wrongpassword'])
-            ->andReturn(['error' => ['message' => 'Invalid login credentials']]);
+            ->andReturn([
+                'code' => 400,
+                'error_code' => 'invalid_credentials',
+                'msg' => 'Invalid login credentials'
+            ]);
     });
 
     // Attempt login with invalid credentials
@@ -72,11 +75,10 @@ test('user can register new account via Supabase', function () {
                 'data' => ['name' => 'New User'],
             ])
             ->andReturn([
-                'user' => [
-                    'id' => 'new-supabase-id',
-                    'email' => 'newuser@example.com',
-                ],
-                'session' => null, // Email verification required
+                'id' => 'new-supabase-id',
+                'email' => 'newuser@example.com',
+                'email_confirmed_at' => null,
+                'user_metadata' => ['name' => 'New User'],
             ]);
     });
 

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Head, router } from '@inertiajs/react';
+import React, { useState, useEffect } from 'react';
+import { Head, router, usePage } from '@inertiajs/react';
 
 export default function Login({ providers = {} }) {
     const [email, setEmail] = useState('');
@@ -7,10 +7,24 @@ export default function Login({ providers = {} }) {
     const [remember, setRemember] = useState(false);
     const [errors, setErrors] = useState({});
     const [processing, setProcessing] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false);
+    const [errorType, setErrorType] = useState(null);
+    
+    const { props } = usePage();
+    const { flash } = props;
+
+    // Show flash messages if they exist
+    useEffect(() => {
+        if (flash?.success) {
+            setShowSuccess(true);
+            setTimeout(() => setShowSuccess(false), 5000);
+        }
+    }, [flash]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
         setErrors({});
+        setErrorType(null);
         setProcessing(true);
 
         router.post('/auth/supabase/login', {
@@ -19,12 +33,89 @@ export default function Login({ providers = {} }) {
             remember: remember,
         }, {
             onFinish: () => setProcessing(false),
-            onError: (errors) => setErrors(errors),
+            onError: (errors) => {
+                setErrors(errors);
+                // Determine error type for better UI feedback
+                if (errors.email) {
+                    const errorMessage = errors.email.toLowerCase();
+                    if (errorMessage.includes('credential') || errorMessage.includes('password')) {
+                        setErrorType('credentials');
+                    } else if (errorMessage.includes('email') && errorMessage.includes('confirm')) {
+                        setErrorType('verification');
+                    } else if (errorMessage.includes('rate limit') || errorMessage.includes('too many')) {
+                        setErrorType('rate_limit');
+                    } else if (errorMessage.includes('network') || errorMessage.includes('connection')) {
+                        setErrorType('network');
+                    } else if (errorMessage.includes('server') || errorMessage.includes('configuration')) {
+                        setErrorType('server');
+                    } else {
+                        setErrorType('general');
+                    }
+                }
+            },
         });
     };
 
     const handleOAuthLogin = (provider) => {
         window.location.href = `/auth/supabase/oauth/${provider}`;
+    };
+
+    const getErrorIcon = (type) => {
+        switch (type) {
+            case 'credentials':
+                return (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                );
+            case 'verification':
+                return (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                );
+            case 'rate_limit':
+                return (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                );
+            case 'network':
+                return (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" />
+                    </svg>
+                );
+            case 'server':
+                return (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                );
+            default:
+                return (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                );
+        }
+    };
+
+    const getErrorHelpText = (type) => {
+        switch (type) {
+            case 'credentials':
+                return "Double-check your email and password. If you've forgotten your password, use the 'Forgot password?' link.";
+            case 'verification':
+                return "Check your email inbox (and spam folder) for a verification link. You need to verify your email before logging in.";
+            case 'rate_limit':
+                return "Please wait a few minutes before trying again. This helps protect your account from unauthorized access.";
+            case 'network':
+                return "Check your internet connection and try again. If the problem persists, the authentication service might be temporarily unavailable.";
+            case 'server':
+                return "The authentication service is temporarily unavailable. Please try again later or contact support if the issue continues.";
+            default:
+                return "Please check your information and try again. If the problem persists, contact support.";
+        }
     };
 
     return (
@@ -44,6 +135,37 @@ export default function Login({ providers = {} }) {
 
                 {/* Login Form */}
                 <div className="clean-card p-6 space-y-6">
+                    {/* Success Message */}
+                    {showSuccess && (
+                        <div className="p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                            <div className="flex items-center space-x-2">
+                                <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <p className="text-sm text-green-800 dark:text-green-200">{flash.success}</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Error Message */}
+                    {errors.email && errorType && (
+                        <div className="p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+                            <div className="flex items-start space-x-3">
+                                <div className="flex-shrink-0 text-red-600 dark:text-red-400">
+                                    {getErrorIcon(errorType)}
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-sm font-medium text-red-800 dark:text-red-200 mb-1">
+                                        {errors.email}
+                                    </p>
+                                    <p className="text-xs text-red-700 dark:text-red-300">
+                                        {getErrorHelpText(errorType)}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <form onSubmit={handleSubmit} className="space-y-4">
                         {/* Email Field */}
                         <div className="space-y-2">
@@ -55,13 +177,14 @@ export default function Login({ providers = {} }) {
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="w-full px-3 py-2 border border-border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                                className={`w-full px-3 py-2 border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-colors ${
+                                    errors.email 
+                                        ? 'border-red-300 dark:border-red-600 focus:ring-red-500' 
+                                        : 'border-border focus:border-transparent'
+                                }`}
                                 placeholder="Enter your email"
                                 required
                             />
-                            {errors.email && (
-                                <p className="text-sm text-red-600 dark:text-red-400">{errors.email}</p>
-                            )}
                         </div>
 
                         {/* Password Field */}
@@ -74,13 +197,14 @@ export default function Login({ providers = {} }) {
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full px-3 py-2 border border-border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                                className={`w-full px-3 py-2 border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-colors ${
+                                    errors.password 
+                                        ? 'border-red-300 dark:border-red-600 focus:ring-red-500' 
+                                        : 'border-border focus:border-transparent'
+                                }`}
                                 placeholder="Enter your password"
                                 required
                             />
-                            {errors.password && (
-                                <p className="text-sm text-red-600 dark:text-red-400">{errors.password}</p>
-                            )}
                         </div>
 
                         {/* Remember Me & Forgot Password */}

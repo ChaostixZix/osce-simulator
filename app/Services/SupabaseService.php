@@ -147,18 +147,124 @@ class SupabaseService
     }
 
     /**
+     * Helper method to get signin response structure for logging (masks sensitive data)
+     */
+    private function getSigninResponseStructure(array $data): array
+    {
+        $structure = [];
+        
+        foreach ($data as $key => $value) {
+            if (is_array($value)) {
+                if ($key === 'user') {
+                    // Mask user data but show structure
+                    $structure[$key] = [
+                        'id' => isset($value['id']) ? '[PRESENT]' : '[MISSING]',
+                        'email' => isset($value['email']) ? '[PRESENT]' : '[MISSING]',
+                        'email_confirmed_at' => isset($value['email_confirmed_at']) ? '[PRESENT]' : '[MISSING]',
+                        'keys' => array_keys($value),
+                    ];
+                } else {
+                    $structure[$key] = is_array($value) ? array_keys($value) : gettype($value);
+                }
+            } else {
+                // Mask sensitive tokens
+                if (in_array($key, ['access_token', 'refresh_token'])) {
+                    $structure[$key] = isset($value) ? '[PRESENT]' : '[MISSING]';
+                } else {
+                    $structure[$key] = gettype($value);
+                }
+            }
+        }
+        
+        return $structure;
+    }
+
+    /**
      * Sign in with email and password
      */
     public function signInWithPassword(array $credentials)
     {
-        $response = $this->client->post('/auth/v1/token?grant_type=password', [
-            'json' => [
-                'email' => $credentials['email'],
-                'password' => $credentials['password'],
-            ]
+        $requestId = uniqid('supabase_signin_', true);
+        
+        \Log::info('🔐 SupabaseService: Starting signin request', [
+            'request_id' => $requestId,
+            'email_domain' => substr(strrchr($credentials['email'], "@"), 1),
+            'endpoint' => '/auth/v1/token?grant_type=password',
+            'timestamp' => now()->toISOString()
         ]);
 
-        return json_decode($response->getBody(), true);
+        try {
+            $response = $this->client->post('/auth/v1/token?grant_type=password', [
+                'json' => [
+                    'email' => $credentials['email'],
+                    'password' => $credentials['password'],
+                ],
+                'timeout' => 30,
+            ]);
+
+            $statusCode = $response->getStatusCode();
+            $rawBody = (string) $response->getBody();
+            $responseBody = json_decode($rawBody, true);
+            
+            \Log::info('✅ SupabaseService: Signin request completed', [
+                'request_id' => $requestId,
+                'status_code' => $statusCode,
+                'has_access_token' => isset($responseBody['access_token']),
+                'has_refresh_token' => isset($responseBody['refresh_token']),
+                'has_user' => isset($responseBody['user']),
+                'has_error' => isset($responseBody['error']),
+                'response_keys' => array_keys($responseBody),
+                'expires_in' => $responseBody['expires_in'] ?? null,
+                'timestamp' => now()->toISOString(),
+                'raw_response_size' => strlen($rawBody),
+            ]);
+
+            // Log the response structure for debugging (but mask sensitive data)
+            \Log::info('🔍 SupabaseService: Signin response structure debug', [
+                'request_id' => $requestId,
+                'response_structure' => $this->getSigninResponseStructure($responseBody),
+            ]);
+
+            if (isset($responseBody['error'])) {
+                \Log::error('❌ SupabaseService: API returned error in signin', [
+                    'request_id' => $requestId,
+                    'error' => $responseBody['error'],
+                    'error_description' => $responseBody['error_description'] ?? null,
+                    'status_code' => $statusCode,
+                    'email_domain' => substr(strrchr($credentials['email'], "@"), 1),
+                ]);
+            }
+
+            return $responseBody;
+
+        } catch (\GuzzleHttp\Exception\RequestException $e) {
+            $response = $e->getResponse();
+            $statusCode = $response ? $response->getStatusCode() : 'unknown';
+            $errorBody = $response ? (string) $response->getBody() : 'no response body';
+            
+            \Log::error('❌ SupabaseService: Guzzle exception during signin', [
+                'request_id' => $requestId,
+                'error_message' => $e->getMessage(),
+                'status_code' => $statusCode,
+                'error_body' => $errorBody,
+                'email_domain' => substr(strrchr($credentials['email'], "@"), 1),
+                'timestamp' => now()->toISOString()
+            ]);
+            
+            throw $e;
+
+        } catch (\Exception $e) {
+            \Log::error('❌ SupabaseService: Unexpected error during signin', [
+                'request_id' => $requestId,
+                'error_message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'email_domain' => substr(strrchr($credentials['email'], "@"), 1),
+                'timestamp' => now()->toISOString()
+            ]);
+            
+            throw $e;
+        }
     }
 
     /**

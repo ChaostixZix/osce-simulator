@@ -25,7 +25,7 @@ return new class extends Migration
             }
 
             if (!Schema::hasColumn('users', 'is_migrated')) {
-                $table->boolean('is_migrated')->default(false)->after('is_banned');
+                $table->boolean('is_migrated')->default(false)->after('avatar');
             }
 
             if (!Schema::hasColumn('users', 'last_login_at')) {
