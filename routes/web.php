@@ -4,6 +4,7 @@ use App\Http\Controllers\HealthCheckController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OsceAssessmentController;
+use App\Http\Controllers\SeoController;
 
 // use App\Http\Controllers\PatientController;
 // use App\Http\Controllers\OsceAssessmentController;
@@ -11,6 +12,12 @@ use App\Http\Controllers\OsceRationalizationController;
 use App\Http\Controllers\Admin\AdminOsceCaseController;
 use App\Http\Controllers\Admin\AdminUserController;
 
+
+// SEO Routes
+Route::get('/robots.txt', [SeoController::class, 'robots'])->name('robots');
+Route::get('/sitemap.xml', [SeoController::class, 'sitemap'])->name('sitemap.main');
+Route::get('/sitemap-cases.xml', [SeoController::class, 'sitemapCases'])->name('sitemap.cases');
+Route::get('/sitemap_index.xml', [SeoController::class, 'sitemapIndex'])->name('sitemap.index');
 
 Route::get('/', [LandingController::class, 'index'])->name('home');
 Route::get('/privacy-policy', [LandingController::class, 'privacyPolicy'])->name('privacy-policy');
@@ -25,7 +32,7 @@ Route::middleware([
 
 	Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 	
-	Route::get('osce', [App\Http\Controllers\OsceController::class, 'index'])->name('osce');
+	Route::get('osce', [App\Http\Controllers\OsceController::class, 'index'])->name('osce.index');
 
 	// Onboarding routes
 	Route::get('osce/onboarding/{caseId}', [App\Http\Controllers\OnboardingController::class, 'show'])->name('onboarding.show');

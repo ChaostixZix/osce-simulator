@@ -54,6 +54,7 @@ Key capabilities include:
 *   **Database:** PostgreSQL (production), SQLite (development)
 *   **Real-time:** Laravel Reverb (WebSocket server)
 *   **Authentication:** Supabase
+*   **SEO:** Comprehensive meta tags, Open Graph, Twitter Cards, structured data (JSON-LD), dynamic sitemap generation
 
 ## Setup
 
@@ -259,6 +260,31 @@ The application exposes several API endpoints for interacting with the OSCE feat
 - **Classes:** `MilestoneAchieved`, `RefresherCaseReady`, `LearningStreakAlert`
 - **Channels:** Email and database notifications for user engagement
 - **Triggers:** Automatic notifications for achievements, streak reminders, and refresher availability
+
+## SEO Implementation
+
+Vibe Kanban includes comprehensive SEO features to improve search engine visibility and social media sharing:
+
+### SEO Features
+- **Dynamic Meta Tags**: Page-specific titles, descriptions, keywords, and author information
+- **Open Graph Tags**: Optimized for Facebook, LinkedIn, and other social platforms
+- **Twitter Cards**: Customized Twitter sharing cards with images
+- **Structured Data (JSON-LD)**: Schema.org markup for educational content
+- **Favicons**: Complete set with multiple sizes and formats
+- **Dynamic Sitemaps**: Automatic generation at `/sitemap.xml`
+- **Robots.txt**: Dynamic generation with proper crawl directives
+
+### Key Files
+- `app/Services/SeoService.php`: SEO utility service for generating metadata
+- `app/Http/Controllers/SeoController.php`: Controller for sitemap and robots.txt
+- `resources/views/app.blade.php`: Main template with comprehensive SEO meta tags
+- `SEO_GUIDE.md`: Complete usage guide for SEO features
+
+### Usage
+- SEO data is automatically shared with all React pages via middleware
+- Use the `<Head>` component from `@inertiajs/react` for page-specific meta tags
+- Sitemap automatically includes published OSCE cases
+- See `SEO_GUIDE.md` for detailed implementation examples
 
 ## Maintenance Notes
 

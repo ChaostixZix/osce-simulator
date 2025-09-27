@@ -17,6 +17,51 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Application Description
+    |--------------------------------------------------------------------------
+    |
+    | This value is the description of your application used for SEO and
+    | social media sharing.
+    |
+    */
+
+    'description' => env('APP_DESCRIPTION', 'Vibe Kanban is a comprehensive OSCE training platform for medical students. Practice, track progress, and master clinical skills with AI-powered patient simulations and real-time feedback.'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Application Author
+    |--------------------------------------------------------------------------
+    |
+    | This value is the author name used for SEO and metadata.
+    |
+    */
+
+    'author' => env('APP_AUTHOR', 'Bintang Putra'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Application Author URL
+    |--------------------------------------------------------------------------
+    |
+    | This value is the author URL used for SEO and metadata.
+    |
+    */
+
+    'author_url' => env('APP_AUTHOR_URL', 'https://bintangputra.my.id'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Application Author Twitter
+    |--------------------------------------------------------------------------
+    |
+    | This value is the author Twitter handle used for Twitter cards.
+    |
+    */
+
+    'author_twitter' => env('APP_AUTHOR_TWITTER', 'bintangputra'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------
     |

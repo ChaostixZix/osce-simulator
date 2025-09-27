@@ -6,5 +6,16 @@
 *.md diff=markdown
 *.php diff=php
 
+# SEO and Assets
+*.png filter=lfs diff=lfs merge=lfs -text
+*.ico filter=lfs diff=lfs merge=lfs -text
+*.jpg filter=lfs diff=lfs merge=lfs -text
+*.jpeg filter=lfs diff=lfs merge=lfs -text
+public/favicon.ico filter=lfs diff=lfs merge=lfs -text
+public/apple-touch-icon.png filter=lfs diff=lfs merge=lfs -text
+public/og-image.png filter=lfs diff=lfs merge=lfs -text
+public/twitter-image.png filter=lfs diff=lfs merge=lfs -text
+public/logo.png filter=lfs diff=lfs merge=lfs -text
+
 CHANGELOG.md export-ignore
 README.md export-ignore

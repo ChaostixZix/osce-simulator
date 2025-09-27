@@ -6,10 +6,18 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
 import { ThemeProvider } from './contexts/ThemeContext';
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const appName = import.meta.env.VITE_APP_NAME || 'Vibe Kanban';
 
 createInertiaApp({
-    title: (title) => (title ? `${title} - ${appName}` : appName),
+    title: (title) => {
+        // Use shared SEO meta from props if available
+        if (props.initialPage?.props?.seo?.meta?.title) {
+            return title 
+                ? `${title} | ${props.initialPage.props.seo.meta.title}` 
+                : props.initialPage.props.seo.meta.title;
+        }
+        return title ? `${title} | ${appName}` : appName;
+    },
     resolve: (name) =>
         resolvePageComponent(
             `./pages/${name}.jsx`,
