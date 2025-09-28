@@ -1,0 +1,27 @@
+<svg width="200" height="60" viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="blueGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#1e40af"/>
+    </linearGradient>
+    <linearGradient id="grayGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#cbd5e1"/>
+      <stop offset="100%" stop-color="#94a3b8"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="200" height="60" fill="white"/>
+
+  <!-- Stethoscope Heart Icon -->
+  <g transform="translate(30, 30) scale(0.6)">
+    <path d="M0,0 C-20,-20 -40,10 0,40 C40,10 20,-20 0,0" fill="url(#blueGradient)" stroke="#1e40af" stroke-width="2"/>
+    <path d="M-10,0 C-15,-5 -15,-15 -5,-15 L-5,-25 C-5,-30 5,-30 5,-25 L5,-15 C15,-15 15,-5 10,0" fill="url(#grayGradient)"/>
+    <path d="M-10,0 C-15,-5 -15,-15 -5,-15 L-5,-25 C-5,-30 5,-30 5,-25 L5,-15 C15,-15 15,-5 10,0" fill="url(#grayGradient)" transform="scale(-1,1) translate(-20,0)"/>
+    <circle cx="-5" cy="-25" r="3" fill="#64748b"/>
+    <circle cx="5" cy="-25" r="3" fill="#64748b"/>
+  </g>
+
+  <!-- Text "osce.simulator" -->
+  <text x="70" y="38" font-family="Arial, sans-serif" font-size="20" fill="#2563eb" font-weight="bold">
+    osce.<tspan fill="#64748b" font-weight="normal">simulator</tspan>
+  </text>
+</svg>

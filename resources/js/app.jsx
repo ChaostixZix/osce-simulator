@@ -10,11 +10,11 @@ const appName = import.meta.env.VITE_APP_NAME || 'Vibe Kanban';
 
 createInertiaApp({
     title: (title) => {
-        // Use shared SEO meta from props if available
-        if (props.initialPage?.props?.seo?.meta?.title) {
+        // Use shared SEO meta from Inertia if available
+        if (window.initialPage?.props?.seo?.meta?.title) {
             return title 
-                ? `${title} | ${props.initialPage.props.seo.meta.title}` 
-                : props.initialPage.props.seo.meta.title;
+                ? `${title} | ${window.initialPage.props.seo.meta.title}` 
+                : window.initialPage.props.seo.meta.title;
         }
         return title ? `${title} | ${appName}` : appName;
     },

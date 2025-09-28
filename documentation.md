@@ -1,10 +1,10 @@
-# Vibe Kanban Documentation
+# osce.simulator Documentation
 
-This document summarizes the current state of the Vibe Kanban application, covering the architecture, tooling, setup steps, and day-to-day workflows. Refer to this file before re-indexing the project with external tooling.
+This document summarizes the current state of the osce.simulator application, covering the architecture, tooling, setup steps, and day-to-day workflows. Refer to this file before re-indexing the project with external tooling.
 
 ## Overview
 
-Vibe Kanban is an Inertia-powered Laravel SPA that simulates Objective Structured Clinical Examinations (OSCE). It combines a Laravel 12 backend, a React frontend (with legacy Vue components), AI-assisted assessments, and real-time collaboration to help learners practice clinical reasoning.
+osce.simulator is an Inertia-powered Laravel SPA that simulates Objective Structured Clinical Examinations (OSCE). It combines a Laravel 12 backend, a React frontend (with legacy Vue components), AI-assisted assessments, and real-time collaboration to help learners practice clinical reasoning.
 
 Key capabilities include:
 - Guided OSCE case sessions with timers, chat, and ordered investigations.
@@ -71,7 +71,7 @@ Key capabilities include:
 1. **Clone the repository**
    ```bash
    git clone <repo-url>
-   cd vibe-kanban/webapp
+   cd osce-simulator/webapp
    ```
 2. **Install PHP dependencies**
    ```bash
@@ -263,14 +263,14 @@ The application exposes several API endpoints for interacting with the OSCE feat
 
 ## SEO Implementation
 
-Vibe Kanban includes comprehensive SEO features to improve search engine visibility and social media sharing:
+osce.simulator includes comprehensive SEO features to improve search engine visibility and social media sharing:
 
 ### SEO Features
 - **Dynamic Meta Tags**: Page-specific titles, descriptions, keywords, and author information
 - **Open Graph Tags**: Optimized for Facebook, LinkedIn, and other social platforms
 - **Twitter Cards**: Customized Twitter sharing cards with images
 - **Structured Data (JSON-LD)**: Schema.org markup for educational content
-- **Favicons**: Complete set with multiple sizes and formats
+- **Favicons**: Complete set with multiple sizes and formats including favicon.ico
 - **Dynamic Sitemaps**: Automatic generation at `/sitemap.xml`
 - **Robots.txt**: Dynamic generation with proper crawl directives
 

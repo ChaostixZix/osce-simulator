@@ -5,6 +5,7 @@ use App\Http\Controllers\LandingController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OsceAssessmentController;
 use App\Http\Controllers\SeoController;
+use App\Http\Controllers\LogoGeneratorController;
 
 // use App\Http\Controllers\PatientController;
 // use App\Http\Controllers\OsceAssessmentController;
@@ -18,6 +19,13 @@ Route::get('/robots.txt', [SeoController::class, 'robots'])->name('robots');
 Route::get('/sitemap.xml', [SeoController::class, 'sitemap'])->name('sitemap.main');
 Route::get('/sitemap-cases.xml', [SeoController::class, 'sitemapCases'])->name('sitemap.cases');
 Route::get('/sitemap_index.xml', [SeoController::class, 'sitemapIndex'])->name('sitemap.index');
+
+// Logo Generator Routes
+Route::prefix('admin')->middleware(['auth', 'not-banned', 'admin'])->group(function () {
+    Route::post('/logo/generate', [LogoGeneratorController::class, 'generate'])->name('logo.generate');
+    Route::get('/logo/download', [LogoGeneratorController::class, 'download'])->name('logo.download');
+    Route::post('/logo/favicons', [LogoGeneratorController::class, 'createFavicons'])->name('logo.favicons');
+});
 
 Route::get('/', [LandingController::class, 'index'])->name('home');
 Route::get('/privacy-policy', [LandingController::class, 'privacyPolicy'])->name('privacy-policy');

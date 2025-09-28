@@ -61,15 +61,15 @@
         <meta property="og:url" content="{{ config('app.url') }}">
         <meta property="og:site_name" content="{{ config('app.name', 'Vibe Kanban') }}">
         <meta property="og:locale" content="{{ str_replace('_', '-', app()->getLocale()) }}">
-        <meta property="og:image" content="{{ config('app.url') }}/og-image.png">
-        <meta property="og:image:width" content="1200">
-        <meta property="og:image:height" content="630">
+        <meta property="og:image" content="{{ config('app.url') }}/logo.svg">
+        <meta property="og:image:width" content="200">
+        <meta property="og:image:height" content="60">
         
         <!-- Twitter Card Tags -->
         <meta name="twitter:card" content="summary_large_image">
         <meta name="twitter:title" content="{{ config('app.name', 'Vibe Kanban') }}">
         <meta name="twitter:description" content="{{ config('app.description', 'Vibe Kanban is a comprehensive OSCE training platform for medical students. Practice, track progress, and master clinical skills with AI-powered patient simulations and real-time feedback.') }}">
-        <meta name="twitter:image" content="{{ config('app.url') }}/twitter-image.png">
+        <meta name="twitter:image" content="{{ config('app.url') }}/logo.svg">
         <meta name="twitter:creator" content="@{{ config('app.author_twitter', 'bintangputra') }}">
         
         <!-- Structured Data (JSON-LD) -->
@@ -80,8 +80,8 @@
             "name" => config('app.name', 'Vibe Kanban'),
             "url" => config('app.url'),
             "description" => config('app.description', 'Vibe Kanban is a comprehensive OSCE training platform for medical students. Practice, track progress, and master clinical skills with AI-powered patient simulations and real-time feedback.'),
-            "logo" => config('app.url') . "/logo.png",
-            "image" => config('app.url') . "/og-image.png",
+            "logo" => config('app.url') . "/logo.svg",
+            "image" => config('app.url') . "/logo.svg",
             "author" => [
                 "@@type" => "Person",
                 "name" => config('app.author', 'Bintang Putra'),
