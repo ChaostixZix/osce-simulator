@@ -1,20 +1,19 @@
-# Vibe Kanban
+# osce-simulator
 
-Vibe Kanban is a web application for Objective Structured Clinical Examinations (OSCE). It provides a platform for medical students and professionals to practice and get assessed on their clinical skills in a simulated environment.
+## Overview
+OSCE-focused web application for simulated clinical practice and assessment workflows.
 
-For detailed documentation, please see [documentation.md](documentation.md).
+## Problem
+Clinical skills practice needs a dedicated simulation tool instead of relying on disconnected teaching materials and manual assessment flow.
 
-## Contributing
+## Solution
+This repository contains the OSCE simulator project and, in this sparse checkout, only the current README snapshot describing the application.
 
-When adding or changing UI, please use the existing technology stack:
-- **React + Inertia** for all frontend components and pages.
-- **Vibe UI KIT** for UI components.
-- **Tailwind CSS** for styling.
+## Demo
+No public demo is documented.
 
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## License
-
-MIT License
+## Setup
+```bash
+# This sparse checkout only includes README.md.
+# No verified setup commands are available from the checked out files.
+```
