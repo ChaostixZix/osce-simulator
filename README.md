@@ -1,19 +1,26 @@
 # osce-simulator
 
 ## Overview
-OSCE-focused web application for simulated clinical practice and assessment workflows.
+Laravel 12 OSCE simulator for clinical case practice, AI-assisted assessment, and post-session learning workflows.
 
 ## Problem
-Clinical skills practice needs a dedicated simulation tool instead of relying on disconnected teaching materials and manual assessment flow.
+Medical skills practice needs a single application for running simulated OSCE cases, tracking sessions, and reviewing structured feedback.
 
 ## Solution
-This repository contains the OSCE simulator project and, in this sparse checkout, only the current README snapshot describing the application.
+This project combines a Laravel backend with an Inertia/React frontend for OSCE chat sessions, assessment results, onboarding, patient visualization, replay, microskills coaching, growth tracking, and rationalization flows.
 
 ## Demo
-No public demo is documented.
+No public demo URL is documented in this repository.
 
 ## Setup
 ```bash
-# This sparse checkout only includes README.md.
-# No verified setup commands are available from the checked out files.
+cp .env.example .env
+composer install
+npm install
+php artisan key:generate
+php artisan migrate
+composer run dev
 ```
+
+Set required environment values before running features that depend on external services, including WorkOS authentication, Redis-backed session/queue services, and the configured AI provider credentials.
+
