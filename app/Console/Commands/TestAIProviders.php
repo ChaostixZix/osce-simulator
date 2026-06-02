@@ -4,9 +4,6 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Services\UniversalAIService;
-use App\Services\GeminiService;
-use App\Services\OpenAIAzureService;
-use Illuminate\Support\Facades\Log;
 
 class TestAIProviders extends Command
 {
