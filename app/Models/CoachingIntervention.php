@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CoachingIntervention extends Model
@@ -78,7 +79,7 @@ class CoachingIntervention extends Model
     /**
      * Scope for recent interventions
      */
-    public function scopeRecent($query, int $minutes = 30)
+    public function scopeRecent(Builder $query, int $minutes = 30): Builder
     {
         return $query->where('created_at', '>', now()->subMinutes($minutes));
     }
@@ -86,7 +87,7 @@ class CoachingIntervention extends Model
     /**
      * Scope for displayed interventions
      */
-    public function scopeDisplayed($query)
+    public function scopeDisplayed(Builder $query): Builder
     {
         return $query->whereNotNull('displayed_at');
     }
@@ -94,7 +95,7 @@ class CoachingIntervention extends Model
     /**
      * Scope for high priority interventions
      */
-    public function scopeHighPriority($query)
+    public function scopeHighPriority(Builder $query): Builder
     {
         return $query->where('priority', 'high');
     }
