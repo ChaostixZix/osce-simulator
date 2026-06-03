@@ -299,7 +299,7 @@ class GeminiService
 
         // Extract from search queries and results
         if (isset($groundingMetadata['webSearchQueries'])) {
-            foreach ($groundingMetadata['webSearchQueries'] as $index => $query) {
+            foreach ($groundingMetadata['webSearchQueries'] as $query) {
                 $citations[] = [
                     'title' => $query,
                     'source' => 'Google Search',
