@@ -1,0 +1,54 @@
+services:
+  app:
+    build:
+      context: https://github.com/ChaostixZix/osce-simulator.git#main
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      APP_URL: https://osce.bintangputra.dev
+      ASSET_URL: https://osce.bintangputra.dev
+      DB_HOST: postgres
+      DB_PORT: 5432
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - osce
+      - dokploy-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=dokploy-network"
+      - "traefik.http.routers.osce.rule=Host(`osce.bintangputra.dev`)"
+      - "traefik.http.routers.osce.entrypoints=websecure"
+      - "traefik.http.routers.osce.tls=true"
+      - "traefik.http.routers.osce.tls.certresolver=letsencrypt"
+      - "traefik.http.services.osce.loadbalancer.server.port=80"
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - osce
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  osce:
+    driver: bridge
+  dokploy-network:
+    external: true

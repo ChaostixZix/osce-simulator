@@ -76,3 +76,6 @@ GEMINI.MD
 # Legacy
 AGENTS.old.md
 application-screenshot.png
+
+# Local Codex project config may contain MCP secrets
+.codex/
