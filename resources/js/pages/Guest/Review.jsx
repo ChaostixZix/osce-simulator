@@ -32,8 +32,8 @@ export default function Review({ station, encounterId, review, messages }) {
                     <div>
                         <h2>Your encounter is saved.</h2>
                         <p>
-                            {review.message_count} questions recorded. {review.actions.length} clinical findings requested. Your summary is included
-                            below.
+                            {review.message_count} {review.message_count === 1 ? 'question' : 'questions'} recorded. {review.actions.length} clinical{' '}
+                            {review.actions.length === 1 ? 'finding' : 'findings'} requested. Your summary is included below.
                         </p>
                     </div>
                 </div>
@@ -75,7 +75,10 @@ export default function Review({ station, encounterId, review, messages }) {
                             </div>
                         )}
                         {review.unknown_count > 0 && (
-                            <p className="quiet-note">{review.unknown_count} questions concerned details not available in the authored case.</p>
+                            <p className="quiet-note">
+                                {review.unknown_count} {review.unknown_count === 1 ? 'question' : 'questions'} concerned details not available in the
+                                authored case.
+                            </p>
                         )}
                     </section>
                     <aside className="station-card clean-card checklist-section">
@@ -122,7 +125,9 @@ export default function Review({ station, encounterId, review, messages }) {
                     </section>
                 </div>
                 <details className="full-transcript station-card clean-card">
-                    <summary>Read the complete conversation ({messages.length} messages)</summary>
+                    <summary>
+                        Read the complete conversation ({messages.length} {messages.length === 1 ? 'message' : 'messages'})
+                    </summary>
                     {messages.length === 0 && <p>No conversation was recorded.</p>}
                     {messages.map((message) => (
                         <div className="transcript-line" key={message.id}>
