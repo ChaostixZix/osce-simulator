@@ -120,8 +120,7 @@ export default function OSCEFlightCheck({ osceCase, user, skipAvailable = false 
                       <div className="bg-gradient-to-r from-emerald-500/10 to-blue-500/10 p-3 rounded border border-emerald-500/20">
                         <div className="text-sm font-medium text-foreground mb-1">Data Pasien:</div>
                         <div className="text-sm text-muted-foreground">
-                          {osceCase.patient_gender || 'Laki-laki'}, {osceCase.patient_age || 35} tahun,
-                          datang ke {osceCase.clinical_setting} dengan keluhan <strong>{osceCase.chief_complaint}</strong>
+                          {osceCase.scenario || osceCase.description}
                         </div>
                       </div>
 
