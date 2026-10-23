@@ -1,0 +1,7 @@
+[Unit]
+Description=Renew the OSCE origin TLS certificate
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/certbot renew --cert-name osce.bintangputra.dev --config-dir /etc/osce/letsencrypt --work-dir /var/lib/osce/acme-work --logs-dir /var/log/osce-acme --deploy-hook "/usr/sbin/nginx -t && /usr/sbin/nginx -s reload" --quiet

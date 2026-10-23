@@ -1,59 +1,52 @@
 # OSCE Simulator
 
-## Overview
+Practise an OSCE history with a virtual patient, record clinical findings and submit a summary for an evidence review.
 
-OSCE Simulator is an AI-powered Objective Structured Clinical Examination (OSCE) simulator for medical students, educators, and clinical training programs. It helps learners practice realistic clinical encounters, receive structured assessment, and turn each session into guided follow-up learning.
+The public guest station runs without an account, AI credentials, Redis or WebSockets. Patient replies use the original Chest Pain Assessment case. Feedback shows recorded discussion topics, requested findings, the learner's summary and the unchanged examiner checklist. It does **not** award a clinical grade.
 
-The project is built with Laravel 12, Inertia.js, React, and Tailwind CSS. It is used by ~400 medical students across 3 universities in Indonesia and is designed as a practical open-source foundation for scalable clinical skills training.
+## Run locally
 
-## Features
+Requirements: PHP 8.3 with mbstring, XML, cURL, SQLite/PDO, fileinfo and OpenSSL; Composer 2; Node 22.12+ or 24; npm 10+.
 
-- AI-driven clinical case simulation for realistic OSCE practice.
-- Real-time assessment and feedback during clinical sessions.
-- Post-session learning workflows for review, replay, and rationalization.
-- Microskills coaching to help learners improve specific clinical behaviors.
-- Growth tracking across sessions and competencies.
-- Patient visualization to make scenarios more engaging and contextual.
+Run from the repository root (there is no webapp subdirectory):
 
-## Tech Stack
-
-- Laravel 12
-- Inertia.js
-- React
-- Tailwind CSS
-- Vite
-- Redis-backed session and queue services where configured
-- External AI provider integration for simulation and feedback workflows
-
-## Getting Started
-
-### Prerequisites
-
-- PHP and Composer compatible with Laravel 12
-- Node.js with npm
-- A database supported by Laravel
-- Redis for features that use Redis-backed sessions or queues
-- Credentials for configured external services, including WorkOS authentication and the configured AI provider
-
-### Setup
-
-```bash
-cp .env.example .env
+```sh
 composer install
-npm install
+npm ci
+cp .env.example .env
 php artisan key:generate
+touch database/database.sqlite
 php artisan migrate
-composer run dev
+php artisan db:seed --class=DemoSeeder
+npm run build
+php artisan serve --host=0.0.0.0 --port=8000
 ```
 
-Set required environment values before running features that depend on external services, including WorkOS authentication, Redis-backed session/queue services, and the configured AI provider credentials.
+Open http://100.100.22.72:8000 on this host's Tailscale network, or http://localhost:8000 on your own machine. Change APP_URL if needed. For frontend development use `npm run dev` in another terminal; remove a stale `public/hot` file before serving production assets.
+
+## Verify
+
+```sh
+php artisan test
+npm run lint
+npm run build
+QA_BROWSER=/path/to/chromium npm run qa:guest
+```
+
+Build first and keep the server running before browser QA. Rebuilding during QA invalidates Inertia's asset version and temporarily removes the manifest. The browser script completes real stations at 1440px and 390px, reloads their persisted reviews and writes screenshots plus measured errors to `../screenshots`. Set QA_URL, QA_LABEL and QA_OUTPUT to override its target and output.
+
+## Documentation
+
+- [DESIGN.md](DESIGN.md): architecture, patient/review layers, visual direction and tokens.
+- [documentation.md](documentation.md): behavior, configuration, data and maintenance.
+- [deploy/README.md](deploy/README.md): origin HTTPS deployment, exact commands, alternatives and rollback.
+
+Laravel 12 + Inertia 2 + React 19 + Vite. Account-based legacy features still require WorkOS and their configured services; they are separate from the guest station and are not advertised as verified public features.
 
 ## Contributing
 
-Contributions are welcome. If you want to improve OSCE Simulator, open an issue or pull request with a clear description of the problem, proposed change, and any testing performed.
-
-Please keep changes focused, follow the existing Laravel and React/Inertia conventions, and preserve the project design system where applicable.
+Preserve authored clinical facts, checklists and scoring definitions. Report medical-content concerns for examiner review. Follow AGENTS.md and run the checks before publishing.
 
 ## License
 
-OSCE Simulator is open-source software licensed under the MIT License. See [LICENSE](LICENSE) for details.
+[MIT](LICENSE).

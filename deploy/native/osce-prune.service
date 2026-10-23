@@ -1,0 +1,14 @@
+[Unit]
+Description=Remove OSCE guest encounters older than seven days
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/babu-out/osce-simulator-fix-20261024/repo
+EnvironmentFile=/etc/osce/environment
+ExecStart=/usr/bin/php artisan osce:prune-guests
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/osce /home/ubuntu/babu-out/osce-simulator-fix-20261024/repo/bootstrap/cache
