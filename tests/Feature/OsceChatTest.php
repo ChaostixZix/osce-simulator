@@ -172,7 +172,7 @@ it('can retrieve chat history', function () {
             'success',
             'messages',
         ])
-        ->assertJsonCount('messages', 2);
+        ->assertJsonCount(2, 'messages');
 });
 
 it('cannot retrieve chat history for another users session', function () {

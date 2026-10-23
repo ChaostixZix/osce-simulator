@@ -250,17 +250,12 @@ class AssessmentQueueService
     protected function getAverageProcessingTime(): float
     {
         return Cache::remember('assessment_avg_processing_time', 300, function () {
-            $result = DB::table('ai_assessment_runs')
-                ->where('status', 'completed')
+            $runs = AiAssessmentRun::where('status', 'completed')
                 ->whereNotNull('started_at')
                 ->whereNotNull('completed_at')
-                ->orderBy('completed_at', 'desc')
-                ->limit(50)
-                ->selectRaw('AVG(strftime("%s", completed_at) - strftime("%s", started_at)) as avg_seconds')
-                ->first();
-
-            $avgSeconds = $result->avg_seconds ?? 180; // Default 3 minutes
-            return max(60, $avgSeconds / 60); // Convert to minutes, minimum 1 minute
+                ->latest('completed_at')->limit(50)->get(['started_at', 'completed_at']);
+            $avgSeconds = $runs->avg(fn ($run) => $run->started_at->diffInSeconds($run->completed_at)) ?? 180;
+            return max(1, $avgSeconds / 60);
         });
     }
 

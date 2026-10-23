@@ -30,7 +30,7 @@ class OsceSessionFactory extends Factory
             'score' => null,
             'max_score' => null,
             'time_extended' => 0,
-            'clinical_reasoning_score' => null,
+            'clinical_reasoning_score' => 0,
             'total_test_cost' => 0,
             'evaluation_feedback' => [],
             'responses' => [],

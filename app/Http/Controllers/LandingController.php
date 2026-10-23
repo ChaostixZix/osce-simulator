@@ -12,7 +12,9 @@ class LandingController extends Controller
 {
     public function index(): Response
     {
-        return Inertia::render('Landing');
+        return Inertia::render('Landing', [
+            'demoAvailable' => config('demo.enabled') && \App\Models\OsceCase::where('title', config('demo.case_title'))->where('is_active', true)->exists(),
+        ]);
     }
 
     public function privacyPolicy(): Response

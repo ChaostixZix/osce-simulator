@@ -23,25 +23,27 @@ beforeEach(function () {
     $this->osceCase = OsceCase::create([
         'title' => 'Test Chest Pain Case',
         'description' => 'A patient presents with chest pain',
-        'difficulty' => 'intermediate',
+        'difficulty' => 'medium',
         'duration_minutes' => 30,
         'scenario' => 'You are a medical student in the emergency department. A 45-year-old patient presents with chest pain.',
         'objectives' => json_encode(['Take focused history', 'Perform physical examination', 'Order appropriate tests']),
-        'checklist' => json_encode(['pain characteristics', 'vital signs', 'cardiovascular exam']),
-        'required_tests' => json_encode(['ECG', 'Troponin']),
-        'highly_appropriate_tests' => json_encode(['Chest X-ray']),
-        'contraindicated_tests' => json_encode(['CT Brain']),
+        'checklist' => ['pain characteristics', 'vital signs', 'cardiovascular exam'],
+        'required_tests' => ['ECG', 'Troponin'],
+        'highly_appropriate_tests' => ['Chest X-ray'],
+        'contraindicated_tests' => ['CT Brain'],
         'case_budget' => 1000,
         'is_active' => true,
     ]);
 
     // Create test session directly
+    config(['services.gemini.api_key' => null]);
     $this->session = OsceSession::create([
         'user_id' => $this->user->id,
         'osce_case_id' => $this->osceCase->id,
         'status' => 'completed',
         'started_at' => now()->subMinutes(25),
         'completed_at' => now(),
+        'rationalization_completed_at' => now(),
     ]);
 });
 
@@ -68,14 +70,16 @@ test('assessment service computes rubric scores correctly', function () {
         'osce_session_id' => $this->session->id,
         'medical_test_id' => $medicalTest->id,
         'ordered_at' => now()->subMinutes(15),
-        'result' => 'Normal sinus rhythm',
+        'test_type' => 'lab',
+        'test_name' => 'ECG',
+        'results' => ['description' => 'Normal sinus rhythm'],
     ]);
 
     SessionExamination::create([
         'osce_session_id' => $this->session->id,
         'examination_type' => 'auscultation',
-        'body_part' => 'chest',
-        'finding' => 'Normal heart sounds',
+        'examination_category' => 'cardiovascular',
+        'findings' => ['description' => 'Normal heart sounds'],
         'performed_at' => now()->subMinutes(10),
     ]);
 
@@ -104,11 +108,14 @@ test('assessment artifact includes all required data', function () {
         'sent_at' => now()->subMinutes(5),
     ]);
 
+    $this->session->update(['diagnosis' => 'Submitted working diagnosis', 'plan' => 'Submitted clinical plan']);
     $artifact = $service->buildArtifact($this->session);
+    expect($artifact['submitted_summary']['diagnosis'])->toBe('Submitted working diagnosis')
+        ->and($artifact['submitted_summary']['plan'])->toBe('Submitted clinical plan');
 
     expect($artifact)->toHaveKeys([
         'session_id',
-        'rubric_version',
+        'assessment_type',
         'case',
         'transcript',
         'actions',
@@ -134,7 +141,7 @@ test('assessment artifact includes all required data', function () {
     ]);
 });
 
-test('session completion dispatches assessment job', function () {
+test('assessment waits for finalization before dispatch', function () {
     Queue::fake();
 
     $session = OsceSession::create([
@@ -146,9 +153,10 @@ test('session completion dispatches assessment job', function () {
 
     $session->markAsCompleted();
 
-    Queue::assertPushed(AssessOsceSessionJob::class, function ($job) use ($session) {
-        return $job->sessionId === $session->id;
-    });
+    Queue::assertNotPushed(AssessOsceSessionJob::class);
+    $this->actingAs($this->user);
+    $session->finalize('Working diagnosis', 'Differential diagnoses', 'Management plan');
+    Queue::assertPushed(AssessOsceSessionJob::class, 1);
 });
 
 test('assessment job processes session correctly', function () {
@@ -258,6 +266,7 @@ test('assessment api returns error for unassessed session', function () {
         'completed_at' => now(),
     ]);
 
+    $unassessedSession->update(['rationalization_completed_at' => now()]);
     $this->actingAs($this->user)
         ->getJson("/api/osce/sessions/{$unassessedSession->id}/results")
         ->assertStatus(404)
@@ -286,7 +295,7 @@ test('scoring includes penalties for contraindicated tests', function () {
         'name' => 'CT Brain',
         'cost' => 500,
         'category' => 'radiology',
-        'type' => 'radiology',
+        'type' => 'imaging',
         'description' => 'CT scan of brain',
     ]);
 
@@ -294,7 +303,9 @@ test('scoring includes penalties for contraindicated tests', function () {
         'osce_session_id' => $this->session->id,
         'medical_test_id' => $contraindicatedTest->id,
         'ordered_at' => now()->subMinutes(15),
-        'result' => 'Normal',
+        'test_type' => 'procedure',
+        'test_name' => 'CT Brain',
+        'results' => ['description' => 'Normal'],
     ]);
 
     $config = config('osce_scoring');
@@ -316,5 +327,5 @@ test('ai assessor service handles missing api key gracefully', function () {
     $result = $service->assess($this->session);
 
     expect($result->assessor_output)->toBeArray();
-    expect($result->assessor_output['model_info']['status'])->toBe('ai_unavailable');
+    expect($result->assessor_output['model_info']['assessment_approach'])->toBe('rubric_fallback');
 });

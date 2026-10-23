@@ -201,7 +201,7 @@ class TimingBugReproductionTest extends TestCase
         // Manual calculation for verification
         $now = Carbon::now();
         $startedAt = $session->started_at;
-        $manualElapsed = $now->diffInSeconds($startedAt);
+        $manualElapsed = $startedAt->diffInSeconds($now);
         $totalDuration = $session->duration_minutes * 60;
         $manualRemaining = max(0, $totalDuration - $manualElapsed);
 

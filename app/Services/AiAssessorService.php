@@ -174,7 +174,7 @@ class AiAssessorService
                 'test_category' => $orderedTest->medicalTest?->category ?? 'unknown',
                 'cost' => $orderedTest->medicalTest?->cost ?? 0,
                 'ordered_at' => $orderedTest->ordered_at->toISOString(),
-                'result' => $orderedTest->result,
+                'result' => $orderedTest->results,
             ];
         })->toArray();
 
@@ -352,6 +352,11 @@ class AiAssessorService
             'assessment_type' => 'holistic_session_assessment',
             'case' => $caseContext,
             'transcript' => $recentMessages,
+            'submitted_summary' => [
+                'diagnosis' => $session->diagnosis,
+                'differential_diagnosis' => $session->differential_diagnosis,
+                'plan' => $session->plan,
+            ],
             'actions' => [
                 'tests' => $tests,
                 'examinations' => $examinations,

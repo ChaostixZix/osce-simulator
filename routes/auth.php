@@ -5,8 +5,11 @@ use Laravel\WorkOS\Http\Requests\AuthKitAuthenticationRequest;
 use Laravel\WorkOS\Http\Requests\AuthKitLoginRequest;
 use Laravel\WorkOS\Http\Requests\AuthKitLogoutRequest;
 
-Route::get('login', function (AuthKitLoginRequest $request) {
-    return $request->redirect();
+Route::get('login', function () {
+    if (!config('services.workos.client_id') || !config('services.workos.secret')) {
+        return to_route('demo.briefing');
+    }
+    return app(AuthKitLoginRequest::class)->redirect();
 })->middleware(['guest'])->name('login');
 
 // Primary WorkOS callback endpoint

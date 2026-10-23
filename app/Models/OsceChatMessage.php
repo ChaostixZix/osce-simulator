@@ -12,6 +12,8 @@ class OsceChatMessage extends Model
         'sender_type',
         'message',
         'metadata',
+        'source_topic',
+        'client_message_id',
         'sent_at',
     ];
 

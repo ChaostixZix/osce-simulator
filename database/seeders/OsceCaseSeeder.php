@@ -11,7 +11,7 @@ class OsceCaseSeeder extends Seeder
      */
     public function run(): void
     {
-        \App\Models\OsceCase::create([
+        \App\Models\OsceCase::firstOrCreate(['title' => 'Cardiopulmonary Resuscitation (CPR)'], [
             'title' => 'Cardiopulmonary Resuscitation (CPR)',
             'description' => 'Basic life support scenario - adult CPR',
             'difficulty' => 'medium',
@@ -79,7 +79,7 @@ class OsceCaseSeeder extends Seeder
             'test_results_templates' => [],
         ]);
 
-        \App\Models\OsceCase::create([
+        \App\Models\OsceCase::firstOrCreate(['title' => 'Asthma Exacerbation Management'], [
             'title' => 'Asthma Exacerbation Management',
             'description' => 'Acute asthma attack in emergency setting',
             'difficulty' => 'hard',
@@ -153,7 +153,7 @@ class OsceCaseSeeder extends Seeder
             'test_results_templates' => [],
         ]);
 
-        \App\Models\OsceCase::create([
+        \App\Models\OsceCase::firstOrCreate(['title' => 'Blood Pressure Measurement'], [
             'title' => 'Blood Pressure Measurement',
             'description' => 'Proper technique for measuring blood pressure',
             'difficulty' => 'easy',
@@ -219,7 +219,7 @@ class OsceCaseSeeder extends Seeder
             'test_results_templates' => [],
         ]);
 
-        \App\Models\OsceCase::create([
+        \App\Models\OsceCase::firstOrCreate(['title' => 'Chest Pain Assessment'], [
             'title' => 'Chest Pain Assessment',
             'description' => 'Evaluation of acute chest pain in emergency setting',
             'difficulty' => 'hard',

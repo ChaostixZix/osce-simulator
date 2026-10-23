@@ -72,6 +72,11 @@ class OsceAssessmentController extends Controller
             ]);
         }
 
+        if (config('services.ai.provider') === 'local') {
+            app(\App\Services\AiAssessorService::class)->assess($session, $force);
+            return response()->json(['message' => 'Local rubric assessment completed', 'session_id' => $session->id]);
+        }
+
         // Enqueue the assessment
         $assessmentRun = $this->queueService->enqueueAssessment($session->id, $force);
         
@@ -110,6 +115,10 @@ class OsceAssessmentController extends Controller
         }
 
         $queueStatus = $this->queueService->getQueueStatus($session->id);
+
+        if ($queueStatus['status'] === 'not_queued' && $session->assessed_at) {
+            return response()->json(['status' => 'completed', 'session_id' => $session->id, 'assessment_type' => 'legacy_rubric']);
+        }
 
         // If no assessment run found
         if ($queueStatus['status'] === 'not_queued') {

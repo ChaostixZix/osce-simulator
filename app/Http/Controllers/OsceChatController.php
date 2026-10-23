@@ -78,6 +78,8 @@ class OsceChatController extends Controller
                 'ai_response' => $aiMessage,
             ]);
 
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException | \Symfony\Component\HttpKernel\Exception\HttpException $e) {
+            throw $e;
         } catch (\Exception $e) {
             Log::error('OSCE Chat error', [
                 'message' => $e->getMessage(),
@@ -115,6 +117,8 @@ class OsceChatController extends Controller
                 'messages' => $messages,
             ]);
 
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException | \Symfony\Component\HttpKernel\Exception\HttpException $e) {
+            throw $e;
         } catch (\Exception $e) {
             Log::error('OSCE Chat history error', [
                 'message' => $e->getMessage(),
@@ -179,6 +183,8 @@ class OsceChatController extends Controller
                 'system_message' => $systemMessage,
             ]);
 
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException | \Symfony\Component\HttpKernel\Exception\HttpException $e) {
+            throw $e;
         } catch (\Exception $e) {
             Log::error('OSCE Chat start error', [
                 'message' => $e->getMessage(),

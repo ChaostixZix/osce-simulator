@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Jobs\AssessOsceSessionJob;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -18,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class OsceSession extends Model
 {
+    use HasFactory;
     protected $fillable = [
         'user_id',
         'osce_case_id',
@@ -41,6 +43,7 @@ class OsceSession extends Model
         'differential_diagnosis',
         'plan',
         'finalized_at',
+        'rationalization_completed_at',
     ];
 
     protected $appends = [
@@ -51,7 +54,11 @@ class OsceSession extends Model
         'time_status',
     ];
 
+    protected $hidden = ['guest_token_hash'];
+
     protected $casts = [
+        'guest_actions' => 'array',
+        'guest_review' => 'array',
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
         'rationalization_completed_at' => 'datetime',
@@ -216,7 +223,7 @@ class OsceSession extends Model
             ]);
 
             // Dispatch assessment job if not already assessed
-            if (! $this->assessed_at) {
+            if (! $this->guest_token_hash && $this->finalized_at && ! $this->assessed_at) {
                 AssessOsceSessionJob::dispatch($this->id)->onQueue('assessments');
             }
         }
@@ -292,7 +299,7 @@ class OsceSession extends Model
      * Single source of truth for "rationalization complete" gating.
      *
      * In this project, the OSCE rationalization step is considered complete
-     * when the session itself has been completed (status === 'completed').
+     * when the learner has submitted the final clinical summary.
      * This accessor is used by controllers/middleware to guard access to
      * viewing assessment results and any subsequent scoring views.
      */
@@ -343,6 +350,9 @@ class OsceSession extends Model
         $this->plan = $plan;
         $this->finalized_at = now();
         $this->save();
+        if (! $this->guest_token_hash && ! $this->assessed_at) {
+            AssessOsceSessionJob::dispatch($this->id)->onQueue('assessments');
+        }
 
         \Log::info('OSCE Session finalized', [
             'session_id' => $this->id,

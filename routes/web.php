@@ -12,6 +12,14 @@ use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\OsceRationalizationController;
 
 
+Route::get('demo', [App\Http\Controllers\GuestStationController::class, 'briefing'])->name('demo.briefing');
+Route::post('demo/sessions', [App\Http\Controllers\GuestStationController::class, 'start'])->middleware('throttle:demo-start')->block()->name('demo.start');
+Route::get('demo/sessions/{session}', [App\Http\Controllers\GuestStationController::class, 'show'])->name('demo.session');
+Route::post('demo/sessions/{session}/messages', [App\Http\Controllers\GuestStationController::class, 'message'])->middleware('throttle:demo-message')->block()->name('demo.message');
+Route::post('demo/sessions/{session}/actions', [App\Http\Controllers\GuestStationController::class, 'action'])->middleware('throttle:demo-action')->block()->name('demo.action');
+Route::post('demo/sessions/{session}/submit', [App\Http\Controllers\GuestStationController::class, 'submit'])->middleware('throttle:demo-submit')->block()->name('demo.submit');
+Route::get('demo/sessions/{session}/review', [App\Http\Controllers\GuestStationController::class, 'review'])->name('demo.review');
+
 Route::get('/', [LandingController::class, 'index'])->name('home');
 Route::get('/privacy-policy', [LandingController::class, 'privacyPolicy'])->name('privacy-policy');
 Route::get('/contact', [LandingController::class, 'contact'])->name('contact');

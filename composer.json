@@ -63,7 +63,7 @@
     ],
     "dev": [
       "Composer\\Config::disableProcessTimeout",
-      "npx concurrently -c \"#93c5fd,#c4b5fd,#fdba74,#10b981\" \"php artisan serve --host=0.0.0.0 --port=8000 --verbose\" \"php artisan queue:work --queue=assessments,management,default --tries=3 --sleep=1 -v\" \"php artisan reverb:start --host=0.0.0.0 --port=8082 --debug\" \"bun run dev\" --names=server,queue,websocket,vite --kill-others"
+      "npx concurrently -c \"#93c5fd,#c4b5fd,#fdba74,#10b981\" \"php artisan serve --host=0.0.0.0 --port=8000 --verbose\" \"php artisan queue:work --queue=assessments,management,default --tries=3 --sleep=1 -v\" \"php artisan reverb:start --host=0.0.0.0 --port=8082 --debug\" \"npm run dev\" --names=server,queue,websocket,vite --kill-others"
     ],
     "dev:ssr": [
       "bun run build:ssr",
@@ -73,12 +73,6 @@
     "test": [
       "@php artisan config:clear --ansi",
       "@php artisan test"
-    ],
-    "post-install-cmd": [
-      "./heroku-postbuild.sh"
-    ],
-    "compile": [
-      "./heroku-postbuild.sh"
     ]
   },
   "extra": {

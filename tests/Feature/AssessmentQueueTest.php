@@ -128,7 +128,7 @@ class AssessmentQueueTest extends TestCase
         
         $status = $this->queueService->getQueueStatus($session->id);
         $this->assertEquals('failed', $status['status']);
-        $this->assertStringContains($errorMessage, $status['status_message']);
+        $this->assertStringContainsString($errorMessage, $status['status_message']);
     }
 
     public function test_queue_overview()

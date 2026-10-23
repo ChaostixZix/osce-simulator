@@ -13,6 +13,15 @@ class SessionTimerTest extends TestCase
 {
     use RefreshDatabase;
 
+    private User $user;
+    private OsceCase $osceCase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->setupTestCase();
+    }
+
     /** @test */
     public function elapsed_seconds_attribute_calculates_correctly()
     {

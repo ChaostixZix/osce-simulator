@@ -8,15 +8,21 @@ use Illuminate\Support\Facades\Log;
 
 class AiPatientService
 {
-    private UniversalAIService $aiService;
+    private ?UniversalAIService $aiService = null;
 
     public function __construct()
     {
-        $this->aiService = new UniversalAIService();
+        if (config('services.ai.provider', 'local') !== 'local') {
+            $this->aiService = new UniversalAIService();
+        }
     }
 
     public function generatePatientResponse(OsceSession $session, string $userMessage, array $chatHistory = []): string
     {
+        if ($this->aiService === null) {
+            return app(LocalPatientService::class)->reply($session->osceCase, $userMessage)['message'];
+        }
+
         try {
             $osceCase = $session->osceCase;
             $patientContext = $this->buildPatientContext($osceCase, $session, $chatHistory);
@@ -114,27 +120,19 @@ class AiPatientService
 
     private function getFallbackResponse(string $userMessage, array $patientContext): string
     {
-        // Simple fallback responses based on common medical questions
-        $fallbackResponses = [
-            'pain' => 'I\'m experiencing some discomfort, yes.',
-            'symptoms' => 'I\'ve been feeling unwell for a few days now.',
-            'medication' => 'I\'m not currently taking any medications.',
-            'history' => 'I don\'t have any significant medical history.',
-            'allergies' => 'I don\'t have any known allergies.',
-            'family' => 'I\'m not aware of any family medical conditions.',
-        ];
-
-        foreach ($fallbackResponses as $keyword => $response) {
-            if (stripos($userMessage, $keyword) !== false) {
-                return $response;
-            }
-        }
-
-        return 'I\'m not sure how to answer that. Could you rephrase your question?';
+        $case = new OsceCase([
+            'ai_patient_profile' => $patientContext['profile'] ?? '',
+            'ai_patient_responses' => $patientContext['responses'] ?? [],
+            'ai_patient_symptoms' => $patientContext['symptoms'] ?? [],
+        ]);
+        return app(LocalPatientService::class)->reply($case, $userMessage)['message'];
     }
 
     public function isConfigured(): bool
     {
+        if ($this->aiService === null) {
+            return true;
+        }
         try {
             $result = $this->aiService->testConnection();
             return $result['success'];
