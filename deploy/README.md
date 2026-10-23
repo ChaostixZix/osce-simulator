@@ -68,7 +68,7 @@ Nginx serves a small copy of public assets from /var/lib/osce/public because /ho
 
 ```sh
 sudo install -d -m 755 /var/lib/osce/public
-sudo cp -a public/build public/fonts public/images public/favicon.ico public/favicon.svg public/apple-touch-icon.png public/robots.txt /var/lib/osce/public/
+sudo cp -a public/build public/fonts public/images public/favicon.ico public/favicon.svg public/apple-touch-icon.png public/robots.txt public/index.php /var/lib/osce/public/
 sudo chmod -R a+rX /var/lib/osce/public
 ```
 
